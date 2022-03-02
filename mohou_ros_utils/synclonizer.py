@@ -5,8 +5,13 @@ import numpy as np
 class TimeStampedSequence:
     object_list: List[Any]
     time_list: List[float]
+    topic_name: Optional[str] = None
 
-    def __init__(self, object_list: None, time_list: None):
+    def __init__(self, 
+            object_list: Optional[List[Any]] = None, 
+            time_list: Optional[List[float]] = None,
+            topic_name = None):
+
         if object_list is None:
             object_list = []
         if time_list is None: 
@@ -14,6 +19,7 @@ class TimeStampedSequence:
         assert len(object_list) == len(time_list) 
         self.object_list = object_list
         self.time_list = time_list
+        self.topic_name = topic_name
 
     def append(self, obj, time):
         self.object_list.append(obj)
@@ -37,8 +43,8 @@ def get_union_time_bound(seq_list: List[TimeStampedSequence]):
 
 def check_valid_bins(booleans: np.ndarray):
     # valid sequcen must not have a holl of False
-    idx_first_valid = booleans.index(True)
-    idx_last_valid = len(booleans) - booleans[::-1].index(True) - 1
+    idx_first_valid = booleans.tolist().index(True)
+    idx_last_valid = len(booleans) - booleans[::-1].tolist().index(True) - 1
     is_valid_bins = np.all(booleans[idx_first_valid:idx_last_valid])
     return is_valid_bins
 
@@ -51,7 +57,7 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
 
     def pack_to_bin(seq: TimeStampedSequence):
         binidx_to_seqidx = [NO_OBJECT_EXIST_FLAG for _ in range(n_bins)]
-        binidxes = ((seq.time_list - t_start) // freq).astype(int)
+        binidxes = ((np.array(seq.time_list) - t_start) // freq).astype(int)
 
         for seqidx, binidx in enumerate(binidxes):
             if binidx > -1:
@@ -62,7 +68,7 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
     table = np.array([pack_to_bin(seq) for seq in seq_list], dtype=int)
 
     # valid means all object exist in the equaly spaced bin
-    bools_valid_bin = list(np.all(table != NO_OBJECT_EXIST_FLAG, axis=0))
+    bools_valid_bin = np.all(table != NO_OBJECT_EXIST_FLAG, axis=0)
     assert check_valid_bins(bools_valid_bin), 'seems frequence is too small. Set larger value.'
 
     t_bin_end_list = np.array([t_start + freq * (i + 1) for i in range(n_bins)])
