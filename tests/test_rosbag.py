@@ -14,7 +14,7 @@ def test_sync_rosbag():
         filename = os.path.join(dname, 'temp.bag') 
         bag = Bag(filename, mode='w')
 
-        for i in range(100):
+        for i in range(12):
             time = rospy.rostime.Time.from_sec(i * 1.0)
             bag.write('dummy_string', String(), time)
 
@@ -24,3 +24,7 @@ def test_sync_rosbag():
 
         bag = Bag(filename, mode='r')
         seqs = bag_to_synced_seqs(bag, 2.0)
+        bag.close()
+
+        assert len(seqs[0].time_list) == 6
+        assert seqs[0].time_list[0] == 2.0  # must equals to the freq

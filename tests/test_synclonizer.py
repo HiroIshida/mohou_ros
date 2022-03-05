@@ -27,7 +27,7 @@ def test_synclonize_case1():
 
 
 def test_synclonize_case2():
-    N = 11
+    N = 12
     times = np.array([float(i) * 1.0 for i in range(N)])
     times2 = np.array([float(i) * 1.2 for i in range(N)])
     seq1 = TimeStampedSequence([None for _ in range(N)], times)
@@ -35,4 +35,5 @@ def test_synclonize_case2():
 
     freq = 2.0
     seqs_new = synclonize([seq1, seq2], freq=freq)
+    print(seqs_new[0].time_list)
     assert len(seqs_new[0].time_list) == 6
