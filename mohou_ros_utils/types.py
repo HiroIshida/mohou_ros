@@ -8,7 +8,7 @@ ObjectT = TypeVar('ObjectT')
 @dataclass(frozen=True)
 class TimeStampedSequence(Generic[ObjectT]):
     object_type: Type[ObjectT]
-    object_list: List[ObjectT]
+    object_list: List[Optional[ObjectT]]
     time_list: List[float]
     topic_name: Optional[str] = None
 
@@ -16,7 +16,7 @@ class TimeStampedSequence(Generic[ObjectT]):
     def create_empty(cls, object_type: Type[ObjectT], topic_name = None):
         return cls(object_type, [], [], topic_name)
 
-    def append(self, obj: ObjectT, time):
+    def append(self, obj: Optional[ObjectT], time: float):
         self.object_list.append(obj)
         self.time_list.append(time)
 

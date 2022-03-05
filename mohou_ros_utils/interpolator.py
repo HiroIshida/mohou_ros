@@ -50,7 +50,8 @@ class MessageInterpolator(ABC, Generic[MsgT]):
     @classmethod
     def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> 'MessageInterpolator':
         assert issubclass(seq.object_type, genpy.Message)
-        return cls(seq.object_list, seq.time_list)
+        assert not None in seq.object_list
+        return cls(seq.object_list, seq.time_list)  # type: ignore
 
     def is_stamped(self):
         return hasattr(self.msg_type, 'header')
