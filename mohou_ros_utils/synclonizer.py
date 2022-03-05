@@ -1,7 +1,10 @@
-from typing import List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Type
 import numpy as np
 
+from rospy.rostime import Time
+
 from mohou_ros_utils.types import TimeStampedSequence
+from mohou_ros_utils.interpolator import MessageInterpolator
 
 
 def get_intersection_time_bound(seq_list: List[TimeStampedSequence]):
@@ -30,7 +33,12 @@ def get_first_last_true_indices(booleans: np.ndarray) -> Tuple[int, int]:
     return idx_first_valid, idx_last_valid
 
 
-def synclonize(seq_list: List[TimeStampedSequence], freq: float):
+def synclonize(
+        seq_list: List[TimeStampedSequence],
+        freq: float,
+        itp_table: Optional[Dict[Type, MessageInterpolator]] = None,
+        ):
+
     t_start, t_end = get_union_time_bound(seq_list)
     n_bins = int((t_end - t_start )//freq + 1) + 1
     t_bin_middle_list = np.array([t_start + freq * (i + 0.5) for i in range(n_bins)])
@@ -51,7 +59,7 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
     bools_valid_bin = np.all(table != NO_OBJECT_EXIST_FLAG, axis=0)
     idx_first_valid, idx_last_valid = get_first_last_true_indices(bools_valid_bin)
 
-    seq_new_list = []
+    seq_new_list: List[TimeStampedSequence] = []
     for seq, binidx_to_seqidx in zip(seq_list, table):
 
         seq_new = TimeStampedSequence.create_empty(object_type=seq.object_type, topic_name=seq.topic_name)
@@ -64,6 +72,13 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
         seq_new_list.append(seq_new)
 
     for seq_new in seq_new_list:
-        assert not None in seq_new.object_list
+        indices_none = [i for i in range(len(seq_new)) if seq_new.object_list[i] == None]
+        if indices_none:
+            if itp_table is None:
+                assert False, 'Please set lower hz, or specify interpolator'
+            itp = itp_table[seq_new.object_type].from_time_stamped_sequence(seq_new) 
+            for idx in indices_none:
+                t_itp = seq_new.time_list[idx]
+                seq_new.object_list[idx] = itp(Time.from_sec(t_itp))
 
     return seq_new_list
