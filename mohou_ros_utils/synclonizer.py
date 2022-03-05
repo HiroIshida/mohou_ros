@@ -2,7 +2,7 @@ from typing import Dict, List, Any, Optional, Tuple, Type
 import numpy as np
 
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.interpolator import MessageInterpolator
+from mohou_ros_utils.interpolator import AbstractInterpolator
 from mohou_ros_utils.interpolator import InterpolationRule
 from mohou_ros_utils.interpolator import NullInterpolationRule
 
@@ -72,7 +72,7 @@ def synclonize(
         seq_new_list.append(seq_new)
 
     for seq_new in seq_new_list:
-        itp_rule(seq_new)
+        itp_rule.apply(seq_new)
         assert seq_new.is_valid()
 
     return seq_new_list

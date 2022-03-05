@@ -3,7 +3,8 @@ from rospy.rostime import Time
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
-from mohou_ros_utils.interpolator import NearestNeighborInterpolator
+from mohou_ros_utils.interpolator import NearestNeighbourMessageInterpolator
+
 
 def test_nearest_neighbor_interpolator():
     bridge = CvBridge()
@@ -15,7 +16,7 @@ def test_nearest_neighbor_interpolator():
     msg2 = bridge.cv2_to_imgmsg(mat2, encoding='rgb8')
     msg2.header.stamp = Time.from_sec(1.0)
 
-    itp = NearestNeighborInterpolator[Image]([msg1, msg2])
+    itp = NearestNeighbourMessageInterpolator.from_headered_messages([msg1, msg2])
 
     assert itp(Time(0.2)).data == msg1.data
     assert itp(Time(0.8)).data == msg2.data

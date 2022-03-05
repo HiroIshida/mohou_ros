@@ -16,7 +16,8 @@ except:
 
 from mohou_ros_utils.types import TimeStampedSequence
 
-MsgT = TypeVar('MsgT', bound=genpy.Message)
+ObjectT = TypeVar('ObjectT')
+MessageT = TypeVar('MessageT', bound=genpy.Message)
 
 
 def is_sorted(list):
@@ -24,82 +25,85 @@ def is_sorted(list):
     return all(list[i] <= list[i+1] for i in range(len(list) - 1))
 
 
-class MessageInterpolator(ABC, Generic[MsgT]):
-    msg_type: Type[MsgT]
-    msg_list: List[MsgT]
+class AbstractInterpolator(ABC, Generic[ObjectT]):
+    object_type: Type[ObjectT]
+    object_list: List[ObjectT]
     time_list: List[float]
 
     def __init__(
             self,
-            msg_list: List[MsgT],
-            time_stamp_list: Optional[List[rospy.rostime.Time]] = None):
+            object_list: List[ObjectT],
+            time_list: List[float]):
 
-        self.msg_type = type(msg_list[0])
-
-        if time_stamp_list is None and self.is_stamped():
-            time_stamp_list = [e.header.stamp for e in msg_list]  # type: ignore
-        else:
-            assert time_stamp_list is not None
-
-        time_list = [e.to_sec() for e in time_stamp_list]
+        self.object_type = type(object_list[0])
         assert is_sorted(time_list), 'your time stamp is not sorted'
 
-        self.msg_list = msg_list
+        self.object_list = object_list
         self.time_list = time_list
 
     @classmethod
-    def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> 'MessageInterpolator':
-        assert issubclass(seq.object_type, genpy.Message)
-        assert not None in seq.object_list
-        return cls(seq.object_list, seq.time_list)  # type: ignore
+    def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> 'AbstractInterpolator':
+        indices_valid = [idx for idx in range(len(seq)) if seq.object_list[idx] != None]
 
-    def is_stamped(self):
-        return hasattr(self.msg_type, 'header')
+        time_list_valid = [seq.time_list[i] for i in indices_valid]
+        object_list_valid = [seq.object_list[i] for i in indices_valid]
+        return cls(object_list_valid, time_list_valid)  # type: ignore
 
-    def __call__(self, time_stamp: rospy.rostime.Time) -> MsgT:
-        msg_itped = self._itp_impl(time_stamp)
+    @abstractmethod
+    def apply(self, t: float) -> ObjectT:
+        pass
 
+
+class ROSMessageMixin(AbstractInterpolator[MessageT]):
+
+    @classmethod
+    def from_headered_messages(cls, messages: List[MessageT]) -> 'ROSMessageMixin':
+        assert hasattr(messages[0], 'header')
+        time_list = [msg.header.stamp.to_sec() for msg in messages]
+        return cls(messages, time_list)
+
+    def __call__(self, time_stamp: rospy.rostime.Time) -> MessageT:
+        msg_itped = self.apply(time_stamp.to_sec())
         if hasattr(msg_itped, 'header') and isinstance(msg_itped.header, Header):
             msg_itped.header.stamp = copy.deepcopy(time_stamp)
         return msg_itped
 
-    @abstractmethod
-    def _itp_impl(self, time_stamp: rospy.rostime.Time) -> MsgT:
-        pass
 
+class NearestNeighbourInterpolator(AbstractInterpolator, Generic[ObjectT]):
 
-class NearestNeighborInterpolator(MessageInterpolator, Generic[MsgT]):
-
-    def _itp_impl(self, time_stamp: rospy.rostime.Time) -> MsgT:
-        time = time_stamp.to_sec()
-        diffs = np.abs(np.array(self.time_list) - time)
+    def apply(self, t: float) -> ObjectT:
+        diffs = np.abs(np.array(self.time_list) - t)
         idx_closest = np.argmin(diffs)
-        return copy.deepcopy(self.msg_list[idx_closest])
+        return copy.deepcopy(self.object_list[idx_closest])
 
 
-class VectorizationBasedInterpolator(MessageInterpolator, ABC, Generic[MsgT]):
+class NearestNeighbourMessageInterpolator(NearestNeighbourInterpolator, ROSMessageMixin):
+    pass
+
+
+class VectorizationBasedInterpolator(AbstractInterpolator, ABC, Generic[ObjectT]):
     itp: interpolate.interp1d
     kind: str
 
-    def __init__(self, msg_list: List[MsgT], time_stamp_list: List[rospy.rostime.Time], kind: str = 'linear'):
+    def __init__(self, msg_list: List[ObjectT], time_stamp_list: List[rospy.rostime.Time], kind: str = 'linear'):
         assert kind in ['linear', 'cubic', 'nearest']
         super().__init__(msg_list, time_stamp_list)
         self.itp = self.crate_interpolator()
 
     def crate_interpolator(self) -> interpolate.interp1d:
-        vector_list = [self.vectorize_msg(e) for e in self.msg_list]
+        vector_list = [self.vectorize_msg(e) for e in self.object_list]
         itp = interpolate.interp1d(self.time_list, vector_list, self.kind)
         return itp
 
     @abstractmethod
-    def vectorize_msg(self, msg: MsgT) -> np.ndarray:
+    def vectorize_msg(self, msg: ObjectT) -> np.ndarray:
         pass
 
     @abstractmethod
-    def devectorize(self, vector: np.ndarray) -> MsgT:
+    def devectorize(self, vector: np.ndarray) -> ObjectT:
         pass
 
-    def _itp_impl(self, time_stamp: rospy.rostime.Time) -> MsgT:
+    def _itp_impl(self, time_stamp: rospy.rostime.Time) -> ObjectT:
         itped = self.itp([time_stamp.to_sec()])[0]
         return self.devectorize(itped)
 
@@ -131,28 +135,27 @@ class ImageInterpolator(VectorizationBasedInterpolator, Image):
 
 class InterpolationRule:
 
-    @classmethod
     @abstractmethod
-    def __call__(cls, seq: TimeStampedSequence) -> None:
+    def apply(self, seq: TimeStampedSequence) -> None:
         pass
 
 
 class NullInterpolationRule(InterpolationRule):
 
-    @classmethod
-    def __call__(cls, seq: TimeStampedSequence) -> None:
+    def apply(self, seq: TimeStampedSequence) -> None:
         pass
 
 
 class AllSameInterpolationRule(InterpolationRule):
     """Apply the same interpolator independent on message types"""
-    itp_type: ClassVar[Type[MessageInterpolator]]
+    itp_type: Type[AbstractInterpolator]
 
-    @classmethod
-    def __call__(cls, seq: TimeStampedSequence) -> None:
+    def __init__(self, itp_type: Type[AbstractInterpolator]):
+        self.itp_type = itp_type
+
+    def apply(self, seq: TimeStampedSequence) -> None:
         """fill all None object by specified interpolation method"""
-        itp = cls.itp_type.from_time_stamped_sequence(seq)
+        itp = self.itp_type.from_time_stamped_sequence(seq)
         for i in range(len(seq)):
             if seq.object_list[i] is None:
-                t_ros = rospy.rostime.Time(seq.time_list[i])
-                seq.object_list[i] = itp(t_ros)
+                seq.object_list[i] = itp.apply(seq.time_list[i])
