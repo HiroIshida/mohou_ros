@@ -5,7 +5,7 @@ from typing import Dict, List, Any, Optional, Type, TypeVar, Generic
 ObjectT = TypeVar('ObjectT')
 
 
-@dataclass(frozen=True)
+@dataclass
 class TimeStampedSequence(Generic[ObjectT]):
     object_type: Type[ObjectT]
     object_list: List[Optional[ObjectT]]
