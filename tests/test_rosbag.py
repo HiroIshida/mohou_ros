@@ -27,4 +27,4 @@ def test_sync_rosbag():
         bag.close()
 
         assert len(seqs[0].time_list) == 6
-        assert seqs[0].time_list[0] == 2.0  # must equals to the freq
+        assert seqs[0].time_list[0] == 1.0

@@ -71,7 +71,7 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
     bools_valid_bin = np.all(table != NO_OBJECT_EXIST_FLAG, axis=0)
     assert check_valid_bins(bools_valid_bin), 'seems frequence is too small. Set larger value.'
 
-    t_bin_end_list = np.array([t_start + freq * (i + 1) for i in range(n_bins)])
+    t_bin_end_list = np.array([t_start + freq * (i + 0.5) for i in range(n_bins)])
 
     seq_list_new = []
     times_new = t_bin_end_list[bools_valid_bin]
