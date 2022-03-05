@@ -25,3 +25,6 @@ class TimeStampedSequence(Generic[ObjectT]):
 
     def __post_init__(self):
         assert len(self.object_list) == len(self.time_list)
+
+    def is_valid(self):
+        return not (None in self.object_list)

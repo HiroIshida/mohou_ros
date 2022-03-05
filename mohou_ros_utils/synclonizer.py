@@ -1,10 +1,10 @@
 from typing import Dict, List, Any, Optional, Tuple, Type
 import numpy as np
 
-from rospy.rostime import Time
-
 from mohou_ros_utils.types import TimeStampedSequence
 from mohou_ros_utils.interpolator import MessageInterpolator
+from mohou_ros_utils.interpolator import InterpolationRule
+from mohou_ros_utils.interpolator import NullInterpolationRule
 
 
 def get_intersection_time_bound(seq_list: List[TimeStampedSequence]):
@@ -36,7 +36,7 @@ def get_first_last_true_indices(booleans: np.ndarray) -> Tuple[int, int]:
 def synclonize(
         seq_list: List[TimeStampedSequence],
         freq: float,
-        itp_table: Optional[Dict[Type, MessageInterpolator]] = None,
+        itp_rule: InterpolationRule = NullInterpolationRule()
         ):
 
     t_start, t_end = get_union_time_bound(seq_list)
@@ -72,13 +72,7 @@ def synclonize(
         seq_new_list.append(seq_new)
 
     for seq_new in seq_new_list:
-        indices_none = [i for i in range(len(seq_new)) if seq_new.object_list[i] == None]
-        if indices_none:
-            if itp_table is None:
-                assert False, 'Please set lower hz, or specify interpolator'
-            itp = itp_table[seq_new.object_type].from_time_stamped_sequence(seq_new) 
-            for idx in indices_none:
-                t_itp = seq_new.time_list[idx]
-                seq_new.object_list[idx] = itp(Time.from_sec(t_itp))
+        itp_rule(seq_new)
+        assert seq_new.is_valid()
 
     return seq_new_list

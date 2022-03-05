@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import copy
 from dataclasses import dataclass
-from typing import List, Optional, Type, TypeVar, Generic
+from typing import List, Optional, Type, TypeVar, Generic, ClassVar
 
 import numpy as np
 from scipy import interpolate
@@ -127,3 +127,32 @@ class ImageInterpolator(VectorizationBasedInterpolator, Image):
         msg = copy.deepcopy(self.image_tmpl)
         msg.data = tmp.data
         return msg
+
+
+class InterpolationRule:
+
+    @classmethod
+    @abstractmethod
+    def __call__(cls, seq: TimeStampedSequence) -> None:
+        pass
+
+
+class NullInterpolationRule(InterpolationRule):
+
+    @classmethod
+    def __call__(cls, seq: TimeStampedSequence) -> None:
+        pass
+
+
+class AllSameInterpolationRule(InterpolationRule):
+    """Apply the same interpolator independent on message types"""
+    itp_type: ClassVar[Type[MessageInterpolator]]
+
+    @classmethod
+    def __call__(cls, seq: TimeStampedSequence) -> None:
+        """fill all None object by specified interpolation method"""
+        itp = cls.itp_type.from_time_stamped_sequence(seq)
+        for i in range(len(seq)):
+            if seq.object_list[i] is None:
+                t_ros = rospy.rostime.Time(seq.time_list[i])
+                seq.object_list[i] = itp(t_ros)
