@@ -4,6 +4,7 @@ from rosbag import Bag
 
 from mohou_ros_utils.synclonizer import TimeStampedSequence
 from mohou_ros_utils.synclonizer import synclonize
+from mohou_ros_utils.interpolator import AbstractInterpolationRule, NullInterpolationRule
 
 
 def bag_to_seqs(bag: Bag) -> List[TimeStampedSequence]:
@@ -17,7 +18,10 @@ def bag_to_seqs(bag: Bag) -> List[TimeStampedSequence]:
     return list(table.values())
 
 
-def bag_to_synced_seqs(bag: Bag, freq: float) -> List[TimeStampedSequence]:
+def bag_to_synced_seqs(
+        bag: Bag,
+        freq: float,
+        rule: AbstractInterpolationRule = NullInterpolationRule()) -> List[TimeStampedSequence]:
     seqs = bag_to_seqs(bag)
-    seqs_sync = synclonize(seqs, freq)
+    seqs_sync = synclonize(seqs, freq, rule)
     return seqs_sync

@@ -132,20 +132,20 @@ class ImageInterpolator(VectorizationBasedInterpolator, Image):
         return msg
 
 
-class InterpolationRule:
+class AbstractInterpolationRule:
 
     @abstractmethod
     def apply(self, seq: TimeStampedSequence) -> None:
         pass
 
 
-class NullInterpolationRule(InterpolationRule):
+class NullInterpolationRule(AbstractInterpolationRule):
 
     def apply(self, seq: TimeStampedSequence) -> None:
         pass
 
 
-class AllSameInterpolationRule(InterpolationRule):
+class AllSameInterpolationRule(AbstractInterpolationRule):
     """Apply the same interpolator independent on message types"""
     itp_type: Type[AbstractInterpolator]
 
