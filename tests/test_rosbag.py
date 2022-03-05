@@ -11,7 +11,7 @@ from mohou_ros_utils.rosbag import resolve_topic_type
 
 
 def test_resolve_topic_type():
-    tmp_msg_type = 'tmpu7d7puwo._std_msgs__String'
+    tmp_msg_type = '_std_msgs__String'
     module_name, message_name = resolve_topic_type(tmp_msg_type)
     exec('from {} import {}'.format(module_name, message_name))
 
