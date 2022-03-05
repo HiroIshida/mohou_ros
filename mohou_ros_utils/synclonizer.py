@@ -24,7 +24,7 @@ def check_valid_bins(booleans: np.ndarray):
     return is_valid_bins
 
 
-def get_true_sandwich_bound(booleans: np.ndarray) -> Tuple[int, int]:
+def get_first_last_true_indices(booleans: np.ndarray) -> Tuple[int, int]:
     idx_first_valid = booleans.tolist().index(True)
     idx_last_valid = len(booleans) - booleans[::-1].tolist().index(True) - 1
     return idx_first_valid, idx_last_valid
@@ -49,7 +49,7 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
 
     table = np.array([pack_to_bin(seq) for seq in seq_list], dtype=int)
     bools_valid_bin = np.all(table != NO_OBJECT_EXIST_FLAG, axis=0)
-    idx_first_valid, idx_last_valid = get_true_sandwich_bound(bools_valid_bin)
+    idx_first_valid, idx_last_valid = get_first_last_true_indices(bools_valid_bin)
 
     seq_new_list = []
     for seq, binidx_to_seqidx in zip(seq_list, table):

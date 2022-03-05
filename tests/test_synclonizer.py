@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from mohou_ros_utils.synclonizer import TimeStampedSequence
-from mohou_ros_utils.synclonizer import synclonize, get_true_sandwich_bound
+from mohou_ros_utils.synclonizer import synclonize, get_first_last_true_indices
 
 
 def assert_float_almost_equal(a, b):
@@ -11,12 +11,12 @@ def assert_float_almost_equal(a, b):
 
 def test_get_middle_bound():
     a = np.array([False, True, True, True, False])
-    idx_start, idx_end = get_true_sandwich_bound(a)
+    idx_start, idx_end = get_first_last_true_indices(a)
     assert idx_start == 1
     assert idx_end == 3
 
     b = np.array([False, True, True, False, True, False])
-    idx_start, idx_end = get_true_sandwich_bound(b)
+    idx_start, idx_end = get_first_last_true_indices(b)
     assert idx_start == 1
     assert idx_end == 4
 
