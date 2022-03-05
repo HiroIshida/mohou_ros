@@ -36,3 +36,10 @@ def test_sync_rosbag():
 
         assert len(seqs[0].time_list) == 6
         assert seqs[0].time_list[0] == 1.0
+
+        bag = Bag(filename, mode='r')
+        seqs = bag_to_synced_seqs(bag, 2.0, topic_names=['dummy_string'])
+        bag.close()
+
+        assert len(seqs) == 1
+        assert seqs[0].object_type == String

@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from rosbag import Bag
 
@@ -17,10 +17,22 @@ def resolve_topic_type(tmp_msg_type_name: str) -> Tuple[str, str]:
     return module_name, message_name
 
 
-def bag_to_seqs(bag: Bag) -> List[TimeStampedSequence]:
+def bag_to_seqs(bag: Bag, topic_names: Optional[List[str]] = None) -> List[TimeStampedSequence]:
+
+    if topic_names is not None:
+        topic_set = set(topic_names)
+
+    def is_ignore(topic_name):
+        if topic_names is None:
+            return False
+        return topic_name not in topic_set
 
     table: Dict[str, TimeStampedSequence] = {}
     for topic_name, msg, time in bag.read_messages():  # type: ignore
+
+        if is_ignore(topic_name):
+            continue
+
         if topic_name not in table:
             module_name, type_name = resolve_topic_type(msg.__class__.__name__)
             ldict = {'message_type': None}
@@ -42,7 +54,8 @@ def bag_to_seqs(bag: Bag) -> List[TimeStampedSequence]:
 def bag_to_synced_seqs(
         bag: Bag,
         freq: float,
+        topic_names: Optional[List[str]] = None,
         rule: AbstractInterpolationRule = NullInterpolationRule()) -> List[TimeStampedSequence]:
-    seqs = bag_to_seqs(bag)
+    seqs = bag_to_seqs(bag, topic_names)
     seqs_sync = synclonize(seqs, freq, rule)
     return seqs_sync
