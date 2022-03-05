@@ -1,32 +1,7 @@
 from typing import List, Any, Optional
 import numpy as np
 
-
-class TimeStampedSequence:
-    object_list: List[Any]
-    time_list: List[float]
-    topic_name: Optional[str] = None
-
-    def __init__(self, 
-            object_list: Optional[List[Any]] = None, 
-            time_list: Optional[List[float]] = None,
-            topic_name = None):
-
-        if object_list is None:
-            object_list = []
-        if time_list is None: 
-            time_list = []
-        assert len(object_list) == len(time_list) 
-        self.object_list = object_list
-        self.time_list = time_list
-        self.topic_name = topic_name
-
-    def append(self, obj, time):
-        self.object_list.append(obj)
-        self.time_list.append(time)
-
-    def __len__(self):
-        return len(self.object_list)
+from mohou_ros_utils.types import TimeStampedSequence
 
 
 def get_intersection_time_bound(seq_list: List[TimeStampedSequence]):
@@ -79,6 +54,6 @@ def synclonize(seq_list: List[TimeStampedSequence], freq: float):
         object_list_new = []
         seqidx_list = binidx_to_seqidx[bools_valid_bin].tolist()
         object_list_new = [seq.object_list[idx] for idx in seqidx_list]
-        seq_new = TimeStampedSequence(object_list_new, times_new.tolist())
+        seq_new = TimeStampedSequence(seq.object_type, object_list_new, times_new.tolist(), seq.topic_name)
         seq_list_new.append(seq_new)
     return seq_list_new

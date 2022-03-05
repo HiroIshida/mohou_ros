@@ -14,6 +14,8 @@ try:
 except:
     cv_bridge = None
 
+from mohou_ros_utils.types import TimeStampedSequence
+
 MsgT = TypeVar('MsgT', bound=genpy.Message)
 
 
@@ -44,6 +46,11 @@ class MessageInterpolator(ABC, Generic[MsgT]):
 
         self.msg_list = msg_list
         self.time_list = time_list
+
+    @classmethod
+    def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> 'MessageInterpolator':
+        assert issubclass(seq.object_type, genpy.Message)
+        return cls(seq.object_list, seq.time_list)
 
     def is_stamped(self):
         return hasattr(self.msg_type, 'header')
