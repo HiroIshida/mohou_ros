@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Tuple
 import numpy as np
 
 from mohou_ros_utils.types import TimeStampedSequence
@@ -22,6 +22,12 @@ def check_valid_bins(booleans: np.ndarray):
     idx_last_valid = len(booleans) - booleans[::-1].tolist().index(True) - 1
     is_valid_bins = np.all(booleans[idx_first_valid:idx_last_valid])
     return is_valid_bins
+
+
+def get_middle_bound(booleans: np.ndarray) -> Tuple[int, int]:
+    idx_first_valid = booleans.tolist().index(True)
+    idx_last_valid = len(booleans) - booleans[::-1].tolist().index(True) - 1
+    return idx_first_valid, idx_last_valid
 
 
 def synclonize(seq_list: List[TimeStampedSequence], freq: float):

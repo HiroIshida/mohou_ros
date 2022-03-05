@@ -2,11 +2,23 @@ import pytest
 import numpy as np
 
 from mohou_ros_utils.synclonizer import TimeStampedSequence
-from mohou_ros_utils.synclonizer import synclonize
+from mohou_ros_utils.synclonizer import synclonize, get_middle_bound
 
 
 def assert_float_almost_equal(a, b):
     assert abs(a - b) < 1e-4
+
+
+def test_get_middle_bound():
+    a = np.array([False, True, True, True, False])
+    idx_start, idx_end = get_middle_bound(a)
+    assert idx_start == 1
+    assert idx_end == 3
+
+    b = np.array([False, True, True, False, True, False])
+    idx_start, idx_end = get_middle_bound(b)
+    assert idx_start == 1
+    assert idx_end == 4
 
 
 def test_synclonize_case1():
