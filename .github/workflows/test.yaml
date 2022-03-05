@@ -23,6 +23,12 @@ jobs:
             - name: pip install this package
               run: |
                   pip3 install -e .
+                  # All these packages are included in ros, but I just want to run CI quickly
+                  pip install --extra-index-url https://rospypi.github.io/simple/ rospy
+                  pip install --extra-index-url https://rospypi.github.io/simple/ rosbag
+                  pip install --extra-index-url https://rospypi.github.io/simple/ std_msgs
+                  pip install --extra-index-url https://rospypi.github.io/simple/ geometry_msgs
+                  pip install --extra-index-url https://rospypi.github.io/simple/ sensor_msgs
 
             - name: pip install pytest
               run: |
