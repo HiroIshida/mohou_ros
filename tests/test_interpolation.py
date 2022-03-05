@@ -1,6 +1,5 @@
 import numpy as np
 from rospy.rostime import Time
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
 from mohou_ros_utils.interpolator import NearestNeighbourMessageInterpolator

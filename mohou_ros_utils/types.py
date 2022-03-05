@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Any, Optional, Type, TypeVar, Generic
+from typing import List, Optional, Type, TypeVar, Generic
 
 
 ObjectT = TypeVar('ObjectT')
@@ -13,7 +13,7 @@ class TimeStampedSequence(Generic[ObjectT]):
     topic_name: Optional[str] = None
 
     @classmethod
-    def create_empty(cls, object_type: Type[ObjectT], topic_name = None):
+    def create_empty(cls, object_type: Type[ObjectT], topic_name=None):
         return cls(object_type, [], [], topic_name)
 
     def append(self, obj: Optional[ObjectT], time: float):

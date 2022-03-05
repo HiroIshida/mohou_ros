@@ -32,10 +32,22 @@ jobs:
                   pip install --extra-index-url https://rospypi.github.io/simple/ geometry_msgs
                   pip install --extra-index-url https://rospypi.github.io/simple/ sensor_msgs
 
-            - name: pip install pytest
+            - name: pip install pytest mypy
               run: |
                   pip3 install pytest
+                  pip3 install mypy==0.910
+
+            - name: pip install formatting
+              run: |
+                python -m pip install --upgrade pip
+                pip install hacking isort
+
+            - name: Check format
+              run: flake8 .
 
             - name: Run Pytest
               run: |
                   pytest -v tests
+
+            - name: Run mypy
+              run: mypy . --exclude setup.py

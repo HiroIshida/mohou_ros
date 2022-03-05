@@ -38,7 +38,7 @@ def test_synclonize_case1():
     seqs_new = synclonize([seq1, seq2], freq=1.0 + 1e-12)
     seq1_new, seq2_new = seqs_new
     assert_float_almost_equal(seq1_new.time_list[0], 0.5)
-    assert_float_almost_equal(seq1_new.time_list[-1], (N-1.5))
+    assert_float_almost_equal(seq1_new.time_list[-1], (N - 1.5))
 
     seqs_new = synclonize([seq1, seq2], freq=2.0 + 1e-12)
     seq1_new, seq2_new = seqs_new
@@ -57,19 +57,16 @@ def test_synclonize_case2():
     seqs_new = synclonize([seq1, seq2], freq=freq)
     assert len(seqs_new[0].time_list) == 6
 
+
 def test_synclonize_with_interpolator():
     N = 6
     times = np.array([float(i) for i in range(N)])
-    times2 = np.array([float(i) + 0.2 for i in range(N) if i!=3])
+    times2 = np.array([float(i) + 0.2 for i in range(N) if i != 3])
     seq1 = TimeStampedSequence(String, [String() for _ in range(N)], times)
-    seq2 = TimeStampedSequence(String, [String() for _ in range(N-1)], times2)
+    seq2 = TimeStampedSequence(String, [String() for _ in range(N - 1)], times2)
 
     with pytest.raises(AssertionError):
-        seqs_new = synclonize([seq1, seq2], freq=1.0 + 1e-12)
+        synclonize([seq1, seq2], freq=1.0 + 1e-12)
 
     itp_rule = AllSameInterpolationRule(NearestNeighbourInterpolator)
-    seqs_new = synclonize([seq1, seq2], freq=1.0 + 1e-12, itp_rule=itp_rule)
-    #seq1_new, seq2_new = seqs_new
-
-    #assert_float_almost_equal(seq1_new.time_list[0], 0.5)
-    #assert_float_almost_equal(seq1_new.time_list[-1], (N-1.5))
+    synclonize([seq1, seq2], freq=1.0 + 1e-12, itp_rule=itp_rule)

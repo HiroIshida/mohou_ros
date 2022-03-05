@@ -1,8 +1,7 @@
-from typing import Dict, List, Any, Optional, Tuple, Type
+from typing import List, Tuple
 import numpy as np
 
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.interpolator import AbstractInterpolator
 from mohou_ros_utils.interpolator import InterpolationRule
 from mohou_ros_utils.interpolator import NullInterpolationRule
 
@@ -36,11 +35,10 @@ def get_first_last_true_indices(booleans: np.ndarray) -> Tuple[int, int]:
 def synclonize(
         seq_list: List[TimeStampedSequence],
         freq: float,
-        itp_rule: InterpolationRule = NullInterpolationRule()
-        ):
+        itp_rule: InterpolationRule = NullInterpolationRule()):
 
     t_start, t_end = get_union_time_bound(seq_list)
-    n_bins = int((t_end - t_start )//freq + 1) + 1
+    n_bins = int((t_end - t_start) // freq + 1) + 1
     t_bin_middle_list = np.array([t_start + freq * (i + 0.5) for i in range(n_bins)])
 
     NO_OBJECT_EXIST_FLAG = -999999

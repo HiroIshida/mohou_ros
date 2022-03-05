@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import copy
-from dataclasses import dataclass
-from typing import List, Optional, Type, TypeVar, Generic, ClassVar
+from typing import List, Optional, Type, TypeVar, Generic
 
 import numpy as np
 from scipy import interpolate
@@ -11,7 +10,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Header
 try:
     import cv_bridge
-except:
+except ImportError:
     cv_bridge = None
 
 from mohou_ros_utils.types import TimeStampedSequence
@@ -22,7 +21,7 @@ MessageT = TypeVar('MessageT', bound=genpy.Message)
 
 def is_sorted(list):
     # https://stackoverflow.com/questions/3755136
-    return all(list[i] <= list[i+1] for i in range(len(list) - 1))
+    return all(list[i] <= list[i + 1] for i in range(len(list) - 1))
 
 
 class AbstractInterpolator(ABC, Generic[ObjectT]):
@@ -43,7 +42,7 @@ class AbstractInterpolator(ABC, Generic[ObjectT]):
 
     @classmethod
     def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> 'AbstractInterpolator':
-        indices_valid = [idx for idx in range(len(seq)) if seq.object_list[idx] != None]
+        indices_valid = [idx for idx in range(len(seq)) if seq.object_list[idx] is not None]
 
         time_list_valid = [seq.time_list[i] for i in indices_valid]
         object_list_valid = [seq.object_list[i] for i in indices_valid]

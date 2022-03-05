@@ -6,12 +6,13 @@ from rosbag import Bag
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 
-from mohou_ros_utils.rosbag import bag_to_seqs, bag_to_synced_seqs
+from mohou_ros_utils.rosbag import bag_to_synced_seqs
+
 
 def test_sync_rosbag():
 
     with tempfile.TemporaryDirectory() as dname:
-        filename = os.path.join(dname, 'temp.bag') 
+        filename = os.path.join(dname, 'temp.bag')
         bag = Bag(filename, mode='w')
 
         for i in range(12):
