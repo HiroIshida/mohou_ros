@@ -22,8 +22,8 @@ def Image_to_RGBImage(msg: Image, resizer: RGBResizer) -> RGBImage:
 def Image_to_DepthImage(msg: Image, resizer: DepthResizer) -> DepthImage:
     size = [msg.height, msg.width]
     buf: np.ndarray = np.ndarray(shape=(1, int(len(msg.data) / 4)), dtype=np.float32, buffer=msg.data)
-    depth = buf.reshape(*size)
-    data = resizer(depth)
+    depth = np.nan_to_num(buf.reshape(*size))
+    data = np.expand_dims(resizer(depth), axis=2)
     return DepthImage(data)
 
 
@@ -32,13 +32,15 @@ def sequence_to_element_sequence(
         rgb_resizer: Optional[RGBResizer] = None,
         depth_resizer: Optional[DepthResizer] = None) -> ElementSequence:
     if seq.object_type == Image:
-        if seq.object_type[0].encoding in ['bgr8', 'rgb8']:
+        image_encoding = seq.object_list[0].encoding  # type: ignore
+        if image_encoding in ['bgr8', 'rgb8']:
             assert rgb_resizer is not None
             elem_seq = ElementSequence([Image_to_RGBImage(msg, rgb_resizer) for msg in seq.object_list])  # type: ignore
-        elif seq.object_type[0].encoding in ['32FC1']:
+        elif seq.object_list[0].encoding in ['32FC1']:  # type: ignore
             assert depth_resizer is not None
             elem_seq = ElementSequence([Image_to_DepthImage(msg, depth_resizer) for msg in seq.object_list])  # type: ignore
-        raise NotImplementedError
+        else:
+            raise NotImplementedError(image_encoding)
     else:
         raise NotImplementedError
     return elem_seq
