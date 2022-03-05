@@ -1,10 +1,20 @@
-from typing import Dict, List
+import re
+from typing import Dict, List, Tuple
 
 from rosbag import Bag
 
 from mohou_ros_utils.synclonizer import TimeStampedSequence
 from mohou_ros_utils.synclonizer import synclonize
 from mohou_ros_utils.interpolator import AbstractInterpolationRule, NullInterpolationRule
+
+
+def resolve_topic_type(tmp_msg_type_name: str) -> Tuple[str, str]:
+    """convert tmpu7d7puwo._std_msgs__String -> std_msgs.msg, String"""
+    m = re.match(r"(\w+)._(\w+)__(\w+)", tmp_msg_type_name)
+    assert m is not None
+    module_name = m.group(2) + '.msg'
+    message_name = m.group(3)
+    return module_name, message_name
 
 
 def bag_to_seqs(bag: Bag) -> List[TimeStampedSequence]:

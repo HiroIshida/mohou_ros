@@ -7,6 +7,13 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 
 from mohou_ros_utils.rosbag import bag_to_synced_seqs
+from mohou_ros_utils.rosbag import resolve_topic_type
+
+
+def test_resolve_topic_type():
+    tmp_msg_type = 'tmpu7d7puwo._std_msgs__String'
+    module_name, message_name = resolve_topic_type(tmp_msg_type)
+    exec('from {} import {}'.format(module_name, message_name))
 
 
 def test_sync_rosbag():
