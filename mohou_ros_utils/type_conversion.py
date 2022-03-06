@@ -5,7 +5,6 @@ import math
 from sensor_msgs.msg import Image, JointState
 import genpy
 import numpy as np
-from cv_bridge import CvBridge
 from mohou.types import AngleVector, ElementT, RGBImage, DepthImage
 
 from mohou_ros_utils.resizer import RGBResizer
@@ -13,6 +12,33 @@ from mohou_ros_utils.resizer import DepthResizer
 
 
 MessageT = TypeVar('MessageT', bound=genpy.Message)
+
+
+def imgmsg_to_numpy(msg: Image) -> np.ndarray:  # actually numpy
+    # NOTE: avoid cv_bridge for python3 on melodic
+    # https://github.com/ros-perception/vision_opencv/issues/207
+    image = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, -1)
+    return image
+
+
+def numpy_to_imgmsg(data: np.ndarray, encoding) -> Image:
+    # NOTE: avoid cv_bridge for python3 on melodic
+    # https://github.com/ros-perception/vision_opencv/issues/207
+
+    assert encoding in ['rgb8', 'bgr8']
+
+    # see: cv_bridge/core.py
+    img_msg = Image()
+    img_msg.height = data.shape[0]
+    img_msg.width = data.shape[1]
+    img_msg.encoding = encoding
+
+    img_msg.data = data.tostring()  # type: ignore
+    img_msg.step = len(img_msg.data) // img_msg.height
+
+    if data.dtype.byteorder == '>':
+        img_msg.is_bigendian = True
+    return img_msg
 
 
 class TypeConverter(ABC, Generic[MessageT, ElementT]):
@@ -30,9 +56,7 @@ class RGBImageConverter(TypeConverter[Image, RGBImage]):
 
     def __call__(self, msg: Image) -> RGBImage:
         assert msg.encoding in ['bgr8', 'rgb8']
-
-        bridge = CvBridge()
-        image = bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
+        image = imgmsg_to_numpy(msg)
         if self.resizer is not None:
             image = self.resizer(image)
         return RGBImage(image)
