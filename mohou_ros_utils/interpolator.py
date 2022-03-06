@@ -8,12 +8,10 @@ import rospy
 import genpy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
-try:
-    import cv_bridge
-except ImportError:
-    cv_bridge = None
 
 from mohou_ros_utils.types import TimeStampedSequence
+from mohou_ros_utils.type_conversion import numpy_to_imgmsg
+from mohou_ros_utils.type_conversion import imgmsg_to_numpy
 
 ObjectT = TypeVar('ObjectT')
 MessageT = TypeVar('MessageT', bound=genpy.Message)
@@ -115,17 +113,16 @@ class ImageInterpolator(VectorizationBasedInterpolator, Image):
             self.image_tmpl = msg
 
         if self.image_tmpl.encoding in ['rgb8', 'bgr8']:
-            bridge = cv_bridge.CvBridge()
-            img = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+            img = imgmsg_to_numpy(msg)
             return img.flatten()
 
         assert False
 
     def devectorize(self, vector: np.ndarray) -> Image:
         assert self.image_tmpl is not None
+
         mat = vector.reshape(self.image_tmpl.height, self.image_tmpl.width)
-        bridge = cv_bridge.CvBridge()
-        tmp = bridge.cv2_to_imgmsg(mat, encoding=self.image_tmpl.encoding)
+        tmp = numpy_to_imgmsg(mat, encoding=self.image_tmpl.encoding)
 
         msg = copy.deepcopy(self.image_tmpl)
         msg.data = tmp.data
