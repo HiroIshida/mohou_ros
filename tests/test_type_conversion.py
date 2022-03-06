@@ -1,11 +1,29 @@
 import os
 import pickle
 
+import numpy as np
+
 from mohou_ros_utils.resizer import RGBResizer
 from mohou_ros_utils.resizer import DepthResizer
+from mohou_ros_utils.type_conversion import imgmsg_to_numpy, numpy_to_imgmsg
 from mohou_ros_utils.type_conversion import RGBImageConverter
 from mohou_ros_utils.type_conversion import DepthImageConverter
 from mohou_ros_utils.type_conversion import AngleVectorConverter
+
+
+def test_imgmsg_cv2_conversion():
+    mat = np.random.randint(0, high=255, size=(224, 224, 3)).astype(np.uint8)
+    msg = numpy_to_imgmsg(mat, 'rgb8')
+    mat_again = imgmsg_to_numpy(msg)
+    np.testing.assert_almost_equal(mat, mat_again)
+
+    msg_again = numpy_to_imgmsg(mat_again, 'rgb8')
+    assert msg.height == msg_again.height
+    assert msg.width == msg_again.width
+    assert msg.step == msg_again.step
+    assert msg.encoding == msg_again.encoding
+    assert msg.is_bigendian == msg_again.is_bigendian
+    assert msg.data == msg_again.data
 
 
 def get_test_data_path():
