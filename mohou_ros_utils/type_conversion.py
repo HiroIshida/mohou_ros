@@ -23,9 +23,9 @@ class TypeConverter(ABC, Generic[MessageT, ElementT]):
 
 
 class RGBImageConverter(TypeConverter[Image, RGBImage]):
-    resizer: RGBResizer
+    resizer: Optional[RGBResizer]
 
-    def __init__(self, resizer: RGBResizer):
+    def __init__(self, resizer: Optional[RGBResizer] = None):
         self.resizer = resizer
 
     def __call__(self, msg: Image) -> RGBImage:
@@ -33,14 +33,15 @@ class RGBImageConverter(TypeConverter[Image, RGBImage]):
 
         bridge = CvBridge()
         image = bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
-        data = self.resizer(image)
-        return RGBImage(data)
+        if self.resizer is not None:
+            image = self.resizer(image)
+        return RGBImage(image)
 
 
 class DepthImageConverter(TypeConverter[Image, DepthImage]):
-    resizer: DepthResizer
+    resizer: Optional[DepthResizer]
 
-    def __init__(self, resizer: DepthResizer):
+    def __init__(self, resizer: Optional[DepthResizer] = None):
         self.resizer = resizer
 
     def __call__(self, msg: Image) -> DepthImage:
@@ -48,9 +49,11 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
 
         size = [msg.height, msg.width]
         buf: np.ndarray = np.ndarray(shape=(1, int(len(msg.data) / 4)), dtype=np.float32, buffer=msg.data)
-        depth = np.nan_to_num(buf.reshape(*size))
-        data = np.expand_dims(self.resizer(depth), axis=2)
-        return DepthImage(data)
+        image = np.nan_to_num(buf.reshape(*size))
+        if self.resizer is not None:
+            image = self.resizer(image)
+        image = np.expand_dims(image, axis=2)
+        return DepthImage(image)
 
 
 class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
