@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from dataclasses import dataclass
 from typing import List, Optional, Type, TypeVar, Generic
 
@@ -28,3 +30,27 @@ class TimeStampedSequence(Generic[ObjectT]):
 
     def is_valid(self):
         return not (None in self.object_list)
+
+
+@dataclass
+class TimeStampedSequenceChunk(Sequence):
+    tss_list: List[TimeStampedSequence]
+
+    def is_type_to_list_injective(self) -> bool:
+        type_set = set([tss.object_type for tss in self.tss_list])
+        return len(type_set) == len(self.tss_list)
+
+    def filter_by_type(self, type_query: ObjectT) -> TimeStampedSequence[ObjectT]:
+
+        assert self.is_type_to_list_injective()
+
+        for tss in self.tss_list:
+            if tss.object_type == type_query:
+                return tss
+        assert False
+
+    def __getitem__(self, index):
+        return self.tss_list[index]
+
+    def __len__(self) -> int:
+        return len(self.tss_list)

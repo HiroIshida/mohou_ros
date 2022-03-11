@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Optional
 
 from rosbag import Bag
 
-from mohou_ros_utils.synclonizer import TimeStampedSequence
+from mohou_ros_utils.types import TimeStampedSequence
 from mohou_ros_utils.synclonizer import synclonize
 from mohou_ros_utils.interpolator import AbstractInterpolationRule, NullInterpolationRule
 
