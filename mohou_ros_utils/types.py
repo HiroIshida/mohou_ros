@@ -32,6 +32,12 @@ class TimeStampedSequence(Generic[ObjectT]):
     def is_valid(self):
         return not (None in self.object_list)
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return '{}, {}, {}'.format(self.__class__.__name__, self.object_type.__name__, self.__len__())
+
 
 @dataclass
 class TimeStampedSequenceChunk(Sequence):
@@ -65,3 +71,11 @@ class TimeStampedSequenceChunk(Sequence):
 
     def __len__(self) -> int:
         return len(self.tss_list)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        types = [tss.object_type.__name__ for tss in self.tss_list]
+        names = [tss.topic_name for tss in self.tss_list]
+        return '{} : {}'.format(self.__class__.__name__, list(zip(types, names)))
