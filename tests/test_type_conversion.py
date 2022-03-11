@@ -5,10 +5,10 @@ import numpy as np
 
 from mohou_ros_utils.resizer import RGBResizer
 from mohou_ros_utils.resizer import DepthResizer
-from mohou_ros_utils.type_conversion import imgmsg_to_numpy, numpy_to_imgmsg
-from mohou_ros_utils.type_conversion import RGBImageConverter
-from mohou_ros_utils.type_conversion import DepthImageConverter
-from mohou_ros_utils.type_conversion import AngleVectorConverter
+from mohou_ros_utils.conversion import imgmsg_to_numpy, numpy_to_imgmsg
+from mohou_ros_utils.conversion import RGBImageConverter
+from mohou_ros_utils.conversion import DepthImageConverter
+from mohou_ros_utils.conversion import AngleVectorConverter
 
 
 def test_imgmsg_cv2_conversion():

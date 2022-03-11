@@ -10,8 +10,8 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Header
 
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.type_conversion import numpy_to_imgmsg
-from mohou_ros_utils.type_conversion import imgmsg_to_numpy
+from mohou_ros_utils.conversion import numpy_to_imgmsg
+from mohou_ros_utils.conversion import imgmsg_to_numpy
 
 ObjectT = TypeVar('ObjectT')
 MessageT = TypeVar('MessageT', bound=genpy.Message)

@@ -2,7 +2,7 @@ import numpy as np
 from rospy.rostime import Time
 
 from mohou_ros_utils.interpolator import NearestNeighbourMessageInterpolator
-from mohou_ros_utils.type_conversion import numpy_to_imgmsg
+from mohou_ros_utils.conversion import numpy_to_imgmsg
 
 
 def test_nearest_neighbor_interpolator():
