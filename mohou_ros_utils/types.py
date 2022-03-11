@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 
 from dataclasses import dataclass
@@ -40,14 +41,24 @@ class TimeStampedSequenceChunk(Sequence):
         type_set = set([tss.object_type for tss in self.tss_list])
         return len(type_set) == len(self.tss_list)
 
-    def filter_by_type(self, type_query: ObjectT) -> TimeStampedSequence[ObjectT]:
+    def filter_by_type(self, type_query: ObjectT) -> List[TimeStampedSequence[ObjectT]]:
 
-        assert self.is_type_to_list_injective()
+        tss_list_out: List[TimeStampedSequence[ObjectT]] = []
 
         for tss in self.tss_list:
             if tss.object_type == type_query:
-                return tss
-        assert False
+                tss_list_out.append(tss)
+        return tss_list_out
+
+    def filter_by_topic_name(self, topic_name_query: str) -> List[TimeStampedSequence]:
+        tss_list_out = []
+        for tss in self.tss_list:
+            if tss.topic_name is None:
+                continue
+            m = re.match(r".*{}.*".format(topic_name_query), tss.topic_name)
+            if m is not None:
+                tss_list_out.append(tss)
+        return tss_list_out
 
     def __getitem__(self, index):
         return self.tss_list[index]
