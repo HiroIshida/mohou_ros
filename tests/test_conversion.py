@@ -54,9 +54,7 @@ def test_rgb_image_converter():
 
 
 def test_depth_image_converter():
-    with open(os.path.join(get_test_data_path(), 'depth_image.pkl'), 'rb') as f:
-        depth_image_msg = pickle.load(f)
-
+    depth_image_msg = get_pickle_data_path('depth_image.pkl')
     args = [10, 100, 10, 100, 24]
     depth_converter = DepthImageConverter(DepthResizer(*args))
     image = depth_converter(depth_image_msg)
@@ -65,8 +63,7 @@ def test_depth_image_converter():
 
 def test_angle_vector_converter():
     # joint state of pr2
-    with open(os.path.join(get_test_data_path(), 'joint_states.pkl'), 'rb') as f:
-        joint_state = pickle.load(f)
+    joint_state = get_pickle_data_path('joint_states.pkl')
 
     control_joints = ['r_wrist_flex_joint', 'r_wrist_roll_joint']
     converter = AngleVectorConverter(control_joints)
@@ -79,4 +76,11 @@ def test_versatile_converter():
     data_path = get_test_data_path()
     yaml_file_path = os.path.join(data_path, 'example.yaml')
     config = Config.from_yaml_file(yaml_file_path)
-    VersatileConverter.from_config(config)
+    converter = VersatileConverter.from_config(config)
+
+    rgb_image_msg = get_pickle_data_path('rgb_image.pkl')
+    depth_image_msg = get_pickle_data_path('depth_image.pkl')
+    joint_state = get_pickle_data_path('joint_states.pkl')
+    converter(rgb_image_msg)
+    # converter(depth_image_msg)
+    converter(joint_state)
