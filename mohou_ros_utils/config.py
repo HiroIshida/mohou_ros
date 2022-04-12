@@ -3,6 +3,8 @@ import yaml
 from dataclasses import dataclass
 from typing import List, Dict
 
+from mohou_ros_utils.file import get_image_config_file
+
 
 @dataclass
 class TopicConfig:
@@ -31,7 +33,17 @@ class ImageConfig:
     resol: int
 
     @classmethod
-    def from_yaml_dict(cls, yaml_dict: Dict) -> 'ImageConfig':
+    def from_yaml_dict(cls, yaml_dict: Dict, project_name: str) -> 'ImageConfig':
+
+        image_config_file = get_image_config_file(project_name)
+        if os.path.exists(image_config_file):
+            with open(image_config_file, 'r') as f:
+                yaml_dict_overwrite = yaml.safe_load(f)
+            yaml_dict['x_min'] = yaml_dict_overwrite['x_min']
+            yaml_dict['x_max'] = yaml_dict_overwrite['x_max']
+            yaml_dict['y_min'] = yaml_dict_overwrite['y_min']
+            yaml_dict['y_max'] = yaml_dict_overwrite['y_max']
+
         return cls(
             yaml_dict['x_min'],
             yaml_dict['x_max'],
@@ -53,7 +65,7 @@ class Config:
         control_joints = yaml_dict['control_joints']
         hz = yaml_dict['sampling_hz']
         topics = TopicConfig.from_yaml_dict(yaml_dict['topic'])
-        image_config = ImageConfig.from_yaml_dict(yaml_dict['image'])
+        image_config = ImageConfig.from_yaml_dict(yaml_dict['image'], yaml_dict['project'])
         return cls(
             yaml_dict['project'],
             control_joints,
