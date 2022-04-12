@@ -125,10 +125,10 @@ class VersatileConverter:
     def from_config(cls, config: Config):
         converters: List[TypeConverter] = []
 
-        rgb_resizer = RGBResizer.from_config(config.resize_config)
+        rgb_resizer = RGBResizer.from_config(config.image_config)
         converters.append(RGBImageConverter(rgb_resizer))
 
-        depth_resizer = DepthResizer.from_config(config.resize_config)
+        depth_resizer = DepthResizer.from_config(config.image_config)
         converters.append(DepthImageConverter(depth_resizer))
 
         converters.append(AngleVectorConverter(config.control_joints))

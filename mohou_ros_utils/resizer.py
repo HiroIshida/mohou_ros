@@ -1,16 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import cv2
-from dataclasses import dataclass
 
-
-@dataclass
-class ResizerConfig:
-    x_min: int
-    x_max: int
-    y_min: int
-    y_max: int
-    resol: int
+from mohou_ros_utils.config import ImageConfig
 
 
 class AbstractResizer(ABC):
@@ -24,7 +16,7 @@ class AbstractResizer(ABC):
         self.resol = resol
 
     @classmethod
-    def from_config(cls, config: ResizerConfig):
+    def from_config(cls, config: ImageConfig):
         return cls(config.x_min, config.x_max, config.y_min, config.y_max, config.resol)
 
     @abstractmethod
