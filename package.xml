@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mohou_ros</name>
+  <version>0.0.0</version>
+  <description>mohou_ros package</description>
+  <maintainer email="h-ishida@jsk.imi.i.u-tokyo.ac.jp">Hirokazu Ishdia</maintainer>
+
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

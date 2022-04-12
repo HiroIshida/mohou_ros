@@ -10,6 +10,10 @@ class TopicConfig:
     depth_topic: str
     av_topic: str
 
+    @property
+    def topic_list(self) -> List[str]:
+        return [self.rgb_topic, self.depth_topic, self.av_topic]
+
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'TopicConfig':
         return cls(
@@ -38,6 +42,7 @@ class ImageConfig:
 
 @dataclass
 class Config:
+    project: str
     control_joints: List[str]
     hz: float
     topics: TopicConfig
@@ -50,6 +55,7 @@ class Config:
         topics = TopicConfig.from_yaml_dict(yaml_dict['topic'])
         image_config = ImageConfig.from_yaml_dict(yaml_dict['image'])
         return cls(
+            yaml_dict['project'],
             control_joints,
             hz,
             topics,
