@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, Optional, TypeVar, List, Type
+from typing import Generic, Optional, TypeVar, List, Type, Dict
 import math
 
 from sensor_msgs.msg import Image, JointState
@@ -113,23 +113,33 @@ class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
 
 @dataclass
 class VersatileConverter:
-    converters: List[TypeConverter]
+    converters: Dict[Type[ElementBase], TypeConverter]
 
     def __call__(self, msg: genpy.Message) -> ElementBase:
-        for converter in self.converters:
+
+        if type(msg) == Image:
+            if msg.encoding in ['rgb8', 'bgr8']:
+                return self.converters[RGBImage](msg)
+            elif msg.encoding == '32FC1':
+                return self.converters[DepthImage](msg)
+            else:
+                assert False
+
+        for converter in self.converters.values():
+            # image is exceptional
             if converter.type_in == type(msg):
                 return converter(msg)
         assert False, 'no converter compatible with {}'.format(type(msg))
 
     @classmethod
     def from_config(cls, config: Config):
-        converters: List[TypeConverter] = []
+        converters: Dict[Type[ElementBase], TypeConverter] = {}
 
         rgb_resizer = RGBResizer.from_config(config.image_config)
-        converters.append(RGBImageConverter(rgb_resizer))
+        converters[RGBImage] = RGBImageConverter(rgb_resizer)
 
         depth_resizer = DepthResizer.from_config(config.image_config)
-        converters.append(DepthImageConverter(depth_resizer))
+        converters[DepthImage] = DepthImageConverter(depth_resizer)
 
-        converters.append(AngleVectorConverter(config.control_joints))
+        converters[AngleVector] = AngleVectorConverter(config.control_joints)
         return cls(converters)
