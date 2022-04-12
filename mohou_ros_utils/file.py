@@ -7,7 +7,7 @@ def create_if_not_exist(directory: str):
 
 
 def get_base_dir() -> str:
-    base_dir = os.path.expanduser('.mohou_ros')
+    base_dir = os.path.expanduser('~/.mohou')
     create_if_not_exist(base_dir)
     return base_dir
 
