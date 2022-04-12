@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Optional, TypeVar, List
+from dataclasses import dataclass
+from typing import Generic, Optional, TypeVar, List, Type
 import math
 
 from sensor_msgs.msg import Image, JointState
 import genpy
 import numpy as np
-from mohou.types import AngleVector, ElementT, RGBImage, DepthImage
+from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage
 
+from mohou_ros_utils.config import Config
 from mohou_ros_utils.resizer import RGBResizer
 from mohou_ros_utils.resizer import DepthResizer
 
@@ -42,6 +44,8 @@ def numpy_to_imgmsg(data: np.ndarray, encoding) -> Image:
 
 
 class TypeConverter(ABC, Generic[MessageT, ElementT]):
+    type_in: Type[MessageT]
+    type_out: Type[ElementT]
 
     @abstractmethod
     def __call__(self, msg: MessageT) -> ElementT:
@@ -49,6 +53,8 @@ class TypeConverter(ABC, Generic[MessageT, ElementT]):
 
 
 class RGBImageConverter(TypeConverter[Image, RGBImage]):
+    type_in = Image
+    type_out = RGBImage
     resizer: Optional[RGBResizer]
 
     def __init__(self, resizer: Optional[RGBResizer] = None):
@@ -63,6 +69,8 @@ class RGBImageConverter(TypeConverter[Image, RGBImage]):
 
 
 class DepthImageConverter(TypeConverter[Image, DepthImage]):
+    type_in = Image
+    type_out = DepthImage
     resizer: Optional[DepthResizer]
 
     def __init__(self, resizer: Optional[DepthResizer] = None):
@@ -81,6 +89,8 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
 
 
 class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
+    type_in = JointState
+    type_out = AngleVector
     control_joints: List[str]
     joint_indices: Optional[List[int]] = None
 
@@ -99,3 +109,27 @@ class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
 
         angles = [clamp_to_s1(msg.position[idx]) for idx in self.joint_indices]
         return AngleVector(np.array(angles))
+
+
+@dataclass
+class VersatileConverter:
+    converters: List[TypeConverter]
+
+    def __call__(self, msg: genpy.Message) -> ElementBase:
+        for converter in self.converters:
+            if converter.type_in == type(msg):
+                return converter(msg)
+        assert False, 'no converter compatible with {}'.format(type(msg))
+
+    @classmethod
+    def from_config(cls, config: Config):
+        converters: List[TypeConverter] = []
+
+        rgb_resizer = RGBResizer.from_config(config.resize_config)
+        converters.append(RGBImageConverter(rgb_resizer))
+
+        depth_resizer = DepthResizer.from_config(config.resize_config)
+        converters.append(DepthImageConverter(depth_resizer))
+
+        converters.append(AngleVectorConverter(config.control_joints))
+        return cls(converters)
