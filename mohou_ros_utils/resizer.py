@@ -1,6 +1,16 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import cv2
+from dataclasses import dataclass
+
+
+@dataclass
+class ResizerConfig:
+    x_min: int
+    x_max: int
+    y_min: int
+    y_max: int
+    resol: int
 
 
 class AbstractResizer(ABC):
@@ -12,6 +22,10 @@ class AbstractResizer(ABC):
         self.x_bound = slice(x_min, x_max)
         self.y_bound = slice(y_min, y_max)
         self.resol = resol
+
+    @classmethod
+    def from_config(cls, config: ResizerConfig):
+        return cls(config.x_min, config.x_max, config.y_min, config.y_max, config.resol)
 
     @abstractmethod
     def __call__(self, image: np.ndarray) -> np.ndarray:
