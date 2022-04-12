@@ -5,10 +5,12 @@ import numpy as np
 
 from mohou_ros_utils.resizer import RGBResizer
 from mohou_ros_utils.resizer import DepthResizer
+from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import imgmsg_to_numpy, numpy_to_imgmsg
 from mohou_ros_utils.conversion import RGBImageConverter
 from mohou_ros_utils.conversion import DepthImageConverter
 from mohou_ros_utils.conversion import AngleVectorConverter
+from mohou_ros_utils.conversion import VersatileConverter
 
 
 def test_imgmsg_cv2_conversion():
@@ -71,3 +73,10 @@ def test_angle_vector_converter():
 
     av = converter(joint_state)
     assert av.shape == (2,)
+
+
+def test_versatile_converter():
+    data_path = get_test_data_path()
+    yaml_file_path = os.path.join(data_path, 'example.yaml')
+    config = Config.from_yaml_file(yaml_file_path)
+    VersatileConverter.from_config(config)
