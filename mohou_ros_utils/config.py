@@ -1,3 +1,5 @@
+import os
+import yaml
 from dataclasses import dataclass
 from typing import List, Dict
 
@@ -52,3 +54,21 @@ class Config:
             hz,
             topics,
             image_config)
+
+    @classmethod
+    def from_yaml_file(cls, file_path: str) -> 'Config':
+        with open(file_path, 'r') as f:
+            dic = yaml.safe_load(f)
+        return cls.from_yaml_dict(dic)
+
+    @classmethod
+    def from_rospkg_path(cls, package_name: str, relative_path: str) -> 'Config':
+        try:
+            import rospkg
+        except ImportError as e:
+            e
+            assert False, 'You need to intall ros. Or, maybe forget sourcing?'
+
+        base_dir = rospkg.RosPack().get_path(package_name)
+        yaml_file_path = os.path.join(base_dir, relative_path)
+        return cls.from_yaml_file(yaml_file_path)

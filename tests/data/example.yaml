@@ -1,0 +1,20 @@
+project: pr2_reaching
+sampling_hz: 5.0
+image: 
+    x_min: 150
+    x_max: 400
+    y_min: 100
+    y_max: 600
+    resol: 224
+topic: 
+    AngleVector: /joint_states
+    RGBImage: /kinect_head/rgb/image_rect_color
+    DepthImage: /kinect_head/depth_registered/image
+control_joints:
+    - r_shoulder_pan_joint 
+    - r_shoulder_lift_joint
+    - r_upper_arm_roll_joint
+    - r_elbow_flex_joint
+    - r_forearm_roll_joint
+    - r_wrist_flex_joint 
+    - r_wrist_roll_joint
