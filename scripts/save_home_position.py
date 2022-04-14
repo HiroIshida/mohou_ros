@@ -9,7 +9,7 @@ import rospkg
 from sensor_msgs.msg import JointState
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.file import get_homeposition_file
+from mohou_ros_utils.file import get_home_position_file
 
 
 if __name__ == '__main__':
@@ -37,5 +37,5 @@ if __name__ == '__main__':
     joint_indices = [name_idx_map[name] for name in msg.name]
     joint_angle_map = {name: msg.position[name_idx_map[name]] for name in msg.name}
 
-    with open(get_homeposition_file(config.project), 'w') as f:
+    with open(get_home_position_file(config.project), 'w') as f:
         yaml.dump(joint_angle_map, f)

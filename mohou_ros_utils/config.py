@@ -1,9 +1,10 @@
 import os
 import yaml
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from mohou_ros_utils.file import get_image_config_file
+from mohou_ros_utils.file import get_home_position_file
 
 
 @dataclass
@@ -59,19 +60,30 @@ class Config:
     hz: float
     topics: TopicConfig
     image_config: ImageConfig
+    home_position: Optional[Dict[str, float]]
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'Config':
+        project_name = yaml_dict['project']
         control_joints = yaml_dict['control_joints']
         hz = yaml_dict['sampling_hz']
         topics = TopicConfig.from_yaml_dict(yaml_dict['topic'])
-        image_config = ImageConfig.from_yaml_dict(yaml_dict['image'], yaml_dict['project'])
+        image_config = ImageConfig.from_yaml_dict(yaml_dict['image'], project_name)
+
+        home_position = None
+        home_position_file = get_home_position_file(project_name)
+        if os.path.exists(home_position_file):
+            with open(get_home_position_file(project_name), 'r') as f:
+                home_position = yaml.safe_load(f)
+
+        # finally load home position only if formally obtained
         return cls(
             yaml_dict['project'],
             control_joints,
             hz,
             topics,
-            image_config)
+            image_config,
+            home_position)
 
     @classmethod
     def from_yaml_file(cls, file_path: str) -> 'Config':
