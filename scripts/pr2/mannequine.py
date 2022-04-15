@@ -45,8 +45,9 @@ class Mannequin(object):
     rarm_joints: List[Joint]
     thread: Optional[threading.Thread]
     enable_mirror: bool
+    use_home_position: bool
 
-    def __init__(self, config: Config, loose_larm=True, loose_rarm=True, mirror=False):
+    def __init__(self, config: Config, loose_larm=True, loose_rarm=True, mirror=False, use_home_position=False):
         if not mirror:
             assert loose_larm or loose_rarm
         if mirror:
@@ -70,6 +71,7 @@ class Mannequin(object):
         self.is_thread_active = False
         self.thread = None
         self.enable_mirror = mirror
+        self.use_home_position = use_home_position
 
         time.sleep(3)
         self.reset_mannequin()
@@ -93,12 +95,13 @@ class Mannequin(object):
         if self.config.home_position is None:
             return
 
-        for joint_name in self.config.home_position.keys():
-            angle = self.config.home_position[joint_name]
-            self.robot.__dict__[joint_name].joint_angle(angle)
-        self.ri.angle_vector(self.robot.angle_vector(), time=2.0, time_scale=1.0)
-        print("resetting pose...")
-        time.sleep(3.5)
+        if self.use_home_position:
+            for joint_name in self.config.home_position.keys():
+                angle = self.config.home_position[joint_name]
+                self.robot.__dict__[joint_name].joint_angle(angle)
+            self.ri.angle_vector(self.robot.angle_vector(), time=2.0, time_scale=1.0)
+            print("resetting pose...")
+            time.sleep(3.5)
 
     def mirror(self, time):
 
@@ -148,18 +151,24 @@ if __name__ == '__main__':
     parser.add_argument('--rarm', action='store_true', help='loose rarm')
     parser.add_argument('--larm', action='store_true', help='loose larm')
     parser.add_argument('--mirror', action='store_true', help='mirror mode')
+    parser.add_argument('--home', action='store_true', help='use home position')
 
     args = parser.parse_args()
     loose_larm = args.larm
     loose_rarm = args.rarm
     mirror = args.mirror
+    home = args.home
     config_file = args.config
     config = Config.from_yaml_file(config_file)
 
     dic = get_controller_states()
     print(dic)
 
-    mq = Mannequin(config, loose_larm=loose_larm, loose_rarm=loose_rarm, mirror=mirror)
+    mq = Mannequin(config,
+                   loose_larm=loose_larm,
+                   loose_rarm=loose_rarm,
+                   mirror=mirror,
+                   use_home_position=home)
     mq.start()
 
     while True:
