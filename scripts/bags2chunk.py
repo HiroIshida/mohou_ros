@@ -4,11 +4,13 @@ import os
 import rosbag
 import rospkg
 from typing import List, Type
+from moviepy.editor import ImageSequenceClip
+from mohou.file import get_project_dir
 from mohou.types import RGBImage, DepthImage, ElementBase, AngleVector
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.file import get_rosbag_dir
+from mohou_ros_utils.file import get_rosbag_dir, create_if_not_exist
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
 from mohou_ros_utils.interpolator import AllSameInterpolationRule
@@ -36,7 +38,7 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
     return EpisodeData(tuple(mohou_elem_seqs))
 
 
-def main(config: Config):
+def main(config: Config, dump_gif):
     rosbag_dir = get_rosbag_dir(config.project)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
@@ -58,12 +60,26 @@ def main(config: Config):
     chunk = MultiEpisodeChunk(episode_data_list)
     chunk.dump(config.project)
 
+    if dump_gif:
+        gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
+        create_if_not_exist(gif_dir)
+        for i, episode_data in enumerate(chunk):
+            episode_data.filter_by_type
+            fps = 20
+            images = [rgb.numpy() for rgb in episode_data.filter_by_type(RGBImage)]
+            clip = ImageSequenceClip(images, fps=fps)
+
+            gif_filename = os.path.join(gif_dir, '{}.gif'.format(i))
+            clip.write_gif(gif_filename, fps=fps)
+
 
 if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
     parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
     config = Config.from_yaml_file(args.config)
-    main(config)
+    dump_gif = args.gif
+    main(config, dump_gif)
