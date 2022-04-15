@@ -19,6 +19,11 @@ from mohou_ros_utils.conversion import imgmsg_to_numpy
 def get_first_rgb(config: Config):
     base_dir = get_rosbag_dir(config.project)
     for filename in os.listdir(base_dir):
+
+        _, ext = os.path.splitext(filename)
+        if ext != '.bag':
+            continue
+
         rosbag_file = os.path.join(base_dir, filename)
         bag = rosbag.Bag(rosbag_file)
         for topic, msg, _ in bag.read_messages():
