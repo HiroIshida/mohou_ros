@@ -103,7 +103,7 @@ class Mannequin(object):
             print("resetting pose...")
             time.sleep(3.5)
 
-    def mirror(self, time):
+    def mirror(self, time, offset=0.7):
 
         if not self.enable_mirror:
             return
@@ -115,7 +115,7 @@ class Mannequin(object):
             if j.name in reverse_joints:
                 j.joint_angle(-a)
             elif j.name == "r_shoulder_pan_joint":
-                j.joint_angle(-a + 1.0)
+                j.joint_angle(-a + offset)
             else:
                 j.joint_angle(a)
         self.ri.angle_vector(self.robot.angle_vector(), time=time, time_scale=1.0)
