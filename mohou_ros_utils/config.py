@@ -18,6 +18,12 @@ class EachTopicConfig:
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'EachTopicConfig':
         return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['dataset'], yaml_dict['augment'])
 
+    def __post_init__(self):
+        if self.dataset:
+            assert self.rosbag
+        if self.augment:
+            assert self.rosbag
+
 
 @dataclass
 class TopicConfig:
