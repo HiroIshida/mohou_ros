@@ -8,21 +8,45 @@ from mohou_ros_utils.file import get_home_position_file
 
 
 @dataclass
+class EachTopicConfig:
+    name: str
+    rosbag: bool
+    dataset: bool
+    augment: bool
+
+    @classmethod
+    def from_yaml_dict(cls, yaml_dict: Dict) -> 'EachTopicConfig':
+        return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['dataset'], yaml_dict['augment'])
+
+
+@dataclass
 class TopicConfig:
-    rgb_topic: str
-    depth_topic: str
-    av_topic: str
+    rgb_topic_config: EachTopicConfig
+    depth_topic_config: EachTopicConfig
+    av_topic_config: EachTopicConfig
 
     @property
-    def topic_list(self) -> List[str]:
-        return [self.rgb_topic, self.depth_topic, self.av_topic]
+    def topic_config_list(self) -> List[EachTopicConfig]:
+        return [self.rgb_topic_config, self.depth_topic_config, self.av_topic_config]
+
+    @property
+    def rosbag_topic_list(self) -> List[str]:
+        return [t.name for t in self.topic_config_list if t.rosbag]
+
+    @property
+    def dataset_topic_list(self) -> List[str]:
+        return [t.name for t in self.topic_config_list if t.dataset]
+
+    @property
+    def augment_topic_list(self) -> List[str]:
+        return [t.name for t in self.topic_config_list if t.augment]
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'TopicConfig':
         return cls(
-            yaml_dict['RGBImage'],
-            yaml_dict['DepthImage'],
-            yaml_dict['AngleVector'])
+            EachTopicConfig.from_yaml_dict(yaml_dict['RGBImage']),
+            EachTopicConfig.from_yaml_dict(yaml_dict['DepthImage']),
+            EachTopicConfig.from_yaml_dict(yaml_dict['AngleVector']))
 
 
 @dataclass

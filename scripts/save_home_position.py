@@ -28,7 +28,8 @@ if __name__ == '__main__':
     def callback(msg):
         data['msg'] = msg
 
-    rospy.Subscriber(config.topics.av_topic, JointState, callback=callback)
+    av_topic_name = config.topics.av_topic_config.name
+    rospy.Subscriber(av_topic_name, JointState, callback=callback)
     time.sleep(2.0)
 
     assert data['msg'] is not None

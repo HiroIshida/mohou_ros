@@ -28,9 +28,9 @@ class ExecutorBase(ABC):
         self.vconv = vconv
         self.control_joint_names = config.control_joints
 
-        rospy.Subscriber(config.topics.rgb_topic, Image, self.on_rgb)
-        rospy.Subscriber(config.topics.depth_topic, Image, self.on_depth)
-        rospy.Subscriber(config.topics.av_topic, JointState, self.on_joint_state)
+        rospy.Subscriber(config.topics.rgb_topic_config.name, Image, self.on_rgb)
+        rospy.Subscriber(config.topics.depth_topic_config.name, Image, self.on_depth)
+        rospy.Subscriber(config.topics.av_topic_config.name, JointState, self.on_joint_state)
         self.post_init_hook()
         self.dryrun = dryrun
 

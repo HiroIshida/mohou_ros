@@ -1,15 +1,29 @@
 project: pr2_reaching
-sampling_hz: 5.0
+sampling_hz: 18.0
 image: 
     x_min: 150
     x_max: 400
     y_min: 100
     y_max: 600
     resol: 224
+
 topic: 
-    AngleVector: /joint_states
-    RGBImage: /kinect_head/rgb/image_rect_color
-    DepthImage: /kinect_head/depth_registered/image
+    AngleVector:
+        name: /joint_states
+        rosbag: True
+        dataset: True
+        augment: False
+    RGBImage: 
+        name: /kinect_head/rgb/image_rect_color
+        rosbag: True
+        dataset: True
+        augment: True
+    DepthImage: 
+        name: /kinect_head/depth_registered/image
+        rosbag: True
+        dataset: False
+        augment: False
+
 control_joints:
     - r_shoulder_pan_joint 
     - r_shoulder_lift_joint

@@ -24,12 +24,15 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
     mohou_elem_seqs = []
     for seq in seqs:
         assert seq.topic_name is not None
+        if seq.topic_name not in config.topics.dataset_topic_list:
+            continue
+
         elem_type: Type[ElementBase]
-        if seq.topic_name == config.topics.rgb_topic:
+        if seq.topic_name == config.topics.rgb_topic_config.name:
             elem_type = RGBImage
-        elif seq.topic_name == config.topics.depth_topic:
+        elif seq.topic_name == config.topics.depth_topic_config.name:
             elem_type = DepthImage
-        elif seq.topic_name == config.topics.av_topic:
+        elif seq.topic_name == config.topics.av_topic_config.name:
             elem_type = AngleVector
         else:
             assert False
@@ -51,12 +54,13 @@ def main(config: Config, dump_gif):
         bag = rosbag.Bag(filename)
         seqs = bag_to_synced_seqs(bag,
                                   1.0 / config.hz,
-                                  topic_names=config.topics.topic_list,
+                                  topic_names=config.topics.dataset_topic_list,
                                   rule=rule)
         bag.close()
 
         episode_data = seqs_to_episodedata(seqs, config)
         episode_data_list.append(episode_data)
+        print(len(seqs[0]))
     chunk = MultiEpisodeChunk(episode_data_list)
     chunk.dump(config.project)
 
