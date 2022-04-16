@@ -11,17 +11,17 @@ topic:
     AngleVector:
         name: /joint_states
         rosbag: True
-        augment: False
+        auxiliary: False
         use: True
     RGBImage: 
         name: /kinect_head/rgb/image_rect_color
         rosbag: True
-        augment: True
+        auxiliary: True
         use: True
     DepthImage: 
         name: /kinect_head/depth_registered/image
         rosbag: True
-        augment: False
+        auxiliary: False
         use: False
 
 control_joints:

@@ -12,16 +12,16 @@ class EachTopicConfig:
     name: str
     rosbag: bool
     use: bool
-    augment: bool
+    auxiliary: bool
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'EachTopicConfig':
-        return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['use'], yaml_dict['augment'])
+        return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['use'], yaml_dict['auxiliary'])
 
     def __post_init__(self):
         if self.use:
             assert self.rosbag
-        if self.augment:
+        if self.auxiliary:
             assert self.rosbag
 
 
@@ -44,8 +44,8 @@ class TopicConfig:
         return [t.name for t in self.topic_config_list if t.use]
 
     @property
-    def augment_topic_list(self) -> List[str]:
-        return [t.name for t in self.topic_config_list if t.augment]
+    def auxiliary_topic_list(self) -> List[str]:
+        return [t.name for t in self.topic_config_list if t.auxiliary]
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'TopicConfig':

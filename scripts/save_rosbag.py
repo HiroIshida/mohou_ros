@@ -16,10 +16,10 @@ def get_rosbag_filename(config: Config, postfix: str):
     return filename
 
 
-def create_rosbag_command(config: Config, postfix: str, for_augment: bool):
+def create_rosbag_command(config: Config, postfix: str, auxiliary: bool):
     filename = get_rosbag_filename(config, postfix)
     cmd_rosbag = ['rosbag', 'record']
-    topic_list = config.topics.augment_topic_list if for_augment else config.topics.rosbag_topic_list
+    topic_list = config.topics.auxiliary_topic_list if auxiliary else config.topics.rosbag_topic_list
     cmd_rosbag.extend(topic_list + ['/tf'])
     cmd_rosbag.extend(['--output-name', filename])
     print('subprocess cmd: {}'.format(cmd_rosbag))
@@ -57,15 +57,15 @@ if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
     parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
-    parser.add_argument('--aug', action='store_true', help='rosbag for augment data')
+    parser.add_argument('--aux', action='store_true', help='rosbag for auxiliary data')
 
     args = parser.parse_args()
-    for_augment = args.aug
+    auxiliary = args.aux
     config_file = args.config
     config = Config.from_yaml_file(config_file)
 
     postfix = time.strftime("%Y%m%d%H%M%S")
-    cmd = create_rosbag_command(config, postfix, for_augment)
+    cmd = create_rosbag_command(config, postfix, auxiliary)
     p = subprocess.Popen(cmd)
 
     try:
