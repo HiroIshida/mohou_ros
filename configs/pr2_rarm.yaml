@@ -11,18 +11,18 @@ topic:
     AngleVector:
         name: /joint_states
         rosbag: True
-        dataset: True
         augment: False
+        use: True
     RGBImage: 
         name: /kinect_head/rgb/image_rect_color
         rosbag: True
-        dataset: True
         augment: True
+        use: True
     DepthImage: 
         name: /kinect_head/depth_registered/image
         rosbag: True
-        dataset: False
         augment: False
+        use: False
 
 control_joints:
     - r_shoulder_pan_joint 

@@ -11,15 +11,15 @@ from mohou_ros_utils.file import get_home_position_file
 class EachTopicConfig:
     name: str
     rosbag: bool
-    dataset: bool
+    use: bool
     augment: bool
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'EachTopicConfig':
-        return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['dataset'], yaml_dict['augment'])
+        return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['use'], yaml_dict['augment'])
 
     def __post_init__(self):
-        if self.dataset:
+        if self.use:
             assert self.rosbag
         if self.augment:
             assert self.rosbag
@@ -40,8 +40,8 @@ class TopicConfig:
         return [t.name for t in self.topic_config_list if t.rosbag]
 
     @property
-    def dataset_topic_list(self) -> List[str]:
-        return [t.name for t in self.topic_config_list if t.dataset]
+    def use_topic_list(self) -> List[str]:
+        return [t.name for t in self.topic_config_list if t.use]
 
     @property
     def augment_topic_list(self) -> List[str]:

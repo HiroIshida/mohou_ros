@@ -24,7 +24,7 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
     mohou_elem_seqs = []
     for seq in seqs:
         assert seq.topic_name is not None
-        if seq.topic_name not in config.topics.dataset_topic_list:
+        if seq.topic_name not in config.topics.use_topic_list:
             continue
 
         elem_type: Type[ElementBase]
@@ -54,7 +54,7 @@ def main(config: Config, dump_gif):
         bag = rosbag.Bag(filename)
         seqs = bag_to_synced_seqs(bag,
                                   1.0 / config.hz,
-                                  topic_names=config.topics.dataset_topic_list,
+                                  topic_names=config.topics.use_topic_list,
                                   rule=rule)
         bag.close()
 
