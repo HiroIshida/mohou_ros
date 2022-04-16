@@ -10,14 +10,17 @@ from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.config import Config
 
 
-def get_rosbag_filename(config: Config, postfix: str):
+def get_rosbag_filename(config: Config, postfix: str, auxiliary: bool):
     rosbag_dir = get_rosbag_dir(config.project)
-    filename = os.path.join(rosbag_dir, 'train-episode-{0}.bag'.format(postfix))
+    if auxiliary:
+        filename = os.path.join(rosbag_dir, 'auxiliary-episode-{0}.bag'.format(postfix))
+    else:
+        filename = os.path.join(rosbag_dir, 'train-episode-{0}.bag'.format(postfix))
     return filename
 
 
 def create_rosbag_command(config: Config, postfix: str, auxiliary: bool):
-    filename = get_rosbag_filename(config, postfix)
+    filename = get_rosbag_filename(config, postfix, auxiliary)
     cmd_rosbag = ['rosbag', 'record']
     topic_list = config.topics.auxiliary_topic_list if auxiliary else config.topics.rosbag_topic_list
     cmd_rosbag.extend(topic_list + ['/tf'])

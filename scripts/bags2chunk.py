@@ -41,14 +41,22 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
     return EpisodeData(tuple(mohou_elem_seqs))
 
 
-def main(config: Config, dump_gif):
+def main(config: Config, dump_gif, auxiliary):
     rosbag_dir = get_rosbag_dir(config.project)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
-        filename = os.path.join(rosbag_dir, filename_)
-        _, ext = os.path.splitext(filename)
+        _, ext = os.path.splitext(filename_)
         if ext != '.bag':
             continue
+
+        if auxiliary:
+            if not filename_.startswith('auxiliary'):
+                continue
+        else:
+            if not filename_.startswith('train'):
+                continue
+
+        filename = os.path.join(rosbag_dir, filename_)
 
         rule = AllSameInterpolationRule(NearestNeighbourMessageInterpolator)
         bag = rosbag.Bag(filename)
@@ -60,12 +68,21 @@ def main(config: Config, dump_gif):
 
         episode_data = seqs_to_episodedata(seqs, config)
         episode_data_list.append(episode_data)
+
         print(len(seqs[0]))
-    chunk = MultiEpisodeChunk(episode_data_list)
-    chunk.dump(config.project)
+
+    if auxiliary:
+        chunk = MultiEpisodeChunk(episode_data_list, with_intact_data=False)
+        chunk.dump_aux(config.project)
+    else:
+        chunk = MultiEpisodeChunk(episode_data_list)
+        chunk.dump(config.project)
 
     if dump_gif:
-        gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
+        if auxiliary:
+            gif_dir = os.path.join(get_project_dir(config.project), 'auxiliary_data_gifs')
+        else:
+            gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
         create_if_not_exist(gif_dir)
         for i, episode_data in enumerate(chunk):
             episode_data.filter_by_type
@@ -81,9 +98,11 @@ if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
     parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('--aux', action='store_true', help='convert auxiliary data')
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
     config = Config.from_yaml_file(args.config)
     dump_gif = args.gif
-    main(config, dump_gif)
+    auxiliary = args.aux
+    main(config, dump_gif, auxiliary)
