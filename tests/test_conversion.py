@@ -1,10 +1,7 @@
 import os
 import pickle
-
+import shutil
 import numpy as np
-
-from mohou_ros_utils.resizer import RGBResizer
-from mohou_ros_utils.resizer import DepthResizer
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import imgmsg_to_numpy, numpy_to_imgmsg
 from mohou_ros_utils.conversion import RGBImageConverter
@@ -45,20 +42,30 @@ def get_pickle_data_path(pickle_name):
     return obj
 
 
+def prepare_configs() -> Config:
+    data_path = get_test_data_path()
+    yaml_file_path = os.path.join(data_path, 'example.yaml')
+    config = Config.from_yaml_file(yaml_file_path)
+    src = os.path.join(get_test_data_path(), 'image_config.yaml')
+    dst = config.get_image_config_path()
+    shutil.copyfile(src, dst)
+    return config
+
+
 def test_rgb_image_converter():
+    config = prepare_configs()
     rgb_image_msg = get_pickle_data_path('rgb_image.pkl')
-    args = [10, 300, 10, 300, 24]
-    rgb_converter = RGBImageConverter(RGBResizer(*args))
+    rgb_converter = RGBImageConverter.from_config(config)
     image = rgb_converter(rgb_image_msg)
-    assert image.shape == (24, 24, 3)
+    assert image.shape == (112, 112, 3)
 
 
 def test_depth_image_converter():
+    config = prepare_configs()
     depth_image_msg = get_pickle_data_path('depth_image.pkl')
-    args = [10, 100, 10, 100, 24]
-    depth_converter = DepthImageConverter(DepthResizer(*args))
+    depth_converter = DepthImageConverter.from_config(config)
     image = depth_converter(depth_image_msg)
-    assert image.shape == (24, 24, 1)
+    assert image.shape == (112, 112, 1)
 
 
 def test_angle_vector_converter():
@@ -73,9 +80,7 @@ def test_angle_vector_converter():
 
 
 def test_versatile_converter():
-    data_path = get_test_data_path()
-    yaml_file_path = os.path.join(data_path, 'example.yaml')
-    config = Config.from_yaml_file(yaml_file_path)
+    config = prepare_configs()
     converter = VersatileConverter.from_config(config)
 
     rgb_image_msg = get_pickle_data_path('rgb_image.pkl')

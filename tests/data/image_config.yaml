@@ -1,0 +1,16 @@
+CropResizer:
+  x_max: 480
+  x_min: 244
+  y_max: 526
+  y_min: 127
+GaussianBlurFilter:
+  kernel_width: 12
+HSVLogicalFilter:
+  h_max: 255
+  h_min: 0
+  s_max: 255
+  s_min: 0
+  v_max: 255
+  v_min: 0
+ResolutionChangeResizer:
+  resol: 112

@@ -6,6 +6,7 @@ install_requires = [
     "numpy",
     "scipy",
     "mohou>=0.0.6",
+    "tunable-filter>=0.0.3"
 ]
 
 setup(

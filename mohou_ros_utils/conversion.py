@@ -7,10 +7,9 @@ from sensor_msgs.msg import Image, JointState
 import genpy
 import numpy as np
 from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage
+from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.resizer import RGBResizer
-from mohou_ros_utils.resizer import DepthResizer
 
 
 MessageT = TypeVar('MessageT', bound=genpy.Message)
@@ -52,29 +51,35 @@ class TypeConverter(ABC, Generic[MessageT, ElementT]):
         pass
 
 
+@dataclass
 class RGBImageConverter(TypeConverter[Image, RGBImage]):
+    image_filter: Optional[CompositeFilter] = None
     type_in = Image
     type_out = RGBImage
-    resizer: Optional[RGBResizer]
 
-    def __init__(self, resizer: Optional[RGBResizer] = None):
-        self.resizer = resizer
+    @classmethod
+    def from_config(cls, config: Config) -> 'RGBImageConverter':
+        return cls(config.load_image_filter())
 
     def __call__(self, msg: Image) -> RGBImage:
         assert msg.encoding in ['bgr8', 'rgb8']
         image = imgmsg_to_numpy(msg)
-        if self.resizer is not None:
-            image = self.resizer(image)
+        if self.image_filter is not None:
+            image = self.image_filter(image)
         return RGBImage(image)
 
 
+@dataclass
 class DepthImageConverter(TypeConverter[Image, DepthImage]):
+    image_filter: Optional[CompositeFilter] = None
     type_in = Image
     type_out = DepthImage
-    resizer: Optional[DepthResizer]
 
-    def __init__(self, resizer: Optional[DepthResizer] = None):
-        self.resizer = resizer
+    @classmethod
+    def from_config(cls, config: Config) -> 'DepthImageConverter':
+        rgb_full_filter = config.load_image_filter()
+        depth_filter = rgb_full_filter.extract_subfilter([CropResizer, ResolutionChangeResizer])
+        return cls(depth_filter)
 
     def __call__(self, msg: Image) -> DepthImage:
         assert msg.encoding in ['32FC1']
@@ -82,8 +87,11 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
         size = [msg.height, msg.width]
         buf: np.ndarray = np.ndarray(shape=(1, int(len(msg.data) / 4)), dtype=np.float32, buffer=msg.data)
         image = np.nan_to_num(buf.reshape(*size))
-        if self.resizer is not None:
-            image = self.resizer(image)
+        if self.image_filter is not None:
+            print("hoge1")
+            assert len(self.image_filter.logical_filters) == 0
+            image = self.image_filter(image, True)
+            print("hoge2")
         image = np.expand_dims(image, axis=2)
         return DepthImage(image)
 
@@ -134,12 +142,8 @@ class VersatileConverter:
     @classmethod
     def from_config(cls, config: Config):
         converters: Dict[Type[ElementBase], TypeConverter] = {}
-
-        rgb_resizer = RGBResizer.from_config(config.image_config)
-        converters[RGBImage] = RGBImageConverter(rgb_resizer)
-
-        depth_resizer = DepthResizer.from_config(config.image_config)
-        converters[DepthImage] = DepthImageConverter(depth_resizer)
+        converters[RGBImage] = RGBImageConverter.from_config(config)
+        converters[DepthImage] = DepthImageConverter.from_config(config)
 
         converters[AngleVector] = AngleVectorConverter(config.control_joints)
         return cls(converters)
