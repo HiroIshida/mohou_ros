@@ -55,5 +55,5 @@ if __name__ == '__main__':
     force = args.force
 
     rospy.init_node('executor')
-    executor = SkrobotPR2Executor(config, dryrun=True)
+    executor = SkrobotPR2Executor(config, dryrun=(not force))
     rospy.spin()

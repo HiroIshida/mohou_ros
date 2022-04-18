@@ -20,6 +20,7 @@ class ExecutorBase(ABC):
     joint_state_msg: Optional[JointState] = None
     current_av: Optional[AngleVector] = None
     dryrun: bool
+    hz: float
 
     def __init__(self, config: Config, dryrun=True) -> None:
         n_joint = len(config.control_joints)
@@ -40,7 +41,8 @@ class ExecutorBase(ABC):
         self.dryrun = dryrun
 
         # start!
-        rospy.Timer(rospy.Duration(0.5), self.on_timer)
+        self.hz = 1.0
+        rospy.Timer(rospy.Duration(1.0 / self.hz), self.on_timer)
 
     def on_rgb(self, msg: Image):
         self.rgb_msg = msg
@@ -71,7 +73,7 @@ class ExecutorBase(ABC):
 
         av_next_cand = edict_next[AngleVector]
         self.current_av = self.get_angle_vector()
-        av_next = AngleVector((av_next_cand.numpy() - self.current_av.numpy()) * 0.5 + self.current_av.numpy())  # type: ignore
+        av_next = AngleVector((av_next_cand.numpy() - self.current_av.numpy()) * self.hz + self.current_av.numpy())  # type: ignore
         self.send_command(av_next)
 
     @abstractmethod
