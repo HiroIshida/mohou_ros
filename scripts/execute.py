@@ -21,16 +21,17 @@ class SkrobotPR2Executor(ExecutorBase):
         robot_model = PR2()
         self.robot_model = robot_model
         self.robot_interface = PR2ROSRobotInterface(robot_model)
+        self.robot_model.angle_vector(self.robot_interface.angle_vector())
 
     def send_command(self, av: AngleVector) -> None:
         for angle, joint_name in zip(av.numpy(), self.control_joint_names):
-            self.robot_model.__dict__[joint_name] = angle
+            self.robot_model.__dict__[joint_name].joint_angle(angle)
         assert self.current_av is not None
         rospy.loginfo('current {}'.format(self.current_av.numpy()))
         rospy.loginfo('target {}'.format(av.numpy()))
         if not self.dryrun:
             self.robot_interface.angle_vector(
-                self.robot_model.angle_vector, time=1.0, time_scale=1.0)
+                self.robot_model.angle_vector(), time=1.0, time_scale=1.0)
 
     def get_angle_vector(self) -> AngleVector:
         angles = []
@@ -45,10 +46,12 @@ if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
     parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('--force', action='store_true', help='disable dry option')
 
     args = parser.parse_args()
     config = Config.from_yaml_file(args.config)
+    force = args.force
 
     rospy.init_node('executor')
-    executor = SkrobotPR2Executor(config)
+    executor = SkrobotPR2Executor(config, dryrun=True)
     rospy.spin()
