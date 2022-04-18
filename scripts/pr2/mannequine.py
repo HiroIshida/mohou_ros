@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import Optional, List, Dict
+from typing import Optional, List
 import argparse
 import os
 import time
@@ -9,31 +9,12 @@ from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 import rospy
 import threading
 import rospkg
-from pr2_mechanism_msgs.srv import SwitchController
-from pr2_mechanism_msgs.srv import ListControllers, ListControllersResponse
 
 from mohou_ros_utils.config import Config
 
 from params import larm_joint_names, rarm_joint_names
 from params import larm_controller_name, rarm_controller_name, all_controller_names
-
-
-def get_controller_states() -> Dict[str, bool]:
-    sp = rospy.ServiceProxy('/pr2_controller_manager/list_controllers', ListControllers)
-    resp: ListControllersResponse = sp()
-    return {cont: (state == 'running') for (cont, state) in zip(resp.controllers, resp.state)}
-
-
-def switch_controller(controllers: List[str], start: bool):
-    loose_controllers = [con + '_loose' for con in controllers]
-    sp = rospy.ServiceProxy('/pr2_controller_manager/switch_controller', SwitchController)
-
-    if start:
-        resp = sp(start_controllers=loose_controllers, stop_controllers=controllers)
-    else:
-        resp = sp(start_controllers=controllers, stop_controllers=loose_controllers, strictness=2)
-    print('controller service response: {}'.format(resp))
-    return resp
+from pr2_controller_utils import get_controller_states, switch_controller
 
 
 class Mannequin(object):

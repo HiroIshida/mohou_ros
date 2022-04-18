@@ -11,6 +11,7 @@ from mohou.types import AngleVector
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.executor import ExecutorBase
+from pr2_controller_utils import check_pr2_is_executable
 
 
 class SkrobotPR2Executor(ExecutorBase):
@@ -22,6 +23,7 @@ class SkrobotPR2Executor(ExecutorBase):
         self.robot_model = robot_model
         self.robot_interface = PR2ROSRobotInterface(robot_model)
         self.robot_model.angle_vector(self.robot_interface.angle_vector())
+        check_pr2_is_executable()
 
     def send_command(self, av: AngleVector) -> None:
         for angle, joint_name in zip(av.numpy(), self.control_joint_names):
