@@ -1,11 +1,5 @@
-project: pr2_reaching
+project: pr2_reach_ladle
 sampling_hz: 18.0
-image: 
-    x_min: 150
-    x_max: 400
-    y_min: 100
-    y_max: 600
-    resol: 224
 
 topic: 
     AngleVector:
