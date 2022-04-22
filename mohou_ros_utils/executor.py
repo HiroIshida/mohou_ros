@@ -119,6 +119,7 @@ class ExecutorBase(ABC):
         self.send_command(av_next)
 
     def on_termination(self):
+        rospy.loginfo('Please hang tight. Creating a debug gif image...')
         self.running = False
         dir_name = os.path.join(self.config.get_project_dir(), 'execute_debug_gifs')
         create_if_not_exist(dir_name)
