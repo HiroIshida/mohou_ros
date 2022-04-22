@@ -1,4 +1,4 @@
-project: pr2_reach_ladle
+project: pr2_reaching
 sampling_hz: 18.0
 
 topic: 

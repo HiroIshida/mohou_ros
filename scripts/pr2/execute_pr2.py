@@ -54,6 +54,12 @@ if __name__ == '__main__':
     config = Config.from_yaml_file(args.config)
     force = args.force
 
-    rospy.init_node('executor')
+    rospy.init_node('executor', disable_signals=True)
     executor = SkrobotPR2Executor(config, dryrun=(not force))
-    rospy.spin()
+
+    try:
+        while(True):
+            rospy.rostime.wallsleep(0.5)
+    except KeyboardInterrupt:
+        rospy.loginfo('finish')
+        executor.on_termination()

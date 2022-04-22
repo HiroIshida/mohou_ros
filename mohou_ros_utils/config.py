@@ -102,6 +102,9 @@ class Config:
         yaml_file_path = os.path.join(base_dir, relative_path)
         return cls.from_yaml_file(yaml_file_path)
 
+    def get_project_dir(self) -> str:
+        return get_project_dir(self.project)
+
     def get_image_config_path(self) -> str:
         p = os.path.join(get_project_dir(self.project), 'image_config.yaml')
         return p
