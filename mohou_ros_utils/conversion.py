@@ -88,10 +88,8 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
         buf: np.ndarray = np.ndarray(shape=(1, int(len(msg.data) / 4)), dtype=np.float32, buffer=msg.data)
         image = np.nan_to_num(buf.reshape(*size))
         if self.image_filter is not None:
-            print("hoge1")
             assert len(self.image_filter.logical_filters) == 0
             image = self.image_filter(image, True)
-            print("hoge2")
         image = np.expand_dims(image, axis=2)
         return DepthImage(image)
 
