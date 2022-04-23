@@ -38,7 +38,7 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
             assert False
         elem_seq = ElementSequence([vconv.converters[elem_type](e) for e in seq.object_list])
         mohou_elem_seqs.append(elem_seq)
-    return EpisodeData(tuple(mohou_elem_seqs))
+    return EpisodeData.from_seq_list(mohou_elem_seqs)
 
 
 def main(config: Config, dump_gif, auxiliary):

@@ -14,7 +14,8 @@ from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
 from mohou_ros_utils.conversion import imgmsg_to_numpy
 from mohou_ros_utils.file import create_if_not_exist
-from mohou.propagator import Propagator, create_default_propagator
+from mohou.propagator import Propagator
+from mohou.default import create_default_propagator
 from mohou.types import AngleVector, ElementDict, RGBImage
 from mohou.utils import canvas_to_ndarray
 

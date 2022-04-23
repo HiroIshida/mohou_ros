@@ -5,7 +5,7 @@ setup_requires = []
 install_requires = [
     "numpy",
     "scipy",
-    "mohou>=0.0.6",
+    "mohou>=0.0.7",
     "tunable-filter>=0.0.3"
 ]
 
