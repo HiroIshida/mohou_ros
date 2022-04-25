@@ -81,6 +81,7 @@ class Mannequin(object):
                 angle = self.config.home_position[joint_name]
                 self.robot.__dict__[joint_name].joint_angle(angle)
             self.ri.angle_vector(self.robot.angle_vector(), time=2.0, time_scale=1.0)
+            self.ri.wait_interpolation()
             print("resetting pose...")
             time.sleep(3.5)
 
