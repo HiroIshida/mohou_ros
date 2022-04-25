@@ -3,10 +3,10 @@ import argparse
 import os
 import rosbag
 import rospkg
-from typing import List, Type
+from typing import List
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_dir
-from mohou.types import RGBImage, DepthImage, ElementBase, AngleVector
+from mohou.types import RGBImage
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
 from mohou_ros_utils.types import TimeStampedSequence
@@ -27,15 +27,7 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
         if seq.topic_name not in config.topics.use_topic_list:
             continue
 
-        elem_type: Type[ElementBase]
-        if seq.topic_name == config.topics.rgb_topic_config.name:
-            elem_type = RGBImage
-        elif seq.topic_name == config.topics.depth_topic_config.name:
-            elem_type = DepthImage
-        elif seq.topic_name == config.topics.av_topic_config.name:
-            elem_type = AngleVector
-        else:
-            assert False
+        elem_type = config.topics.get_by_topic_name(seq.topic_name).mohou_type
         elem_seq = ElementSequence([vconv.converters[elem_type](e) for e in seq.object_list])
         mohou_elem_seqs.append(elem_seq)
     return EpisodeData.from_seq_list(mohou_elem_seqs)

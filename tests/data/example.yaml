@@ -17,6 +17,11 @@ topic:
         rosbag: True
         auxiliary: False
         use: False
+    GripperState:
+        name: /r_gripper_controller/state
+        rosbag: True
+        auxiliary: True
+        use: True
 
 control_joints:
     - r_shoulder_pan_joint 

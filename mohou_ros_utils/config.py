@@ -1,22 +1,31 @@
 import os
 import yaml
 from dataclasses import dataclass
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Type
 from tunable_filter.tunable import CompositeFilter
 
+from mohou.types import get_element_type
+from mohou.types import PrimitiveElementBase
 from mohou_ros_utils.file import get_home_position_file, get_project_dir
 
 
 @dataclass
 class EachTopicConfig:
+    mohou_type: Type[PrimitiveElementBase]
     name: str
     rosbag: bool
     use: bool
     auxiliary: bool
 
     @classmethod
-    def from_yaml_dict(cls, yaml_dict: Dict) -> 'EachTopicConfig':
-        return cls(yaml_dict['name'], yaml_dict['rosbag'], yaml_dict['use'], yaml_dict['auxiliary'])
+    def from_yaml_dict(cls, yaml_dict: Dict, mohou_type: Type[PrimitiveElementBase]) -> 'EachTopicConfig':
+        partial_yaml_dict = yaml_dict[mohou_type.__name__]
+        return cls(
+            mohou_type,
+            partial_yaml_dict['name'],
+            partial_yaml_dict['rosbag'],
+            partial_yaml_dict['use'],
+            partial_yaml_dict['auxiliary'])
 
     def __post_init__(self):
         if self.use:
@@ -27,13 +36,12 @@ class EachTopicConfig:
 
 @dataclass
 class TopicConfig:
-    rgb_topic_config: EachTopicConfig
-    depth_topic_config: EachTopicConfig
-    av_topic_config: EachTopicConfig
+    type_config_table: Dict[Type[PrimitiveElementBase], EachTopicConfig]
+    name_config_table: Dict[str, EachTopicConfig]
 
     @property
     def topic_config_list(self) -> List[EachTopicConfig]:
-        return [self.rgb_topic_config, self.depth_topic_config, self.av_topic_config]
+        return list(self.type_config_table.values())
 
     @property
     def rosbag_topic_list(self) -> List[str]:
@@ -47,12 +55,24 @@ class TopicConfig:
     def auxiliary_topic_list(self) -> List[str]:
         return [t.name for t in self.topic_config_list if t.auxiliary]
 
+    def get_by_mohou_type(self, mohou_type: Type[PrimitiveElementBase]) -> EachTopicConfig:
+        return self.type_config_table[mohou_type]
+
+    def get_by_topic_name(self, name: str) -> EachTopicConfig:
+        return self.name_config_table[name]
+
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'TopicConfig':
-        return cls(
-            EachTopicConfig.from_yaml_dict(yaml_dict['RGBImage']),
-            EachTopicConfig.from_yaml_dict(yaml_dict['DepthImage']),
-            EachTopicConfig.from_yaml_dict(yaml_dict['AngleVector']))
+        type_config_table: Dict[Type[PrimitiveElementBase], EachTopicConfig] = {}
+        for key in yaml_dict.keys():
+            type_key: Type[PrimitiveElementBase] = get_element_type(key)  # type: ignore
+            type_config_table[type_key] = EachTopicConfig.from_yaml_dict(yaml_dict, type_key)
+
+        # create name config table
+        name_config_table: Dict[str, EachTopicConfig] = {}
+        for key, val in type_config_table.items():
+            name_config_table[val.name] = val
+        return cls(type_config_table, name_config_table)
 
 
 @dataclass

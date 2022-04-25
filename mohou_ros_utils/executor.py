@@ -16,7 +16,7 @@ from mohou_ros_utils.conversion import imgmsg_to_numpy
 from mohou_ros_utils.file import create_if_not_exist
 from mohou.propagator import Propagator
 from mohou.default import create_default_propagator
-from mohou.types import AngleVector, ElementDict, RGBImage
+from mohou.types import AngleVector, DepthImage, ElementDict, RGBImage
 from mohou.utils import canvas_to_ndarray
 
 
@@ -70,9 +70,9 @@ class ExecutorBase(ABC):
         self.vconv = vconv
         self.control_joint_names = config.control_joints
 
-        rospy.Subscriber(config.topics.rgb_topic_config.name, Image, self.on_rgb)
-        rospy.Subscriber(config.topics.depth_topic_config.name, Image, self.on_depth)
-        rospy.Subscriber(config.topics.av_topic_config.name, JointState, self.on_joint_state)
+        rospy.Subscriber(config.topics.get_by_mohou_type(RGBImage).name, Image, self.on_rgb)
+        rospy.Subscriber(config.topics.get_by_mohou_type(DepthImage).name, Image, self.on_depth)
+        rospy.Subscriber(config.topics.get_by_mohou_type(AngleVector).name, JointState, self.on_joint_state)
 
         self.post_init_hook()
         self.dryrun = dryrun
