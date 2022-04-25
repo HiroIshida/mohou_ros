@@ -56,16 +56,13 @@ class TypeConverter(ABC, Generic[MessageT, ElementT]):
 
 @dataclass
 class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
-    open_threshold: float = 0.01
 
     @classmethod
     def from_config(cls, config: Config):
         return cls()
 
     def __call__(self, msg: JointControllerState) -> GripperState:
-        boolean = msg.process_value > self.open_threshold
-        gs = GripperState(np.array([boolean], dtype=bool))
-        return gs
+        return GripperState(np.array([msg.process_value]))
 
 
 @dataclass
