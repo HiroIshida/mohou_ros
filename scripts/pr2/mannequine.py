@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from typing import Optional, List
+import actionlib
 import argparse
 import os
 import time
@@ -9,6 +10,8 @@ from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 import rospy
 import threading
 import rospkg
+from pr2_controllers_msgs.msg import Pr2GripperCommandAction
+from pr2_controllers_msgs.msg import Pr2GripperCommandActionGoal
 
 from mohou_ros_utils.config import Config
 
@@ -66,7 +69,7 @@ class Mannequin(object):
         for cont in all_controller_names:
             assert state_dict[cont]
 
-    def reset_mannequin(self, wait_interpolation: bool=True):
+    def reset_mannequin(self, wait_interpolation: bool = True):
         rospy.loginfo('resetting')
         self.stop_mannequine()
 
@@ -142,17 +145,20 @@ if __name__ == '__main__':
     parser.add_argument('--larm', action='store_true', help='loose larm')
     parser.add_argument('--mirror', action='store_true', help='mirror mode')
     parser.add_argument('--home', action='store_true', help='use home position')
+    parser.add_argument('-open', type=float, default=0.04, help='max gripper position')
+    parser.add_argument('-close', type=float, default=0.00, help='max gripper position')
 
     args = parser.parse_args()
     loose_larm = args.larm
     loose_rarm = args.rarm
+    pos_open = args.open
+    pos_close = args.close
     mirror = args.mirror
     home = args.home
     config_file = args.config
     config = Config.from_yaml_file(config_file)
 
-    dic = get_controller_states()
-
+    # mannequin
     mq = Mannequin(config,
                    loose_larm=loose_larm,
                    loose_rarm=loose_rarm,
@@ -160,12 +166,31 @@ if __name__ == '__main__':
                    use_home_position=home)
     mq.start()
 
+    # gripper stuff TODO(HiroIshida): currently gripper controll is only on rarm
+    topic_name = "/r_gripper_controller/gripper_action"
+    gripper_client = actionlib.SimpleActionClient(topic_name, Pr2GripperCommandAction)
+    succuss = gripper_client.wait_for_server()
+
+    def create_goal(pos: float) -> Pr2GripperCommandActionGoal:
+        goal = Pr2GripperCommandActionGoal()
+        goal.goal.command.position = pos
+        goal.goal.command.max_effort = 25
+        return goal
+
     while True:
-        print('e: end mannequin, r: reset pose')
+        print('e: end mannequin, r: reset pose, o: open gripper, c: close gripper')
         key = input()
         if key == 'e':
             mq.terminate()
             break
-        if key == 'r':
+        elif key == 'r':
             mq.reset_mannequin(wait_interpolation=False)
             mq.start()
+        elif key == 'o':
+            g = create_goal(pos_open)
+            gripper_client.send_goal(g.goal)
+        elif key == 'c':
+            g = create_goal(pos_close)
+            gripper_client.send_goal(g.goal)
+        else:
+            pass
