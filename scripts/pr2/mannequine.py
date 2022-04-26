@@ -66,26 +66,32 @@ class Mannequin(object):
         for cont in all_controller_names:
             assert state_dict[cont]
 
-    def reset_mannequin(self):
+    def reset_mannequin(self, wait_interpolation: bool=True):
+        rospy.loginfo('resetting')
         self.stop_mannequine()
 
         self.is_thread_active = False
         if self.thread is not None:
             self.thread.join()
 
-        if self.config.home_position is None:
-            return
-
         if self.use_home_position:
+            if self.config.home_position is None:
+                message = 'before using --home, you must recored home position'
+                rospy.logerr(message)
+                assert False
+
+            rospy.loginfo('returning to home position')
             for joint_name in self.config.home_position.keys():
                 angle = self.config.home_position[joint_name]
                 self.robot.__dict__[joint_name].joint_angle(angle)
             self.ri.angle_vector(self.robot.angle_vector(), time=2.0, time_scale=1.0)
             self.ri.move_gripper('larm', self.config.home_position['l_gripper_joint'], effort=100)
             self.ri.move_gripper('rarm', self.config.home_position['r_gripper_joint'], effort=100)
-            self.ri.wait_interpolation()
-            print("resetting pose...")
-            time.sleep(3.5)
+            rospy.loginfo("resetting pose...")
+            if wait_interpolation:
+                self.ri.wait_interpolation()
+            else:
+                time.sleep(3.0)
 
     def mirror(self, time, offset=0.7):
 
@@ -146,7 +152,6 @@ if __name__ == '__main__':
     config = Config.from_yaml_file(config_file)
 
     dic = get_controller_states()
-    print(dic)
 
     mq = Mannequin(config,
                    loose_larm=loose_larm,
@@ -162,5 +167,5 @@ if __name__ == '__main__':
             mq.terminate()
             break
         if key == 'r':
-            mq.reset_mannequin()
+            mq.reset_mannequin(wait_interpolation=False)
             mq.start()
