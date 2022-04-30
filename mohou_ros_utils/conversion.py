@@ -6,10 +6,13 @@ import math
 from sensor_msgs.msg import Image, JointState
 import genpy
 import numpy as np
-from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage
+from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage, GripperState
 from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
 
 from mohou_ros_utils.config import Config
+
+# Only pr2 user
+from pr2_controllers_msgs.msg import JointControllerState
 
 
 MessageT = TypeVar('MessageT', bound=genpy.Message)
@@ -49,6 +52,17 @@ class TypeConverter(ABC, Generic[MessageT, ElementT]):
     @abstractmethod
     def __call__(self, msg: MessageT) -> ElementT:
         pass
+
+
+@dataclass
+class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
+
+    @classmethod
+    def from_config(cls, config: Config):
+        return cls()
+
+    def __call__(self, msg: JointControllerState) -> GripperState:
+        return GripperState(np.array([msg.process_value]))
 
 
 @dataclass
@@ -94,14 +108,16 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
         return DepthImage(image)
 
 
+@dataclass
 class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
+    control_joints: List[str]
     type_in = JointState
     type_out = AngleVector
-    control_joints: List[str]
     joint_indices: Optional[List[int]] = None
 
-    def __init__(self, control_joints: List[str]):
-        self.control_joints = control_joints
+    @classmethod
+    def from_config(cls, config: Config) -> 'AngleVectorConverter':
+        return cls(config.control_joints)
 
     def __call__(self, msg: JointState) -> AngleVector:
 
@@ -142,6 +158,6 @@ class VersatileConverter:
         converters: Dict[Type[ElementBase], TypeConverter] = {}
         converters[RGBImage] = RGBImageConverter.from_config(config)
         converters[DepthImage] = DepthImageConverter.from_config(config)
-
-        converters[AngleVector] = AngleVectorConverter(config.control_joints)
+        converters[AngleVector] = AngleVectorConverter.from_config(config)
+        converters[GripperState] = GripperStateConverter.from_config(config)
         return cls(converters)

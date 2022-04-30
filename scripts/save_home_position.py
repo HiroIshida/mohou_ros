@@ -8,6 +8,7 @@ import rospy
 import rospkg
 from sensor_msgs.msg import JointState
 
+from mohou.types import AngleVector
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.file import get_home_position_file
 
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     def callback(msg):
         data['msg'] = msg
 
-    av_topic_name = config.topics.av_topic_config.name
+    av_topic_name = config.topics.get_by_mohou_type(AngleVector).name
     rospy.Subscriber(av_topic_name, JointState, callback=callback)
     time.sleep(2.0)
 

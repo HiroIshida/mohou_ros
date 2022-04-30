@@ -26,8 +26,17 @@ def switch_controller(controllers: List[str], start: bool):
     sp = rospy.ServiceProxy('/pr2_controller_manager/switch_controller', SwitchController)
 
     if start:
-        resp = sp(start_controllers=loose_controllers, stop_controllers=controllers)
+        start_controllers = loose_controllers
+        stop_controllers = controllers
     else:
-        resp = sp(start_controllers=controllers, stop_controllers=loose_controllers, strictness=2)
-    print('controller service response: {}'.format(resp))
+        start_controllers = controllers
+        stop_controllers = loose_controllers
+
+    rospy.loginfo('start: {}'.format(start_controllers))
+    rospy.loginfo('stop: {}'.format(stop_controllers))
+    resp = sp(start_controllers=start_controllers, stop_controllers=stop_controllers)
+    rospy.loginfo('controller service response: {}'.format(resp))
+    rospy.loginfo('current controller status')
+    states = get_controller_states()
+    rospy.loginfo(pprint.pformat(states))
     return resp
