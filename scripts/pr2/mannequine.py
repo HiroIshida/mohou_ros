@@ -145,7 +145,7 @@ if __name__ == '__main__':
     parser.add_argument('--larm', action='store_true', help='loose larm')
     parser.add_argument('--mirror', action='store_true', help='mirror mode')
     parser.add_argument('--home', action='store_true', help='use home position')
-    parser.add_argument('-open', type=float, default=0.04, help='max gripper position')
+    parser.add_argument('-open', type=float, default=0.06, help='max gripper position')
     parser.add_argument('-close', type=float, default=0.00, help='max gripper position')
 
     args = parser.parse_args()

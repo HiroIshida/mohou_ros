@@ -61,13 +61,11 @@ def main(config: Config, dump_gif, auxiliary):
         episode_data = seqs_to_episodedata(seqs, config)
         episode_data_list.append(episode_data)
 
-        print(len(seqs[0]))
-
     if auxiliary:
-        chunk = MultiEpisodeChunk(episode_data_list, with_intact_data=False)
+        chunk = MultiEpisodeChunk.from_data_list(episode_data_list, with_intact_data=False)
         chunk.dump_aux(config.project)
     else:
-        chunk = MultiEpisodeChunk(episode_data_list)
+        chunk = MultiEpisodeChunk.from_data_list(episode_data_list)
         chunk.dump(config.project)
 
     if dump_gif:
@@ -77,9 +75,8 @@ def main(config: Config, dump_gif, auxiliary):
             gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
         create_if_not_exist(gif_dir)
         for i, episode_data in enumerate(chunk):
-            episode_data.filter_by_type
             fps = 20
-            images = [rgb.numpy() for rgb in episode_data.filter_by_type(RGBImage)]
+            images = [rgb.numpy() for rgb in episode_data.get_sequence_by_type(RGBImage)]
             clip = ImageSequenceClip(images, fps=fps)
 
             gif_filename = os.path.join(gif_dir, '{}.gif'.format(i))
