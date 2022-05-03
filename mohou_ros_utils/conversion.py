@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, Optional, TypeVar, List, Type, Dict
-import math
 
 from sensor_msgs.msg import Image, JointState
 import genpy
@@ -125,11 +124,7 @@ class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
             name_idx_map = {name: i for (i, name) in enumerate(msg.name)}
             self.joint_indices = [name_idx_map[name] for name in self.control_joints]
 
-        def clamp_to_s1(something):
-            lower_side = -math.pi
-            return ((something - lower_side) % (2 * math.pi)) + lower_side
-
-        angles = [clamp_to_s1(msg.position[idx]) for idx in self.joint_indices]
+        angles = [msg.position[idx] for idx in self.joint_indices]
         return AngleVector(np.array(angles))
 
 
