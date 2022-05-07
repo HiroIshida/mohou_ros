@@ -55,6 +55,8 @@ class TypeConverter(ABC, Generic[MessageT, ElementT]):
 
 @dataclass
 class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
+    type_in = JointControllerState
+    type_out = GripperState
 
     @classmethod
     def from_config(cls, config: Config):
