@@ -63,7 +63,7 @@ class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
         return cls()
 
     def __call__(self, msg: JointControllerState) -> GripperState:
-        return GripperState(np.array([msg.process_value]))
+        return GripperState(np.array([msg.set_point]))
 
 
 @dataclass
