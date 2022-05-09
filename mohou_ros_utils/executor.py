@@ -13,7 +13,6 @@ from pr2_controllers_msgs.msg import JointControllerState
 
 from mohou.propagator import Propagator
 from mohou.default import create_default_propagator
-from mohou.script_utils import auto_detect_autoencoder_type
 from mohou.types import AngleVector, DepthImage, ElementDict, RGBImage, GripperState
 from mohou.utils import canvas_to_ndarray
 
@@ -66,9 +65,7 @@ class ExecutorBase(ABC):
     debug_images_seq: List[DebugImages]
 
     def __init__(self, config: Config, dryrun=True) -> None:
-        n_joint = len(config.control_joints)
-        ae_type = auto_detect_autoencoder_type(project_name=config.project)
-        propagator = create_default_propagator(config.project, n_joint, ae_type)
+        propagator = create_default_propagator(config.project)
         vconv = VersatileConverter.from_config(config)
         self.config = config
         self.propagator = propagator
