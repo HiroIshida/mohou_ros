@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
 import os
+import pickle
 from dataclasses import dataclass
 import rospy
 from typing import List, Optional
@@ -63,6 +64,7 @@ class ExecutorBase(ABC):
     dryrun: bool
     hz: float
     debug_images_seq: List[DebugImages]
+    debug_edict_seq: List[ElementDict]
 
     def __init__(self, config: Config, dryrun=True) -> None:
         propagator = create_default_propagator(config.project)
@@ -82,6 +84,7 @@ class ExecutorBase(ABC):
 
         # start!
         self.debug_images_seq = []
+        self.debug_edict_seq = []
         self.hz = 1.0
         rospy.Timer(rospy.Duration(1.0 / self.hz), self.on_timer)
         self.running = True
@@ -117,9 +120,10 @@ class ExecutorBase(ABC):
         self.propagator.feed(edict)
         edict_next = self.propagator.predict(1)[0]
 
-        robot_camera_view = RGBImage(imgmsg_to_numpy(self.rgb_msg))
+        robot_camera_view = edict[RGBImage]
         dimages = DebugImages(robot_camera_view, edict[RGBImage], edict_next[RGBImage])
         self.debug_images_seq.append(dimages)
+        self.debug_edict_seq.append(edict)
 
         av_next_cand = edict_next[AngleVector]
         self.current_av = self.get_angle_vector()
@@ -129,13 +133,21 @@ class ExecutorBase(ABC):
         self.send_command(av_next, gs_next)
 
     def on_termination(self):
-        rospy.loginfo('Please hang tight. Creating a debug gif image...')
         self.running = False
-        dir_name = os.path.join(self.config.get_project_dir(), 'execute_debug_gifs')
+        dir_name = os.path.join(self.config.get_project_dir(), 'execution_debug_data')
+        str_time = time.strftime("%Y%m%d%H%M%S")
         create_if_not_exist(dir_name)
-        file_name = os.path.join(dir_name, 'exec-{}.gif'.format(time.strftime("%Y%m%d%H%M%S")))
+        
+
+        rospy.loginfo('Please hang tight. Creating a debug gif image...')
+        file_name = os.path.join(dir_name, 'images-{}.gif'.format(str_time))
         clip = ImageSequenceClip([debug_images.numpy() for debug_images in self.debug_images_seq], fps=20)
         clip.write_gif(file_name, fps=20)
+
+        rospy.loginfo('Please hang tight. Saving debug edict sequence')
+        file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(str_time)) 
+        with open(file_name, 'wb') as f:
+            pickle.dump(self.debug_edict_seq, f)
 
     @abstractmethod
     def post_init_hook(self) -> None:
