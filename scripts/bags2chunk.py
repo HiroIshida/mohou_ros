@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import numpy as np
 import rosbag
 import rospkg
 from typing import List
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_dir
-from mohou.types import RGBImage
+from mohou.types import RGBImage, AngleVector
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
 from mohou_ros_utils.types import TimeStampedSequence
@@ -33,12 +34,28 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
     return EpisodeData.from_seq_list(mohou_elem_seqs)
 
 
+def has_too_long_static_av(edata: EpisodeData, coef: float = 0.1):
+    av_seq = edata.get_sequence_by_type(AngleVector)
+    static_state_len_threshold = len(av_seq) * coef
+    indices_static = None
+    for i in range(len(av_seq) - 1):
+        diff = np.linalg.norm(av_seq[i + 1].numpy() - av_seq[i].numpy())  # type: ignore
+        if diff > 0.005:  # TODO(HiroIshida) change this using mohou's std value
+            indices_static = i
+            break
+    if indices_static is None:
+        return False
+    return indices_static > static_state_len_threshold
+
+
 def main(config: Config, dump_gif, auxiliary):
     rosbag_dir = get_rosbag_dir(config.project)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
+        print('processing {}'.format(filename_))
         _, ext = os.path.splitext(filename_)
         if ext != '.bag':
+            print('skipped (invalid file extension)')
             continue
 
         if auxiliary:
@@ -59,6 +76,9 @@ def main(config: Config, dump_gif, auxiliary):
         bag.close()
 
         episode_data = seqs_to_episodedata(seqs, config)
+        if has_too_long_static_av(episode_data):
+            print('skipped (strange too long initial static state found. skipped)')
+            continue
         episode_data_list.append(episode_data)
 
     if auxiliary:
