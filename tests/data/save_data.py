@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import rospy
 import pickle
-from sensor_msgs.msg import Image, JointState
+from sensor_msgs.msg import CompressedImage, Image, JointState
 
 data_config = [
     ('/kinect_head/depth_registered/image', Image, 'depth_image.pkl'),
-    ('/kinect_head/rgb/image_rect_color', Image, 'rgb_image.pkl'),
+    ('/kinect_head/rgb/image_rect_color/compressed', CompressedImage, 'rgb_image.pkl'),
     ('/joint_states', JointState, 'joint_states.pkl'),
 ]
 

@@ -2,13 +2,14 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, Optional, TypeVar, List, Type, Dict
 
-from sensor_msgs.msg import Image, JointState, CompressedImage
+from sensor_msgs.msg import JointState, CompressedImage, Image
 import genpy
 import numpy as np
 from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage, GripperState
 from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
 from cv_bridge import CvBridge
 
+from mohou_ros_utils.utils import deprecated
 from mohou_ros_utils.config import Config
 
 # Only pr2 user
@@ -18,6 +19,7 @@ from pr2_controllers_msgs.msg import JointControllerState
 MessageT = TypeVar('MessageT', bound=genpy.Message)
 
 
+@deprecated
 def imgmsg_to_numpy(msg: Image) -> np.ndarray:  # actually numpy
     # NOTE: avoid cv_bridge for python3 on melodic
     # https://github.com/ros-perception/vision_opencv/issues/207
@@ -25,6 +27,7 @@ def imgmsg_to_numpy(msg: Image) -> np.ndarray:  # actually numpy
     return image
 
 
+@deprecated
 def numpy_to_imgmsg(data: np.ndarray, encoding) -> Image:
     # NOTE: avoid cv_bridge for python3 on melodic
     # https://github.com/ros-perception/vision_opencv/issues/207
@@ -68,31 +71,13 @@ class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
 
 
 @dataclass
-class RGBImageConverter(TypeConverter[Image, RGBImage]):
-    image_filter: Optional[CompositeFilter] = None
-    type_in = Image
-    type_out = RGBImage
-
-    @classmethod
-    def from_config(cls, config: Config) -> 'RGBImageConverter':
-        return cls(config.load_image_filter())
-
-    def __call__(self, msg: Image) -> RGBImage:
-        assert msg.encoding in ['bgr8', 'rgb8']
-        image = imgmsg_to_numpy(msg)
-        if self.image_filter is not None:
-            image = self.image_filter(image)
-        return RGBImage(image)
-
-
-@dataclass
-class RGBImageCompConverter(TypeConverter[CompressedImage, RGBImage]):
+class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
     image_filter: Optional[CompositeFilter] = None
     type_in = CompressedImage
     type_out = RGBImage
 
     @classmethod
-    def from_config(cls, config: Config) -> 'RGBImageCompConverter':
+    def from_config(cls, config: Config) -> 'RGBImageConverter':
         return cls(config.load_image_filter())
 
     def __call__(self, msg: CompressedImage) -> RGBImage:
@@ -154,16 +139,6 @@ class VersatileConverter:
 
     def __call__(self, msg: genpy.Message) -> ElementBase:
 
-        """
-        if type(msg) == Image:
-            if msg.encoding in ['rgb8', 'bgr8']:
-                return self.converters[RGBImage](msg)
-            elif msg.encoding == '32FC1':
-                return self.converters[DepthImage](msg)
-            else:
-                assert False
-        """
-
         for converter in self.converters.values():
             # image is exceptional
             if converter.type_in == type(msg):
@@ -173,8 +148,7 @@ class VersatileConverter:
     @classmethod
     def from_config(cls, config: Config):
         converters: Dict[Type[ElementBase], TypeConverter] = {}
-        converters[RGBImage] = RGBImageCompConverter.from_config(config)
-        #converters[DepthImage] = DepthImageConverter.from_config(config)
+        converters[RGBImage] = RGBImageConverter.from_config(config)
         converters[AngleVector] = AngleVectorConverter.from_config(config)
         converters[GripperState] = GripperStateConverter.from_config(config)
         return cls(converters)

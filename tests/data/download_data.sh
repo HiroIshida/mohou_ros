@@ -7,6 +7,6 @@ function download_pickle {
     wget -nc "https://drive.google.com/uc?export=download&id=$drive_id" -O $filename
 }
 
-download_pickle rgb_image.pkl 1kSjcV7owDd7qpCetXEXHsiDUupMT0n62
-download_pickle depth_image.pkl 1zHLPCm3FcuL92tyIBaG9ElB3PV4Lj_mW
-download_pickle joint_states.pkl 1JAWfQrZ1FJgJSlg-aoKvJLPIOHkoQ2eO
+download_pickle rgb_image.pkl 16LsK7sJSHg1q2QuLz-4Ty_ayKYCebEmy
+download_pickle depth_image.pkl 13OlDuoGGnRhiNT7zKZO2IsMY-Dbq7WAv
+download_pickle joint_states.pkl 1qennNrT6r-LYg_iBo5D9oliDO9UE9WwP
