@@ -2,11 +2,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, Optional, TypeVar, List, Type, Dict
 
-from sensor_msgs.msg import Image, JointState
+from sensor_msgs.msg import Image, JointState, CompressedImage
 import genpy
 import numpy as np
 from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage, GripperState
 from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
+from cv_bridge import CvBridge
 
 from mohou_ros_utils.config import Config
 
@@ -85,6 +86,23 @@ class RGBImageConverter(TypeConverter[Image, RGBImage]):
 
 
 @dataclass
+class RGBImageCompConverter(TypeConverter[CompressedImage, RGBImage]):
+    image_filter: Optional[CompositeFilter] = None
+    type_in = CompressedImage
+    type_out = RGBImage
+
+    @classmethod
+    def from_config(cls, config: Config) -> 'RGBImageCompConverter':
+        return cls(config.load_image_filter())
+
+    def __call__(self, msg: CompressedImage) -> RGBImage:
+        image = CvBridge().compressed_imgmsg_to_cv2(msg)
+        if self.image_filter is not None:
+            image = self.image_filter(image)
+        return RGBImage(image)
+
+
+@dataclass
 class DepthImageConverter(TypeConverter[Image, DepthImage]):
     image_filter: Optional[CompositeFilter] = None
     type_in = Image
@@ -136,6 +154,7 @@ class VersatileConverter:
 
     def __call__(self, msg: genpy.Message) -> ElementBase:
 
+        """
         if type(msg) == Image:
             if msg.encoding in ['rgb8', 'bgr8']:
                 return self.converters[RGBImage](msg)
@@ -143,6 +162,7 @@ class VersatileConverter:
                 return self.converters[DepthImage](msg)
             else:
                 assert False
+        """
 
         for converter in self.converters.values():
             # image is exceptional
@@ -153,8 +173,8 @@ class VersatileConverter:
     @classmethod
     def from_config(cls, config: Config):
         converters: Dict[Type[ElementBase], TypeConverter] = {}
-        converters[RGBImage] = RGBImageConverter.from_config(config)
-        converters[DepthImage] = DepthImageConverter.from_config(config)
+        converters[RGBImage] = RGBImageCompConverter.from_config(config)
+        #converters[DepthImage] = DepthImageConverter.from_config(config)
         converters[AngleVector] = AngleVectorConverter.from_config(config)
         converters[GripperState] = GripperStateConverter.from_config(config)
         return cls(converters)

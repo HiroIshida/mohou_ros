@@ -5,7 +5,7 @@ import pickle
 from dataclasses import dataclass
 import rospy
 from typing import List, Optional
-from sensor_msgs.msg import Image, JointState
+from sensor_msgs.msg import CompressedImage, Image, JointState
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -55,8 +55,8 @@ class ExecutorBase(ABC):
     propagator: Propagator
     vconv: VersatileConverter
     control_joint_names: List[str]
-    rgb_msg: Optional[Image] = None
-    depth_msg: Optional[Image] = None
+    rgb_msg: Optional[CompressedImage] = None
+    #depth_msg: Optional[Image] = None
     joint_state_msg: Optional[JointState] = None
     joint_cont_state_msg: Optional[JointControllerState] = None
     current_av: Optional[AngleVector] = None
@@ -74,8 +74,8 @@ class ExecutorBase(ABC):
         self.vconv = vconv
         self.control_joint_names = config.control_joints
 
-        rospy.Subscriber(config.topics.get_by_mohou_type(RGBImage).name, Image, self.on_rgb)
-        rospy.Subscriber(config.topics.get_by_mohou_type(DepthImage).name, Image, self.on_depth)
+        rospy.Subscriber(config.topics.get_by_mohou_type(RGBImage).name, CompressedImage, self.on_rgb)
+        #rospy.Subscriber(config.topics.get_by_mohou_type(DepthImage).name, Image, self.on_depth)
         rospy.Subscriber(config.topics.get_by_mohou_type(AngleVector).name, JointState, self.on_joint_state)
         rospy.Subscriber(config.topics.get_by_mohou_type(GripperState).name, JointControllerState, self.on_joint_cont_state)
 
@@ -89,7 +89,7 @@ class ExecutorBase(ABC):
         rospy.Timer(rospy.Duration(1.0 / self.hz), self.on_timer)
         self.running = True
 
-    def on_rgb(self, msg: Image):
+    def on_rgb(self, msg: CompressedImage):
         self.rgb_msg = msg
 
     def on_depth(self, msg: Image):

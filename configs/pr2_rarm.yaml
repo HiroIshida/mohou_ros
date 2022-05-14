@@ -1,5 +1,5 @@
-project: pr2_reaching
-sampling_hz: 18.0
+project: pr2_tidyup_dish
+sampling_hz: 5.0
 
 topic: 
     AngleVector:
@@ -8,13 +8,13 @@ topic:
         auxiliary: False
         use: True
     RGBImage: 
-        name: /kinect_head/rgb/image_rect_color
+        name: /kinect_head/rgb/image_rect_color/compressed
         rosbag: True
         auxiliary: True
         use: True
     DepthImage: 
-        name: /kinect_head/depth_registered/image
-        rosbag: True
+        name: /kinect_head/depth_registered/image/compressedDepth
+        rosbag: False
         auxiliary: False
         use: False
     GripperState:
