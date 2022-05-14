@@ -115,22 +115,19 @@ class ExecutorBase(ABC):
         rospy.loginfo('on timer..')
 
         elems = [self.vconv(msg) for msg in [self.joint_state_msg, self.rgb_msg, self.joint_cont_state_msg]]
-        edict = ElementDict(elems)
+        edict_current = ElementDict(elems)
 
-        self.propagator.feed(edict)
+        self.propagator.feed(edict_current)
+
         edict_next = self.propagator.predict(1)[0]
 
-        robot_camera_view = edict[RGBImage]
-        dimages = DebugImages(robot_camera_view, edict[RGBImage], edict_next[RGBImage])
+        # save debug infos
+        robot_camera_view = edict_current[RGBImage]
+        dimages = DebugImages(robot_camera_view, edict_current[RGBImage], edict_next[RGBImage])
         self.debug_images_seq.append(dimages)
-        self.debug_edict_seq.append(edict)
+        self.debug_edict_seq.append(edict_current)
 
-        av_next_cand = edict_next[AngleVector]
-        self.current_av = self.get_angle_vector()
-        av_next = AngleVector((av_next_cand.numpy() - self.current_av.numpy()) * self.hz + self.current_av.numpy())  # type: ignore
-        gs_next = edict[GripperState] if GripperState in edict_next else None
-
-        self.send_command(av_next, gs_next)
+        self.send_command(edict_next, edict_current)
 
     def on_termination(self):
         self.running = False
@@ -154,7 +151,7 @@ class ExecutorBase(ABC):
         pass
 
     @abstractmethod
-    def send_command(self, av: AngleVector, gs: Optional[GripperState] = None) -> None:
+    def send_command(self, edict_next: ElementDict, edict_current: ElementDict) -> None:
         pass
 
     @abstractmethod
