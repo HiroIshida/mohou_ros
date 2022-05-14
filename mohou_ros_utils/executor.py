@@ -14,12 +14,11 @@ from pr2_controllers_msgs.msg import JointControllerState
 
 from mohou.propagator import Propagator
 from mohou.default import create_default_propagator
-from mohou.types import AngleVector, DepthImage, ElementDict, RGBImage, GripperState
+from mohou.types import AngleVector, ElementDict, RGBImage, GripperState
 from mohou.utils import canvas_to_ndarray
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
-from mohou_ros_utils.conversion import imgmsg_to_numpy
 from mohou_ros_utils.file import create_if_not_exist
 
 
@@ -56,7 +55,6 @@ class ExecutorBase(ABC):
     vconv: VersatileConverter
     control_joint_names: List[str]
     rgb_msg: Optional[CompressedImage] = None
-    #depth_msg: Optional[Image] = None
     joint_state_msg: Optional[JointState] = None
     joint_cont_state_msg: Optional[JointControllerState] = None
     current_av: Optional[AngleVector] = None
@@ -75,8 +73,6 @@ class ExecutorBase(ABC):
         self.control_joint_names = config.control_joints
 
         rospy.Subscriber(config.topics.get_by_mohou_type(RGBImage).name, CompressedImage, self.on_rgb)
-        #rospy.Subscriber(config.topics.get_by_mohou_type(DepthImage).name, Image, self.on_depth)
-        rospy.Subscriber(config.topics.get_by_mohou_type(AngleVector).name, JointState, self.on_joint_state)
         rospy.Subscriber(config.topics.get_by_mohou_type(GripperState).name, JointControllerState, self.on_joint_cont_state)
 
         self.post_init_hook()
@@ -104,9 +100,8 @@ class ExecutorBase(ABC):
     def on_timer(self, event):
         if not self.running:
             return
-        # TODO(HiroIshida) Currently consider only (RGBImage, AngleVector)
 
-        if (self.joint_state_msg is None) or (self.joint_cont_state_msg is None) or (self.rgb_msg is None):  # TODO(HiroIshida) depth!
+        if (self.joint_state_msg is None) or (self.joint_cont_state_msg is None) or (self.rgb_msg is None):
             rospy.loginfo("cannot start because topics are not subscribed yet.")
             rospy.loginfo('joint state subscribed? : {}'.format(self.joint_state_msg is not None))
             rospy.loginfo('joint cont state subscribed? : {}'.format(self.joint_cont_state_msg is not None))
@@ -134,7 +129,6 @@ class ExecutorBase(ABC):
         dir_name = os.path.join(self.config.get_project_dir(), 'execution_debug_data')
         str_time = time.strftime("%Y%m%d%H%M%S")
         create_if_not_exist(dir_name)
-        
 
         rospy.loginfo('Please hang tight. Creating a debug gif image...')
         file_name = os.path.join(dir_name, 'images-{}.gif'.format(str_time))
@@ -142,7 +136,7 @@ class ExecutorBase(ABC):
         clip.write_gif(file_name, fps=20)
 
         rospy.loginfo('Please hang tight. Saving debug edict sequence')
-        file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(str_time)) 
+        file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(str_time))
         with open(file_name, 'wb') as f:
             pickle.dump(self.debug_edict_seq, f)
 

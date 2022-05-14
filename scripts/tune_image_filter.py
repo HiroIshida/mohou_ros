@@ -3,16 +3,16 @@ import argparse
 import os
 import rosbag
 import rospkg
-import cv_bridge
 
 from tunable_filter.composite_zoo import HSVBlurCropResolFilter
 from mohou.types import RGBImage
 from mohou_ros_utils.config import Config
+from mohou_ros_utils.conversion import RGBImageConverter
 from mohou_ros_utils.file import get_rosbag_dir
-from mohou_ros_utils.conversion import imgmsg_to_numpy
 
 
 def get_first_rgb(config: Config):
+    rgb_conv = RGBImageConverter.from_config(config)
     base_dir = get_rosbag_dir(config.project)
     for filename in os.listdir(base_dir):
 
@@ -25,7 +25,7 @@ def get_first_rgb(config: Config):
         for topic, msg, _ in bag.read_messages():
             if topic == config.topics.get_by_mohou_type(RGBImage).name:
                 bag.close()
-                arr = cv_bridge.CvBridge().compressed_imgmsg_to_cv2(msg)
+                arr = rgb_conv(msg)
                 return RGBImage(arr)
         bag.close()
     assert False
