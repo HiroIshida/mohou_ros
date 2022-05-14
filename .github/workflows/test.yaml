@@ -38,6 +38,7 @@ jobs:
                   pip install --extra-index-url https://rospypi.github.io/simple/ std_msgs
                   pip install --extra-index-url https://rospypi.github.io/simple/ geometry_msgs
                   pip install --extra-index-url https://rospypi.github.io/simple/ sensor_msgs
+                  pip install --extra-index-url https://rospypi.github.io/simple/ cv-bridge
 
             - name: pip install pytest mypy
               run: |
