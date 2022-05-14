@@ -48,7 +48,7 @@ def has_too_long_static_av(edata: EpisodeData, coef: float = 0.1):
     return indices_static > static_state_len_threshold
 
 
-def main(config: Config, dump_gif, auxiliary):
+def main(config: Config, dump_gif):
     rosbag_dir = get_rosbag_dir(config.project)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
@@ -58,9 +58,6 @@ def main(config: Config, dump_gif, auxiliary):
             print('skipped (invalid file extension)')
             continue
 
-        if auxiliary:
-            if not filename_.startswith('auxiliary'):
-                continue
         else:
             if not filename_.startswith('train'):
                 continue
@@ -81,18 +78,11 @@ def main(config: Config, dump_gif, auxiliary):
             continue
         episode_data_list.append(episode_data)
 
-    if auxiliary:
-        chunk = MultiEpisodeChunk.from_data_list(episode_data_list, with_intact_data=False)
-        chunk.dump_aux(config.project)
-    else:
-        chunk = MultiEpisodeChunk.from_data_list(episode_data_list)
-        chunk.dump(config.project)
+    chunk = MultiEpisodeChunk.from_data_list(episode_data_list)
+    chunk.dump(config.project)
 
     if dump_gif:
-        if auxiliary:
-            gif_dir = os.path.join(get_project_dir(config.project), 'auxiliary_data_gifs')
-        else:
-            gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
+        gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
         create_if_not_exist(gif_dir)
         for i, episode_data in enumerate(chunk):
             fps = 20
@@ -107,11 +97,9 @@ if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
     parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
-    parser.add_argument('--aux', action='store_true', help='convert auxiliary data')
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
     config = Config.from_yaml_file(args.config)
     dump_gif = args.gif
-    auxiliary = args.aux
-    main(config, dump_gif, auxiliary)
+    main(config, dump_gif)

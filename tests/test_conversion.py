@@ -84,8 +84,6 @@ def test_versatile_converter():
     converter = VersatileConverter.from_config(config)
 
     rgb_image_msg = get_pickle_data_path('rgb_image.pkl')
-    depth_image_msg = get_pickle_data_path('depth_image.pkl')
     joint_state = get_pickle_data_path('joint_states.pkl')
     converter(rgb_image_msg)
-    converter(depth_image_msg)
     converter(joint_state)
