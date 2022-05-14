@@ -1,5 +1,4 @@
 project: pr2_tidyup_dish
-sampling_hz: 5.0
 
 topic: 
     AngleVector:

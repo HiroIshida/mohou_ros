@@ -79,7 +79,6 @@ class TopicConfig:
 class Config:
     project: str
     control_joints: List[str]
-    hz: float
     topics: TopicConfig
     home_position: Optional[Dict[str, float]]
 
@@ -87,7 +86,6 @@ class Config:
     def from_yaml_dict(cls, yaml_dict: Dict) -> 'Config':
         project_name = yaml_dict['project']
         control_joints = yaml_dict['control_joints']
-        hz = yaml_dict['sampling_hz']
         topics = TopicConfig.from_yaml_dict(yaml_dict['topic'])
 
         home_position = None
@@ -100,7 +98,6 @@ class Config:
         return cls(
             yaml_dict['project'],
             control_joints,
-            hz,
             topics,
             home_position)
 

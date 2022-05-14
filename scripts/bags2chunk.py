@@ -48,7 +48,7 @@ def has_too_long_static_av(edata: EpisodeData, coef: float = 0.1):
     return indices_static > static_state_len_threshold
 
 
-def main(config: Config, dump_gif):
+def main(config: Config, hz: float, dump_gif: bool):
     rosbag_dir = get_rosbag_dir(config.project)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
@@ -67,7 +67,7 @@ def main(config: Config, dump_gif):
         rule = AllSameInterpolationRule(NearestNeighbourMessageInterpolator)
         bag = rosbag.Bag(filename)
         seqs = bag_to_synced_seqs(bag,
-                                  1.0 / config.hz,
+                                  1.0 / hz,
                                   topic_names=config.topics.use_topic_list,
                                   rule=rule)
         bag.close()
@@ -97,9 +97,11 @@ if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
     parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('-hz', type=float, default=5.0)
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
     config = Config.from_yaml_file(args.config)
+    hz = args.hz
     dump_gif = args.gif
-    main(config, dump_gif)
+    main(config, hz, dump_gif)
