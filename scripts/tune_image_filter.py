@@ -11,7 +11,7 @@ from mohou_ros_utils.conversion import RGBImageConverter
 from mohou_ros_utils.file import get_rosbag_dir
 
 
-def get_first_rgb(config: Config):
+def get_first_rgb(config: Config) -> RGBImage:
     rgb_conv = RGBImageConverter.from_config(config)
     base_dir = get_rosbag_dir(config.project)
     for filename in os.listdir(base_dir):
@@ -25,8 +25,7 @@ def get_first_rgb(config: Config):
         for topic, msg, _ in bag.read_messages():
             if topic == config.topics.get_by_mohou_type(RGBImage).name:
                 bag.close()
-                arr = rgb_conv(msg)
-                return RGBImage(arr)
+                return rgb_conv(msg)
         bag.close()
     assert False
 
