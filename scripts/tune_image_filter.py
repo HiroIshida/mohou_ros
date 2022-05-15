@@ -2,18 +2,19 @@
 import argparse
 import os
 import rosbag
-import rospkg
 
 from tunable_filter.composite_zoo import HSVBlurCropResolFilter
 from mohou.types import RGBImage
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import RGBImageConverter
 from mohou_ros_utils.file import get_rosbag_dir
+from mohou_ros_utils.file import get_image_config_path
 
 
 def get_first_rgb(config: Config) -> RGBImage:
-    rgb_conv = RGBImageConverter.from_config(config)
-    base_dir = get_rosbag_dir(config.project)
+    rgb_conv = RGBImageConverter()
+    base_dir = get_rosbag_dir(config.project_name)
     for filename in os.listdir(base_dir):
 
         _, ext = os.path.splitext(filename)
@@ -32,15 +33,12 @@ def get_first_rgb(config: Config) -> RGBImage:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
-
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     args = parser.parse_args()
-    config_file = args.config
-    config = Config.from_yaml_file(config_file)
+    project_name = args.pn
+    config = Config.from_project_name(project_name)
 
     rgb = get_first_rgb(config)
     tunable = HSVBlurCropResolFilter.from_image(rgb.numpy())
     tunable.start_tuning(rgb.numpy())
-    tunable.dump_yaml(config.get_image_config_path())
+    tunable.dump_yaml(get_image_config_path(project_name))

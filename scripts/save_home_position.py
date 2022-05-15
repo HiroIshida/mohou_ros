@@ -1,26 +1,22 @@
 #!/usr/bin/env python3
 import argparse
-import os
 import yaml
 import time
 
 import rospy
-import rospkg
 from sensor_msgs.msg import JointState
 
 from mohou.types import AngleVector
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.file import get_home_position_file
 
 
 if __name__ == '__main__':
-    config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
-
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     args = parser.parse_args()
-    config_file = args.config
-    config = Config.from_yaml_file(config_file)
+    config = Config.from_project_name(args.pn)
 
     rospy.init_node('save_home_position')
 
@@ -39,5 +35,5 @@ if __name__ == '__main__':
     joint_indices = [name_idx_map[name] for name in msg.name]
     joint_angle_map = {name: msg.position[name_idx_map[name]] for name in msg.name}
 
-    with open(get_home_position_file(config.project), 'w') as f:
+    with open(get_home_position_file(config.project_name), 'w') as f:
         yaml.dump(joint_angle_map, f)

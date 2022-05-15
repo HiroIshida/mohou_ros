@@ -5,13 +5,13 @@ import subprocess
 import signal
 import time
 
-import rospkg
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.config import Config
 
 
 def get_rosbag_filename(config: Config, postfix: str, auxiliary: bool):
-    rosbag_dir = get_rosbag_dir(config.project)
+    rosbag_dir = get_rosbag_dir(config.project_name)
     if auxiliary:
         filename = os.path.join(rosbag_dir, 'auxiliary-episode-{0}.bag'.format(postfix))
     else:
@@ -57,15 +57,13 @@ def dump_debug_image(config: Config, postfix: str):
 
 
 if __name__ == '__main__':
-    config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('--aux', action='store_true', help='rosbag for auxiliary data')
 
     args = parser.parse_args()
     auxiliary = args.aux
-    config_file = args.config
-    config = Config.from_yaml_file(config_file)
+    config = Config.from_project_name(args.pn)
 
     postfix = time.strftime("%Y%m%d%H%M%S")
     cmd = create_rosbag_command(config, postfix, auxiliary)
