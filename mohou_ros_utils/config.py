@@ -15,7 +15,6 @@ class EachTopicConfig:
     name: str
     rosbag: bool
     use: bool
-    auxiliary: bool
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict, mohou_type: Type[PrimitiveElementBase]) -> 'EachTopicConfig':
@@ -24,13 +23,10 @@ class EachTopicConfig:
             mohou_type,
             partial_yaml_dict['name'],
             partial_yaml_dict['rosbag'],
-            partial_yaml_dict['use'],
-            partial_yaml_dict['auxiliary'])
+            partial_yaml_dict['use'])
 
     def __post_init__(self):
         if self.use:
-            assert self.rosbag
-        if self.auxiliary:
             assert self.rosbag
 
 
@@ -50,10 +46,6 @@ class TopicConfig:
     @property
     def use_topic_list(self) -> List[str]:
         return [t.name for t in self.topic_config_list if t.use]
-
-    @property
-    def auxiliary_topic_list(self) -> List[str]:
-        return [t.name for t in self.topic_config_list if t.auxiliary]
 
     def get_by_mohou_type(self, mohou_type: Type[PrimitiveElementBase]) -> EachTopicConfig:
         return self.type_config_table[mohou_type]

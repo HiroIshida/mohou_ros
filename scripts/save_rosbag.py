@@ -10,19 +10,16 @@ from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.config import Config
 
 
-def get_rosbag_filename(config: Config, postfix: str, auxiliary: bool):
+def get_rosbag_filename(config: Config, postfix: str):
     rosbag_dir = get_rosbag_dir(config.project_name)
-    if auxiliary:
-        filename = os.path.join(rosbag_dir, 'auxiliary-episode-{0}.bag'.format(postfix))
-    else:
-        filename = os.path.join(rosbag_dir, 'train-episode-{0}.bag'.format(postfix))
+    filename = os.path.join(rosbag_dir, 'train-episode-{0}.bag'.format(postfix))
     return filename
 
 
-def create_rosbag_command(config: Config, postfix: str, auxiliary: bool):
-    filename = get_rosbag_filename(config, postfix, auxiliary)
+def create_rosbag_command(config: Config, postfix: str):
+    filename = get_rosbag_filename(config, postfix)
     cmd_rosbag = ['rosbag', 'record']
-    topic_list = config.topics.auxiliary_topic_list if auxiliary else config.topics.rosbag_topic_list
+    topic_list = config.topics.rosbag_topic_list
     cmd_rosbag.extend(topic_list + ['/tf'])
     cmd_rosbag.extend(['--output-name', filename])
     print('subprocess cmd: {}'.format(cmd_rosbag))
@@ -59,14 +56,12 @@ def dump_debug_image(config: Config, postfix: str):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
-    parser.add_argument('--aux', action='store_true', help='rosbag for auxiliary data')
 
     args = parser.parse_args()
-    auxiliary = args.aux
     config = Config.from_project_name(args.pn)
 
     postfix = time.strftime("%Y%m%d%H%M%S")
-    cmd = create_rosbag_command(config, postfix, auxiliary)
+    cmd = create_rosbag_command(config, postfix)
     p = subprocess.Popen(cmd)
 
     try:

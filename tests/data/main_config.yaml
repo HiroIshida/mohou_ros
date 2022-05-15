@@ -2,22 +2,18 @@ topic:
     AngleVector:
         name: /joint_states
         rosbag: True
-        auxiliary: False
         use: True
     RGBImage: 
         name: /kinect_head/rgb/image_rect_color
         rosbag: True
-        auxiliary: True
         use: True
     DepthImage: 
         name: /kinect_head/depth_registered/image
         rosbag: True
-        auxiliary: False
         use: False
     GripperState:
         name: /r_gripper_controller/state
         rosbag: True
-        auxiliary: True
         use: True
 
 control_joints:
