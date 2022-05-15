@@ -8,11 +8,6 @@ from mohou_ros_utils.file import get_main_config_path
 from mohou_ros_utils.file import get_image_config_path
 
 
-def get_test_data_path():
-    here_full_filepath = os.path.join(os.getcwd(), __file__)
-    here_full_dirpath = os.path.dirname(here_full_filepath)
-
-
 @pytest.fixture(scope='session')
 def example_config():
     project_name = '_mohou_ros_utils_test'
