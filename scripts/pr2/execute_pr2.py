@@ -9,7 +9,7 @@ from mohou.types import AngleVector, GripperState, ElementDict
 
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.executor import ExecutorBase
-from pr2_controller_utils import check_pr2_is_executable
+from mohou_ros_utils.pr2.controller_utils import check_pr2_is_executable
 
 
 class SkrobotPR2Executor(ExecutorBase):

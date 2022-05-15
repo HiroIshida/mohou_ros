@@ -3,7 +3,8 @@ import pprint
 import rospy
 from pr2_mechanism_msgs.srv import SwitchController
 from pr2_mechanism_msgs.srv import ListControllers, ListControllersResponse
-from params import larm_controller_name, rarm_controller_name
+
+from mohou_ros_utils.pr2.params import larm_controller_name, rarm_controller_name
 
 
 def get_controller_states() -> Dict[str, bool]:

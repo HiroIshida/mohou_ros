@@ -14,9 +14,9 @@ from pr2_controllers_msgs.msg import Pr2GripperCommandActionGoal
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 
-from params import larm_joint_names, rarm_joint_names
-from params import larm_controller_name, rarm_controller_name, all_controller_names
-from pr2_controller_utils import get_controller_states, switch_controller
+from mohou_ros_utils.pr2.params import larm_joint_names, rarm_joint_names
+from mohou_ros_utils.pr2.params import larm_controller_name, rarm_controller_name, all_controller_names
+from mohou_ros_utils.pr2.controller_utils import get_controller_states, switch_controller
 
 
 class Mannequin(object):
