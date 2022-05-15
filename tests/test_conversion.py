@@ -1,13 +1,13 @@
 import os
 import pickle
-import shutil
 import numpy as np
-from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import imgmsg_to_numpy, numpy_to_imgmsg
 from mohou_ros_utils.conversion import RGBImageConverter
 from mohou_ros_utils.conversion import DepthImageConverter
 from mohou_ros_utils.conversion import AngleVectorConverter
 from mohou_ros_utils.conversion import VersatileConverter
+
+from test_config import example_config  # noqa
 
 
 def test_imgmsg_cv2_conversion():
@@ -42,26 +42,16 @@ def get_pickle_data_path(pickle_name):
     return obj
 
 
-def prepare_configs() -> Config:
-    data_path = get_test_data_path()
-    yaml_file_path = os.path.join(data_path, 'example.yaml')
-    config = Config.from_yaml_file(yaml_file_path)
-    src = os.path.join(get_test_data_path(), 'image_config.yaml')
-    dst = config.get_image_config_path()
-    shutil.copyfile(src, dst)
-    return config
-
-
-def test_rgb_image_converter():
-    config = prepare_configs()
+def test_rgb_image_converter(example_config):  # type: ignore # noqa
+    config = example_config
     rgb_image_msg = get_pickle_data_path('rgb_image.pkl')
     rgb_converter = RGBImageConverter.from_config(config)
     image = rgb_converter(rgb_image_msg)
     assert image.shape == (112, 112, 3)
 
 
-def test_depth_image_converter():
-    config = prepare_configs()
+def test_depth_image_converter(example_config):  # type: ignore # noqa
+    config = example_config
     depth_image_msg = get_pickle_data_path('depth_image.pkl')
     depth_converter = DepthImageConverter.from_config(config)
     image = depth_converter(depth_image_msg)
@@ -79,8 +69,8 @@ def test_angle_vector_converter():
     assert av.shape == (2,)
 
 
-def test_versatile_converter():
-    config = prepare_configs()
+def test_versatile_converter(example_config):  # type: ignore # noqa
+    config = example_config
     converter = VersatileConverter.from_config(config)
 
     rgb_image_msg = get_pickle_data_path('rgb_image.pkl')

@@ -2,17 +2,16 @@
 from typing import Optional, List
 import actionlib
 import argparse
-import os
 import time
 from skrobot.model import Joint
 from skrobot.models import PR2
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 import rospy
 import threading
-import rospkg
 from pr2_controllers_msgs.msg import Pr2GripperCommandAction
 from pr2_controllers_msgs.msg import Pr2GripperCommandActionGoal
 
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 
 from params import larm_joint_names, rarm_joint_names
@@ -138,9 +137,8 @@ class Mannequin(object):
 
 
 if __name__ == '__main__':
-    config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('--rarm', action='store_true', help='loose rarm')
     parser.add_argument('--larm', action='store_true', help='loose larm')
     parser.add_argument('--mirror', action='store_true', help='mirror mode')
@@ -155,8 +153,7 @@ if __name__ == '__main__':
     pos_close = args.close
     mirror = args.mirror
     home = args.home
-    config_file = args.config
-    config = Config.from_yaml_file(config_file)
+    config = Config.from_project_name(args.pn)
 
     # mannequin
     mq = Mannequin(config,

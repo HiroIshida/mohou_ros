@@ -1,5 +1,3 @@
-project: pr2_tidyup_dish
-
 topic: 
     AngleVector:
         name: /joint_states

@@ -28,3 +28,13 @@ def get_rosbag_dir(project_name: str) -> str:
 def get_home_position_file(project_name: str) -> str:
     directory = get_project_dir(project_name)
     return os.path.join(directory, 'home_position.yaml')
+
+
+def get_main_config_path(project_name: str) -> str:
+    directory = get_project_dir(project_name)
+    return os.path.join(directory, 'main_config.yaml')
+
+
+def get_image_config_path(project_name: str) -> str:
+    directory = get_project_dir(project_name)
+    return os.path.join(directory, 'image_config.yaml')

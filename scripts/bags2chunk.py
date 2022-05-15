@@ -11,6 +11,7 @@ from mohou.types import ExtraInfoType
 from mohou.types import RGBImage, AngleVector, ImageBase
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.types import TimeStampedSequence
 from mohou_ros_utils.file import get_rosbag_dir, create_if_not_exist
 from mohou_ros_utils.config import Config
@@ -51,7 +52,7 @@ def has_too_long_static_av(edata: EpisodeData, coef: float = 0.1):
 
 def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool):
     postfix = 'image_autoencoder' if for_image_autoencoder else None
-    rosbag_dir = get_rosbag_dir(config.project)
+    rosbag_dir = get_rosbag_dir(config.project_name)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
         print('processing {}'.format(filename_))
@@ -87,10 +88,10 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool)
 
     extra_info: ExtraInfoType = {'hz': hz}
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
-    chunk.dump(config.project, postfix)
+    chunk.dump(config.project_name, postfix)
 
     if dump_gif:
-        gif_dir = os.path.join(get_project_dir(config.project), 'train_data_gifs')
+        gif_dir = os.path.join(get_project_dir(config.project_name), 'train_data_gifs')
         create_if_not_exist(gif_dir)
         for i, episode_data in enumerate(chunk):
             fps = 20
@@ -107,13 +108,13 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool)
 if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('-hz', type=float, default=5.0)
     parser.add_argument('--image_autoencoder', action='store_true', help='chunk for image autoencoder')
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
-    config = Config.from_yaml_file(args.config)
+    config = Config.from_project_name(args.pn)
     hz = args.hz
     dump_gif = args.gif
     for_image_autoencoder = args.image_autoencoder

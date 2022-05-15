@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-import os
 import argparse
 import rospy
-import rospkg
 import numpy as np
 from skrobot.models import PR2
 from skrobot.model import Joint
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from mohou.types import AngleVector, GripperState, ElementDict
 
-from mohou_ros_utils.config import Config
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.executor import ExecutorBase
 from pr2_controller_utils import check_pr2_is_executable
 
@@ -57,17 +55,16 @@ class SkrobotPR2Executor(ExecutorBase):
 
 
 if __name__ == '__main__':
-    config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default=os.path.join(config_dir, 'pr2_rarm.yaml'))
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('--force', action='store_true', help='disable dry option')
 
     args = parser.parse_args()
-    config = Config.from_yaml_file(args.config)
+    project_name = args.pn
     force = args.force
 
     rospy.init_node('executor', disable_signals=True)
-    executor = SkrobotPR2Executor(config, dryrun=(not force))
+    executor = SkrobotPR2Executor(project_name, dryrun=(not force))
 
     try:
         while(True):

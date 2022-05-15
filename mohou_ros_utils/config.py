@@ -6,7 +6,7 @@ from tunable_filter.tunable import CompositeFilter
 
 from mohou.types import get_element_type
 from mohou.types import PrimitiveElementBase
-from mohou_ros_utils.file import get_home_position_file, get_project_dir
+from mohou_ros_utils.file import get_home_position_file, get_main_config_path, get_image_config_path
 
 
 @dataclass
@@ -77,54 +77,31 @@ class TopicConfig:
 
 @dataclass
 class Config:
-    project: str
+    project_name: str
     control_joints: List[str]
     topics: TopicConfig
     home_position: Optional[Dict[str, float]]
+    image_filter: Optional[CompositeFilter]
 
     @classmethod
-    def from_yaml_dict(cls, yaml_dict: Dict) -> 'Config':
-        project_name = yaml_dict['project']
-        control_joints = yaml_dict['control_joints']
-        topics = TopicConfig.from_yaml_dict(yaml_dict['topic'])
+    def from_project_name(cls, project_name: str) -> 'Config':
+        main_config_path = get_main_config_path(project_name)
+        with open(main_config_path, 'r') as f:
+            main_config_dict = yaml.safe_load(f)
+        control_joints = main_config_dict['control_joints']
+        topics = TopicConfig.from_yaml_dict(main_config_dict['topic'])
 
+        # maybe not set
         home_position = None
         home_position_file = get_home_position_file(project_name)
         if os.path.exists(home_position_file):
-            with open(get_home_position_file(project_name), 'r') as f:
+            with open(home_position_file, 'r') as f:
                 home_position = yaml.safe_load(f)
 
-        # finally load home position only if formally obtained
-        return cls(
-            yaml_dict['project'],
-            control_joints,
-            topics,
-            home_position)
+        # maybe not set
+        image_filter = None
+        image_config_path = get_image_config_path(project_name)
+        if os.path.exists(image_config_path):
+            image_filter = CompositeFilter.from_yaml(image_config_path)
 
-    @classmethod
-    def from_yaml_file(cls, file_path: str) -> 'Config':
-        with open(file_path, 'r') as f:
-            dic = yaml.safe_load(f)
-        return cls.from_yaml_dict(dic)
-
-    @classmethod
-    def from_rospkg_path(cls, package_name: str, relative_path: str) -> 'Config':
-        try:
-            import rospkg
-        except ImportError as e:
-            e
-            assert False, 'You need to intall ros. Or, maybe forget sourcing?'
-
-        base_dir = rospkg.RosPack().get_path(package_name)
-        yaml_file_path = os.path.join(base_dir, relative_path)
-        return cls.from_yaml_file(yaml_file_path)
-
-    def get_project_dir(self) -> str:
-        return get_project_dir(self.project)
-
-    def get_image_config_path(self) -> str:
-        p = os.path.join(get_project_dir(self.project), 'image_config.yaml')
-        return p
-
-    def load_image_filter(self) -> CompositeFilter:
-        return CompositeFilter.from_yaml(self.get_image_config_path())
+        return cls(project_name, control_joints, topics, home_position, image_filter)
