@@ -14,7 +14,7 @@ from pr2_controllers_msgs.msg import JointControllerState
 
 from mohou.propagator import Propagator
 from mohou.default import create_default_propagator
-from mohou.types import AngleVector, ElementDict, RGBImage, GripperState
+from mohou.types import AngleVector, ElementDict, RGBImage, GripperState, TerminateFlag
 from mohou.utils import canvas_to_ndarray
 from mohou.file import get_project_dir
 
@@ -55,15 +55,17 @@ class ExecutorBase(ABC):
     propagator: Propagator
     vconv: VersatileConverter
     control_joint_names: List[str]
+    running: bool
+    dryrun: bool
+    hz: float
+    debug_images_seq: List[DebugImages]
+    edict_seq: List[ElementDict]
+    is_terminatable: bool
+
     rgb_msg: Optional[CompressedImage] = None
     joint_state_msg: Optional[JointState] = None
     joint_cont_state_msg: Optional[JointControllerState] = None
     current_av: Optional[AngleVector] = None
-    running: bool = False
-    dryrun: bool
-    hz: float
-    debug_images_seq: List[DebugImages]
-    debug_edict_seq: List[ElementDict]
 
     def __init__(self, project_name: str, dryrun=True) -> None:
         propagator = create_default_propagator(project_name)
@@ -84,10 +86,11 @@ class ExecutorBase(ABC):
 
         # start!
         self.debug_images_seq = []
-        self.debug_edict_seq = []
+        self.edict_seq = []
         self.hz = 1.0
         rospy.Timer(rospy.Duration(1.0 / self.hz), self.on_timer)
         self.running = False
+        self.is_terminatable = False
 
     def run(self):
         self.running = True
@@ -122,30 +125,33 @@ class ExecutorBase(ABC):
         self.propagator.feed(edict_current)
 
         edict_next = self.propagator.predict(1)[0]
+        self.is_terminatable = (edict_next[TerminateFlag].numpy().item() > 0.98)
 
         # save debug infos
         robot_camera_view = edict_current[RGBImage]
         dimages = DebugImages(robot_camera_view, edict_current[RGBImage], edict_next[RGBImage])
         self.debug_images_seq.append(dimages)
-        self.debug_edict_seq.append(edict_current)
+        self.edict_seq.append(edict_current)
 
         self.send_command(edict_next, edict_current)
 
-    def terminate(self):
+    def terminate(self, dump_debug_info: bool = True):
         self.running = False
-        dir_name = os.path.join(get_project_dir(self.config.project_name), 'execution_debug_data')
-        str_time = time.strftime("%Y%m%d%H%M%S")
-        create_if_not_exist(dir_name)
 
-        rospy.loginfo('Please hang tight. Creating a debug gif image...')
-        file_name = os.path.join(dir_name, 'images-{}.gif'.format(str_time))
-        clip = ImageSequenceClip([debug_images.numpy() for debug_images in self.debug_images_seq], fps=20)
-        clip.write_gif(file_name, fps=20)
+        if dump_debug_info:
+            dir_name = os.path.join(get_project_dir(self.config.project_name), 'execution_debug_data')
+            str_time = time.strftime("%Y%m%d%H%M%S")
+            create_if_not_exist(dir_name)
 
-        rospy.loginfo('Please hang tight. Saving debug edict sequence')
-        file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(str_time))
-        with open(file_name, 'wb') as f:
-            pickle.dump(self.debug_edict_seq, f)
+            rospy.loginfo('Please hang tight. Creating a debug gif image...')
+            file_name = os.path.join(dir_name, 'images-{}.gif'.format(str_time))
+            clip = ImageSequenceClip([debug_images.numpy() for debug_images in self.debug_images_seq], fps=20)
+            clip.write_gif(file_name, fps=20)
+
+            rospy.loginfo('Please hang tight. Saving debug edict sequence')
+            file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(str_time))
+            with open(file_name, 'wb') as f:
+                pickle.dump(self.edict_seq, f)
 
     @abstractmethod
     def post_init_hook(self) -> None:
@@ -158,3 +164,32 @@ class ExecutorBase(ABC):
     @abstractmethod
     def get_angle_vector(self) -> AngleVector:
         pass
+
+
+@dataclass
+class SequentialExecutor:
+    executors: List[ExecutorBase]
+    debug_images_seq: List[DebugImages]
+    edict_seq: List[ElementDict]
+
+    @classmethod
+    def from_executors(cls, executors: List[ExecutorBase]):
+        cls(executors, [], [])
+
+    def __post_init__(self):
+        for e in self.executors:
+            assert not e.dryrun
+
+    def run(self):
+        for idx, executor in enumerate(self.executors):
+            rospy.loginfo('start executor {}'.format(idx))
+            executor.run()
+            while True:
+                time.sleep(0.5)
+                if executor.is_terminatable:
+                    break
+            executor.terminate(dump_debug_info=False)
+            self.debug_images_seq.extend(executor.debug_images_seq)
+            self.edict_seq.extend(executor.edict_seq)
+
+            rospy.loginfo('stop executor {}'.format(idx))
