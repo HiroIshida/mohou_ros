@@ -75,6 +75,7 @@ class ExecutorBase(ABC):
         self.vconv = vconv
         self.control_joint_names = config.control_joints
 
+        rospy.Subscriber(config.topics.get_by_mohou_type(AngleVector).name, JointState, self.on_joint_state)
         rospy.Subscriber(config.topics.get_by_mohou_type(RGBImage).name, CompressedImage, self.on_rgb)
         rospy.Subscriber(config.topics.get_by_mohou_type(GripperState).name, JointControllerState, self.on_joint_cont_state)
 
