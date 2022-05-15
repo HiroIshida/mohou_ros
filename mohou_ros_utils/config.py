@@ -104,6 +104,3 @@ class Config:
             image_filter = CompositeFilter.from_yaml(image_config_path)
 
         return cls(control_joints, topics, home_position, image_filter)
-
-    def load_image_filter(self) -> CompositeFilter:
-        return self.image_filter

@@ -78,7 +78,7 @@ class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
 
     @classmethod
     def from_config(cls, config: Config) -> 'RGBImageConverter':
-        return cls(config.load_image_filter())
+        return cls(config.image_filter)
 
     def __call__(self, msg: CompressedImage) -> RGBImage:
         image = CvBridge().compressed_imgmsg_to_cv2(msg)
@@ -95,7 +95,8 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
 
     @classmethod
     def from_config(cls, config: Config) -> 'DepthImageConverter':
-        rgb_full_filter = config.load_image_filter()
+        assert config.image_filter is not None
+        rgb_full_filter = config.image_filter
         depth_filter = rgb_full_filter.extract_subfilter([CropResizer, ResolutionChangeResizer])
         return cls(depth_filter)
 

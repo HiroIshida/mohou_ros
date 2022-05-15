@@ -16,6 +16,7 @@ from mohou.propagator import Propagator
 from mohou.default import create_default_propagator
 from mohou.types import AngleVector, ElementDict, RGBImage, GripperState
 from mohou.utils import canvas_to_ndarray
+from mohou.file import get_project_dir
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
@@ -50,6 +51,7 @@ class DebugImages:
 
 
 class ExecutorBase(ABC):
+    project_name: str
     config: Config
     propagator: Propagator
     vconv: VersatileConverter
@@ -64,9 +66,12 @@ class ExecutorBase(ABC):
     debug_images_seq: List[DebugImages]
     debug_edict_seq: List[ElementDict]
 
-    def __init__(self, config: Config, dryrun=True) -> None:
-        propagator = create_default_propagator(config.project)
+    def __init__(self, project_name: str, dryrun=True) -> None:
+        propagator = create_default_propagator(project_name)
+        config = Config.from_project_name(project_name)
         vconv = VersatileConverter.from_config(config)
+
+        self.project_name = project_name
         self.config = config
         self.propagator = propagator
         self.vconv = vconv
@@ -126,7 +131,7 @@ class ExecutorBase(ABC):
 
     def on_termination(self):
         self.running = False
-        dir_name = os.path.join(self.config.get_project_dir(), 'execution_debug_data')
+        dir_name = os.path.join(get_project_dir(self.project_name), 'execution_debug_data')
         str_time = time.strftime("%Y%m%d%H%M%S")
         create_if_not_exist(dir_name)
 
