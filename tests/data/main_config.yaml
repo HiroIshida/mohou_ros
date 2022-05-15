@@ -1,6 +1,3 @@
-project: _pytest
-sampling_hz: 18.0
-
 topic: 
     AngleVector:
         name: /joint_states
