@@ -7,6 +7,7 @@ import rospkg
 from typing import List
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_dir
+from mohou.types import ExtraInfoType
 from mohou.types import RGBImage, AngleVector, ImageBase
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
@@ -84,7 +85,7 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool)
             continue
         episode_data_list.append(episode_data)
 
-    extra_info = {'hz': hz}
+    extra_info: ExtraInfoType = {'hz': hz}
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project, postfix)
 
