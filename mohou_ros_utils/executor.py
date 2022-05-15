@@ -51,7 +51,6 @@ class DebugImages:
 
 
 class ExecutorBase(ABC):
-    project_name: str
     config: Config
     propagator: Propagator
     vconv: VersatileConverter
@@ -71,7 +70,6 @@ class ExecutorBase(ABC):
         config = Config.from_project_name(project_name)
         vconv = VersatileConverter.from_config(config)
 
-        self.project_name = project_name
         self.config = config
         self.propagator = propagator
         self.vconv = vconv
@@ -131,7 +129,7 @@ class ExecutorBase(ABC):
 
     def on_termination(self):
         self.running = False
-        dir_name = os.path.join(get_project_dir(self.project_name), 'execution_debug_data')
+        dir_name = os.path.join(get_project_dir(self.config.project_name), 'execution_debug_data')
         str_time = time.strftime("%Y%m%d%H%M%S")
         create_if_not_exist(dir_name)
 

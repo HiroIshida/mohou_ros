@@ -77,6 +77,7 @@ class TopicConfig:
 
 @dataclass
 class Config:
+    project_name: str
     control_joints: List[str]
     topics: TopicConfig
     home_position: Optional[Dict[str, float]]
@@ -103,4 +104,4 @@ class Config:
         if os.path.exists(image_config_path):
             image_filter = CompositeFilter.from_yaml(image_config_path)
 
-        return cls(control_joints, topics, home_position, image_filter)
+        return cls(project_name, control_joints, topics, home_position, image_filter)
