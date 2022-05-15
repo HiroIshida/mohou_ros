@@ -65,10 +65,11 @@ if __name__ == '__main__':
 
     rospy.init_node('executor', disable_signals=True)
     executor = SkrobotPR2Executor(project_name, dryrun=(not force))
+    executor.run()
 
     try:
         while(True):
             rospy.rostime.wallsleep(0.5)
     except KeyboardInterrupt:
         rospy.loginfo('finish')
-        executor.on_termination()
+        executor.terminate()

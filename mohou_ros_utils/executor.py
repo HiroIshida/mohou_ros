@@ -87,6 +87,9 @@ class ExecutorBase(ABC):
         self.debug_edict_seq = []
         self.hz = 1.0
         rospy.Timer(rospy.Duration(1.0 / self.hz), self.on_timer)
+        self.running = False
+
+    def run(self):
         self.running = True
 
     def on_rgb(self, msg: CompressedImage):
@@ -128,7 +131,7 @@ class ExecutorBase(ABC):
 
         self.send_command(edict_next, edict_current)
 
-    def on_termination(self):
+    def terminate(self):
         self.running = False
         dir_name = os.path.join(get_project_dir(self.config.project_name), 'execution_debug_data')
         str_time = time.strftime("%Y%m%d%H%M%S")
