@@ -7,14 +7,17 @@ import rospy
 from typing import List, Optional
 from sensor_msgs.msg import CompressedImage, Image, JointState
 import numpy as np
+import torch
 import matplotlib.pyplot as plt
 import time
 from moviepy.editor import ImageSequenceClip
 from pr2_controllers_msgs.msg import JointControllerState
 
 from mohou.propagator import Propagator
-from mohou.default import create_default_propagator
+from mohou.model.autoencoder import AutoEncoderBase
+from mohou.default import create_default_propagator, auto_detect_autoencoder_type
 from mohou.types import AngleVector, ElementDict, RGBImage, GripperState, TerminateFlag
+from mohou.trainer import TrainCache
 from mohou.utils import canvas_to_ndarray
 from mohou.file import get_project_dir
 
@@ -27,21 +30,26 @@ from mohou_ros_utils.file import create_if_not_exist
 class DebugImages:
     robot_camera: RGBImage
     network_input: RGBImage
+    reconstructed: RGBImage
     onestep_lookahaed_reconstructed: RGBImage
 
     def numpy(self) -> np.ndarray:
         fig = plt.figure()
 
         font = {'fontsize': 8, 'fontweight': 'medium'}
-        ax1 = fig.add_subplot(1, 3, 1)
+        ax1 = fig.add_subplot(1, 4, 1)
         ax1.imshow(self.robot_camera.numpy())
         ax1.set_title('robot camera', fontdict=font)
 
-        ax2 = fig.add_subplot(1, 3, 2)
+        ax2 = fig.add_subplot(1, 4, 2)
         ax2.imshow(self.network_input.numpy())
         ax2.set_title('network input', fontdict=font)
 
-        ax3 = fig.add_subplot(1, 3, 3)
+        ax3 = fig.add_subplot(1, 4, 3)
+        ax3.imshow(self.reconstructed.numpy())
+        ax3.set_title('network output reconstructed', fontdict=font)
+
+        ax3 = fig.add_subplot(1, 4, 4)
         ax3.imshow(self.onestep_lookahaed_reconstructed.numpy())
         ax3.set_title('reconstructed lookahead \n (one step)', fontdict=font)
 
@@ -53,6 +61,7 @@ class DebugImages:
 class ExecutorBase(ABC):
     config: Config
     propagator: Propagator
+    autoencoder: AutoEncoderBase
     vconv: VersatileConverter
     control_joint_names: List[str]
     running: bool
@@ -69,6 +78,12 @@ class ExecutorBase(ABC):
 
     def __init__(self, project_name: str, dryrun=True) -> None:
         propagator = create_default_propagator(project_name)
+
+        ae_type = auto_detect_autoencoder_type(project_name)
+        tcache_autoencoder = TrainCache.load(project_name, ae_type)
+        assert tcache_autoencoder.best_model is not None
+        self.autoencoder = tcache_autoencoder.best_model
+
         config = Config.from_project_name(project_name)
         vconv = VersatileConverter.from_config(config)
 
@@ -129,7 +144,11 @@ class ExecutorBase(ABC):
 
         # save debug infos
         robot_camera_view = edict_current[RGBImage]
-        dimages = DebugImages(robot_camera_view, edict_current[RGBImage], edict_next[RGBImage])
+
+        inp = torch.unsqueeze(edict_current[RGBImage].to_tensor(), dim=0)
+        reconstructed = RGBImage.from_tensor(self.autoencoder.forward(inp).squeeze(dim=0))
+
+        dimages = DebugImages(robot_camera_view, edict_current[RGBImage], reconstructed, edict_next[RGBImage])
         self.debug_images_seq.append(dimages)
         self.edict_seq.append(edict_current)
 
