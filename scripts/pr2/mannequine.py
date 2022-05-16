@@ -171,7 +171,7 @@ if __name__ == '__main__':
     def create_goal(pos: float) -> Pr2GripperCommandActionGoal:
         goal = Pr2GripperCommandActionGoal()
         goal.goal.command.position = pos
-        goal.goal.command.max_effort = 25
+        goal.goal.command.max_effort = 1000
         return goal
 
     while True:
