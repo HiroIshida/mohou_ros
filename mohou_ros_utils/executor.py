@@ -169,12 +169,13 @@ class ExecutorBase(ABC):
 @dataclass
 class SequentialExecutor:
     executors: List[ExecutorBase]
+    executor_current: Optional[ExecutorBase]
     debug_images_seq: List[DebugImages]
     edict_seq: List[ElementDict]
 
     @classmethod
-    def from_executors(cls, executors: List[ExecutorBase]):
-        cls(executors, [], [])
+    def from_executors(cls, executors: List[ExecutorBase]) -> 'SequentialExecutor':
+        return cls(executors, None, [], [])
 
     def __post_init__(self):
         for e in self.executors:
@@ -183,6 +184,7 @@ class SequentialExecutor:
     def run(self):
         for idx, executor in enumerate(self.executors):
             rospy.loginfo('start executor {}'.format(idx))
+            self.executor_current = executor
             executor.run()
             while True:
                 time.sleep(0.5)
@@ -191,5 +193,8 @@ class SequentialExecutor:
             executor.terminate(dump_debug_info=False)
             self.debug_images_seq.extend(executor.debug_images_seq)
             self.edict_seq.extend(executor.edict_seq)
-
             rospy.loginfo('stop executor {}'.format(idx))
+        rospy.loginfo('executed all execturos')
+
+    def terminate(self):
+        self.executor_current.terminate(dump_debug_info=False)
