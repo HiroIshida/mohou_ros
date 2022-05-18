@@ -61,10 +61,6 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool)
             print('skipped (invalid file extension)')
             continue
 
-        else:
-            if not filename_.startswith('train'):
-                continue
-
         filename = os.path.join(rosbag_dir, filename_)
 
         topic_name_list = config.topics.use_topic_list
