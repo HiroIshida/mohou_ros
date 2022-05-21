@@ -264,6 +264,8 @@ class PR2ViveController(ViveController):
         self.tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, 'gripper-ref', 'base')
 
     def reset_to_home_position(self) -> None:
+        self.is_tracking = False
+        self.loginfo('turn off tracker')
         self.loginfo('resetting to home position')
         assert self.config.home_position is not None
 
