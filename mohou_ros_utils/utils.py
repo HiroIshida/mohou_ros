@@ -2,8 +2,7 @@ import warnings
 import functools
 import numpy as np
 from dataclasses import dataclass
-from typing import Dict, Optional
-from skrobot import coordinates
+from typing import Optional
 from skrobot.coordinates import Coordinates
 from skrobot.coordinates.math import quaternion2matrix
 

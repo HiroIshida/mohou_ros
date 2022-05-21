@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import argparse
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Optional, Type, Generic, TypeVar
@@ -13,9 +13,11 @@ import rospy
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import PoseStamped
 
+from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.utils import chain_transform
 from mohou_ros_utils.utils import CoordinateTransform
 from mohou_ros_utils.pr2.params import rarm_joint_names
+from mohou_ros_utils.config import Config
 
 
 MessageT = TypeVar('MessageT', bound=genpy.Message)
@@ -117,17 +119,17 @@ class ViveController(ABC):
     is_initialized: bool
     is_tracking: bool
 
-    def __init__(self):
+    def __init__(self, config: Config):
         self.right_joy_manager = JoyDataManager('/controller_LHR_FDF29FC7/joy')
         self.right_pose_manager = PoseDataManager('/controller_LHR_FDF29FC7_as_posestamped')
 
         rospy.Timer(rospy.Duration(0.1), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
-        self.post_init_hook()
+        self.post_init_hook(config)
 
     @abstractmethod
-    def post_init_hook(self) -> None:
+    def post_init_hook(self, config: Config) -> None:
         pass
 
     def on_timer(self, event):
@@ -142,11 +144,12 @@ class ViveController(ABC):
 class PR2ViveController(ViveController):
     robot_model: PR2
     robot_interface: PR2ROSRobotInterface
+    config: Config
     rarm_gripper_close: bool
     tf_handref2camera: Optional[CoordinateTransform]
     tf_gripperref2base: Optional[CoordinateTransform]
 
-    def post_init_hook(self) -> None:
+    def post_init_hook(self, config: Config) -> None:
         robot_model = PR2()
         self.robot_model = robot_model
         self.robot_interface = PR2ROSRobotInterface(robot_model)
@@ -157,12 +160,13 @@ class PR2ViveController(ViveController):
             JoyDataManager.Button.BOTTOM, self.move_rarm_gripper)
 
         self.right_joy_manager.register_processor(
-            JoyDataManager.Button.SIDE, self.calibrate_right_controller)
+            JoyDataManager.Button.SIDE, self.reset_to_home_position)
 
         self.right_joy_manager.register_processor(
             JoyDataManager.Button.TOP, self.on_and_off_tracker)
 
         self.right_pose_manager.register_processor(self.track_rarm)
+        self.config = config
 
         self.is_initialized = True
         self.is_tracking = False
@@ -224,6 +228,7 @@ class PR2ViveController(ViveController):
             self.is_tracking = False
             rospy.loginfo('turn off tracker')
         else:
+            self.calibrate_right_controller()
             self.is_tracking = True
             rospy.loginfo('turn on tracker')
 
@@ -242,8 +247,25 @@ class PR2ViveController(ViveController):
         coords = self.robot_model.rarm_end_coords
         self.tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, 'gripper-ref', 'base')
 
+    def reset_to_home_position(self) -> None:
+        rospy.loginfo('resetting to home position')
+        assert self.config.home_position is not None
+
+        for joint_name in self.config.home_position.keys():
+            angle = self.config.home_position[joint_name]
+            self.robot_model.__dict__[joint_name].joint_angle(angle)
+        self.robot_interface.angle_vector(self.robot_model.angle_vector(), time=3.0, time_scale=1.0)
+        self.robot_interface.move_gripper('larm', self.config.home_position['l_gripper_joint'], effort=100)
+        self.robot_interface.move_gripper('rarm', self.config.home_position['r_gripper_joint'], effort=100)
+        self.robot_interface.wait_interpolation()
+
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
+    args = parser.parse_args()
+    config = Config.from_project_name(args.pn)
+
     rospy.init_node('pr2_vive_mohou')
-    cont = PR2ViveController()
+    cont = PR2ViveController(config)
     rospy.spin()
