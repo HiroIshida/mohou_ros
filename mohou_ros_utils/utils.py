@@ -2,7 +2,12 @@ import warnings
 import functools
 import numpy as np
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Optional
+from skrobot import coordinates
+from skrobot.coordinates import Coordinates
+from skrobot.coordinates.math import quaternion2matrix
+
+from geometry_msgs.msg import Pose
 
 
 def deprecated(func):
@@ -34,13 +39,24 @@ class CoordinateTransform:
         return CoordinateTransform(trans_new, rot_new, self.dest, self.src)
 
     @classmethod
-    def from_src_coordinate_wrt_dest(cls, pos, rot) -> 'CoordinateTransform':
-        return CoordinateTransform(pos, rot).inverse()
+    def from_ros_pose(cls, pose: Pose, src: Optional[str] = None, dest: Optional[str] = None):
+        position = pose.position
+        quat = pose.orientation
+        trans = np.array([position.x, position.y, position.z])
+        rot = quaternion2matrix([quat.w, quat.x, quat.y, quat.z])
+        return cls(trans, rot, src, dest)
+
+    @classmethod
+    def from_skrobot_coords(cls, coords: Coordinates, src: Optional[str] = None, dest: Optional[str] = None):
+        return cls(coords.worldpos(), coords.worldrot(), src, dest)
+
+    def to_skrobot_coords(self) -> Coordinates:
+        return Coordinates(self.trans, self.rot)
 
 
 def chain_transform(tf_a2b: CoordinateTransform, tf_b2c: CoordinateTransform) -> CoordinateTransform:
     if tf_a2b.dest is not None and tf_b2c.src is not None:
-        assert tf_a2b.dest == tf_b2c.src
+        assert tf_a2b.dest == tf_b2c.src, '{} does not match {}'.format(tf_a2b.dest, tf_b2c.src)
 
     trans_a2c = tf_b2c.trans + tf_b2c.rot.dot(tf_a2b.trans)
     rot_a2c = tf_b2c.rot.dot(tf_a2b.rot)
