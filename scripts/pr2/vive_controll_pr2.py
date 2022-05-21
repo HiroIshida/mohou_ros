@@ -117,12 +117,14 @@ class JoyDataManager(TopicDataManager[Joy]):
 class ViveController(ABC):
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
+    scale: float
     is_initialized: bool
     is_tracking: bool
 
-    def __init__(self, config: Config, joy_topic_name: str, pose_topic_name: str):
+    def __init__(self, config: Config, scale: float, joy_topic_name: str, pose_topic_name: str):
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
+        self.scale = scale
 
         rospy.Timer(rospy.Duration(0.1), self.on_timer)
         self.is_initialized = False
@@ -213,10 +215,8 @@ class PR2ViveController(ViveController):
         tf_camera2handref = self.tf_handref2camera.inverse()
         tf_hand2handref = chain_transform(tf_hand2camera, tf_camera2handref)
 
-        tf_gripper2gripperref = tf_hand2handref
-        tf_gripper2gripperref.src = 'gripper'
-        tf_gripper2gripperref.dest = 'gripper-ref'
-
+        trans_scaled = tf_hand2handref.trans * self.scale
+        tf_gripper2gripperref = CoordinateTransform(trans_scaled, tf_hand2handref.rot, 'gripper', 'gripper-ref')
         tf_gripper2base_target = chain_transform(tf_gripper2gripperref, self.tf_gripperref2base)
 
         joints = [self.robot_model.__dict__[jname] for jname in self.arm_joint_names]
@@ -287,8 +287,8 @@ class PR2RightArmViveController(PR2ViveController):
     arm_end_effector_name: str = 'r_gripper_tool_frame'
     arm_name: str = 'rarm'
 
-    def __init__(self, config: Config):
-        super().__init__(config, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped')
+    def __init__(self, config: Config, scale: float):
+        super().__init__(config, scale, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped')
 
 
 class PR2LeftArmViveController(PR2ViveController):
@@ -302,17 +302,19 @@ class PR2LeftArmViveController(PR2ViveController):
     arm_end_effector_name: str = 'l_gripper_tool_frame'
     arm_name: str = 'larm'
 
-    def __init__(self, config: Config):
-        super().__init__(config, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped')
+    def __init__(self, config: Config, scale: float):
+        super().__init__(config, scale, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
+    parser.add_argument('-scale', type=float, default=1.5, help='controller to real scaling')
     args = parser.parse_args()
+    scale = args.scale
     config = Config.from_project_name(args.pn)
 
     rospy.init_node('pr2_vive_mohou')
-    PR2RightArmViveController(config)
-    PR2LeftArmViveController(config)
+    PR2RightArmViveController(config, scale)
+    PR2LeftArmViveController(config, scale)
     rospy.spin()
