@@ -202,7 +202,8 @@ class PR2ViveController(ViveController):
             JoyDataManager.Button.TOP, self.on_and_off_tracker)
 
         self.joy_manager.register_processor(
-            JoyDataManager.Button.FRONT, self.force_grasp)
+            JoyDataManager.Button.FRONT,
+            lambda: self.reset_to_home_position(reset_grasp=False))
 
         self.pose_manager.register_processor(self.track_arm)
         self.config = config
@@ -260,10 +261,6 @@ class PR2ViveController(ViveController):
             self.move_gripper(0.0)
             self.gripper_close = True
 
-    def force_grasp(self) -> None:
-        self.move_gripper(0.0)
-        self.gripper_close = True
-
     def on_and_off_tracker(self) -> None:
         if self.is_tracking:
             self.is_tracking = False
@@ -289,7 +286,7 @@ class PR2ViveController(ViveController):
         coords = end_effector.copy_worldcoords()
         self.tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, 'gripper-ref', 'base')
 
-    def reset_to_home_position(self) -> None:
+    def reset_to_home_position(self, reset_grasp: bool = True) -> None:
         self.is_tracking = False
         self.loginfo('turn off tracker')
         self.loginfo('resetting to home position')
@@ -300,7 +297,8 @@ class PR2ViveController(ViveController):
             self.robot_model.__dict__[joint_name].joint_angle(angle)
         self.robot_interface.angle_vector(self.robot_model.angle_vector(), time=3.0, time_scale=1.0)
         self.config.home_position[self.gripper_joint_name]
-        self.move_gripper(self.config.home_position[self.gripper_joint_name])
+        if reset_grasp:
+            self.move_gripper(self.config.home_position[self.gripper_joint_name])
         self.robot_interface.wait_interpolation()
 
 
