@@ -171,7 +171,7 @@ class PR2ViveController(ViveController):
         self.gripper_close = False
 
         self.joy_manager.register_processor(
-            JoyDataManager.Button.BOTTOM, self.move_gripper)
+            JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
 
         self.joy_manager.register_processor(
             JoyDataManager.Button.SIDE, self.reset_to_home_position)
@@ -230,7 +230,7 @@ class PR2ViveController(ViveController):
         else:
             self.logwarn('solving inverse kinematics failed')
 
-    def move_gripper(self) -> None:
+    def switch_grasp_state(self) -> None:
         if self.gripper_close:
             self.robot_interface.move_gripper(self.arm_name, 0.06, effort=100)  # type: ignore
             self.gripper_close = False
