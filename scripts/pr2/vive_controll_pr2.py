@@ -34,16 +34,13 @@ class TopicDataManager(ABC, Generic[MessageT]):
         # auto create subscriber
         self.name = name
         self.ttype = ttype
-        if hasattr(self, 'callback'):
-            self.subscriber = rospy.Subscriber(name, ttype, self.callback)  # type: ignore
-        else:
-            def cb(msg: MessageT):
-                self.msg = msg
-            self.subscriber = rospy.Subscriber(name, ttype, cb)
+        self.subscriber = rospy.Subscriber(name, ttype, self.callback)  # type: ignore
+
+    def callback(self, msg: MessageT):
+        self.msg = msg
 
 
 class PoseDataManager(TopicDataManager[PoseStamped]):
-    process_time: Optional[float] = None
     processor: Optional[Callable] = None
 
     def __init__(self, name):
@@ -67,15 +64,15 @@ class JoyDataManager(TopicDataManager[Joy]):
         SIDE = 3
 
     trigger_times: List[Optional[float]]
-    process_times: List[Optional[float]]
+    latest_process_times: List[Optional[float]]
     processors: List[Optional[Callable]]
-    event_check_threshold: float = 0.1
-    process_ignore_duration: float = 0.3
+    min_trigger_interval: float = 0.1
+    min_process_interval: float = 0.3
 
     def __init__(self, name):
         super().__init__(name, Joy)
         self.trigger_times = [None for _ in range(4)]
-        self.process_times = [None for _ in range(4)]
+        self.latest_process_times = [None for _ in range(4)]
         self.processors = [None for _ in range(4)]
 
     def callback(self, msg: Joy):
@@ -84,19 +81,19 @@ class JoyDataManager(TopicDataManager[Joy]):
             if msg.buttons[i] == 1:
                 self.trigger_times[i] = t
 
-    def is_processed(self, button_type: Button) -> bool:
-        process_time = self.process_times[button_type.value]
-        if process_time is None:
+    def is_recently_processed(self, button_type: Button) -> bool:
+        latest_process_time = self.latest_process_times[button_type.value]
+        if latest_process_time is None:
             return False
         current_time = rospy.Time.now().to_sec()
-        return (current_time - process_time) < self.process_ignore_duration
+        return (current_time - latest_process_time) < self.min_process_interval
 
-    def is_triggered(self, button_type: Button) -> bool:
+    def is_recently_triggered(self, button_type: Button) -> bool:
         trigger_time = self.trigger_times[button_type.value]
         if trigger_time is None:
             return False
         current_time = rospy.Time.now().to_sec()
-        return (current_time - trigger_time) < self.event_check_threshold
+        return (current_time - trigger_time) < self.min_trigger_interval
 
     def register_processor(self, button: Button, processor: Callable) -> None:
         self.processors[button.value] = processor
@@ -106,12 +103,12 @@ class JoyDataManager(TopicDataManager[Joy]):
             func = self.processors[button.value]
             if func is None:
                 continue
-            if not self.is_triggered(button):
+            if not self.is_recently_triggered(button):
                 continue
-            if self.is_processed(button):
+            if self.is_recently_processed(button):
                 continue
             func()
-            self.process_times[button.value] = rospy.Time.now().to_sec()
+            self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
 class ViveController(ABC):
@@ -174,13 +171,16 @@ class PR2ViveController(ViveController):
         self.gripper_close = False
 
         self.joy_manager.register_processor(
-            JoyDataManager.Button.BOTTOM, self.move_gripper)
+            JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
 
         self.joy_manager.register_processor(
             JoyDataManager.Button.SIDE, self.reset_to_home_position)
 
         self.joy_manager.register_processor(
             JoyDataManager.Button.TOP, self.on_and_off_tracker)
+
+        self.joy_manager.register_processor(
+            JoyDataManager.Button.FRONT, self.force_grasp)
 
         self.pose_manager.register_processor(self.track_arm)
         self.config = config
@@ -230,13 +230,17 @@ class PR2ViveController(ViveController):
         else:
             self.logwarn('solving inverse kinematics failed')
 
-    def move_gripper(self) -> None:
+    def switch_grasp_state(self) -> None:
         if self.gripper_close:
-            self.robot_interface.move_gripper(self.arm_name, 0.06)  # type: ignore
+            self.robot_interface.move_gripper(self.arm_name, 0.06, effort=100)  # type: ignore
             self.gripper_close = False
         else:
-            self.robot_interface.move_gripper(self.arm_name, 0.00)  # type: ignore
+            self.robot_interface.move_gripper(self.arm_name, 0.00, effort=100)  # type: ignore
             self.gripper_close = True
+
+    def force_grasp(self) -> None:
+        self.robot_interface.move_gripper(self.arm_name, 0.00, effort=100)  # type: ignore
+        self.gripper_close = True
 
     def on_and_off_tracker(self) -> None:
         if self.is_tracking:
@@ -282,7 +286,7 @@ class PR2RightArmViveController(PR2ViveController):
 
     class RarmInterface(PR2ROSRobotInterface):
         def default_controller(self):
-            return [self.rarm_controller]
+            return [self.rarm_controller, self.torso_controller, self.head_controller]
 
     robot_interface_type = RarmInterface
     arm_joint_names: List[str] = rarm_joint_names
@@ -297,7 +301,7 @@ class PR2LeftArmViveController(PR2ViveController):
 
     class LarmInterface(PR2ROSRobotInterface):
         def default_controller(self):
-            return [self.larm_controller]
+            return [self.larm_controller, self.torso_controller, self.head_controller]
 
     robot_interface_type = LarmInterface
     arm_joint_names: List[str] = larm_joint_names
@@ -312,7 +316,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('-scale', type=float, default=1.5, help='controller to real scaling')
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     scale = args.scale
     config = Config.from_project_name(args.pn)
 
