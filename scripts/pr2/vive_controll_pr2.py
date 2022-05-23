@@ -179,6 +179,9 @@ class PR2ViveController(ViveController):
         self.joy_manager.register_processor(
             JoyDataManager.Button.TOP, self.on_and_off_tracker)
 
+        self.joy_manager.register_processor(
+            JoyDataManager.Button.FRONT, self.force_grasp)
+
         self.pose_manager.register_processor(self.track_arm)
         self.config = config
 
@@ -229,11 +232,15 @@ class PR2ViveController(ViveController):
 
     def move_gripper(self) -> None:
         if self.gripper_close:
-            self.robot_interface.move_gripper(self.arm_name, 0.06)  # type: ignore
+            self.robot_interface.move_gripper(self.arm_name, 0.06, effort=100)  # type: ignore
             self.gripper_close = False
         else:
-            self.robot_interface.move_gripper(self.arm_name, 0.00)  # type: ignore
+            self.robot_interface.move_gripper(self.arm_name, 0.00, effort=100)  # type: ignore
             self.gripper_close = True
+
+    def force_grasp(self) -> None:
+        self.robot_interface.move_gripper(self.arm_name, 0.00, effort=100)  # type: ignore
+        self.gripper_close = True
 
     def on_and_off_tracker(self) -> None:
         if self.is_tracking:
@@ -279,7 +286,7 @@ class PR2RightArmViveController(PR2ViveController):
 
     class RarmInterface(PR2ROSRobotInterface):
         def default_controller(self):
-            return [self.rarm_controller]
+            return [self.rarm_controller, self.torso_controller, self.head_controller]
 
     robot_interface_type = RarmInterface
     arm_joint_names: List[str] = rarm_joint_names
@@ -294,7 +301,7 @@ class PR2LeftArmViveController(PR2ViveController):
 
     class LarmInterface(PR2ROSRobotInterface):
         def default_controller(self):
-            return [self.larm_controller]
+            return [self.larm_controller, self.torso_controller, self.head_controller]
 
     robot_interface_type = LarmInterface
     arm_joint_names: List[str] = larm_joint_names
@@ -309,7 +316,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('-scale', type=float, default=1.5, help='controller to real scaling')
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     scale = args.scale
     config = Config.from_project_name(args.pn)
 
