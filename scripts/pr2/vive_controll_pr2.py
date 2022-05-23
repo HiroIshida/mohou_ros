@@ -123,7 +123,7 @@ class ViveController(ABC):
         self.pose_manager = PoseDataManager(pose_topic_name)
         self.scale = scale
 
-        rospy.Timer(rospy.Duration(0.1), self.on_timer)
+        rospy.Timer(rospy.Duration(0.05), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
         self.post_init_hook(config)
@@ -246,7 +246,7 @@ class PR2ViveController(ViveController):
         link_list = [joint.child_link for joint in joints]
         end_effector = self.robot_model.__dict__[self.arm_end_effector_name]
         av_next = self.robot_model.inverse_kinematics(
-            tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list)
+            tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list, stop=5)
 
         if isinstance(av_next, np.ndarray):
             self.robot_interface.angle_vector(av_next, time=0.8, time_scale=1.0)
