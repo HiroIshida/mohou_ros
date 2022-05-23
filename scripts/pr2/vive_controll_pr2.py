@@ -34,12 +34,10 @@ class TopicDataManager(ABC, Generic[MessageT]):
         # auto create subscriber
         self.name = name
         self.ttype = ttype
-        if hasattr(self, 'callback'):
-            self.subscriber = rospy.Subscriber(name, ttype, self.callback)  # type: ignore
-        else:
-            def cb(msg: MessageT):
-                self.msg = msg
-            self.subscriber = rospy.Subscriber(name, ttype, cb)
+        self.subscriber = rospy.Subscriber(name, ttype, self.callback)  # type: ignore
+
+    def callback(self, msg: MessageT):
+        self.msg = msg
 
 
 class PoseDataManager(TopicDataManager[PoseStamped]):
