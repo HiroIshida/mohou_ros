@@ -149,21 +149,43 @@ class PR2ViveController(ViveController):
     tf_handref2camera: Optional[CoordinateTransform]
     tf_gripperref2base: Optional[CoordinateTransform]
 
-    # set this
-    robot_interface_type: Type[PR2ROSRobotInterface]
-    arm_joint_names: List[str]
-    arm_end_effector_name: str
-    arm_name: str
+    @property
+    @abstractmethod
+    def robot_interface_type(self) -> Type[PR2ROSRobotInterface]:
+        pass
+
+    @property
+    @abstractmethod
+    def arm_joint_names(self) -> List[str]:
+        pass
+
+    @property
+    @abstractmethod
+    def arm_end_effector_name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def log_prefix(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def gripper_joint_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def move_gripper(self, pos: float) -> None:
+        pass
 
     def loginfo(self, message):
-        prefix = 'Right' if self.arm_name == 'rarm' else 'Left'
-        rospy.loginfo('{} => '.format(prefix) + message)
+        rospy.loginfo('{} => '.format(self.log_prefix) + message)
 
     def logwarn(self, message):
-        prefix = 'Right' if self.arm_name == 'rarm' else 'Left'
-        rospy.logwarn('{} => '.format(prefix) + message)
+        rospy.logwarn('{} => '.format(self.log_prefix) + message)
 
     def post_init_hook(self, config: Config) -> None:
+
         robot_model = PR2()
         self.robot_model = robot_model
         self.robot_interface = self.robot_interface_type(robot_model)
@@ -232,14 +254,14 @@ class PR2ViveController(ViveController):
 
     def switch_grasp_state(self) -> None:
         if self.gripper_close:
-            self.robot_interface.move_gripper(self.arm_name, 0.06, effort=100)  # type: ignore
+            self.move_gripper(0.06)
             self.gripper_close = False
         else:
-            self.robot_interface.move_gripper(self.arm_name, 0.00, effort=100)  # type: ignore
+            self.move_gripper(0.0)
             self.gripper_close = True
 
     def force_grasp(self) -> None:
-        self.robot_interface.move_gripper(self.arm_name, 0.00, effort=100)  # type: ignore
+        self.move_gripper(0.0)
         self.gripper_close = True
 
     def on_and_off_tracker(self) -> None:
@@ -252,7 +274,7 @@ class PR2ViveController(ViveController):
             self.loginfo('turn on tracker')
 
     def calibrate_controller(self) -> None:
-        self.loginfo('calibrating controller for {}'.format(self.arm_name))
+        self.loginfo('calibrating controller')
         pose_msg = self.pose_manager.msg
 
         if pose_msg is None:
@@ -277,8 +299,8 @@ class PR2ViveController(ViveController):
             angle = self.config.home_position[joint_name]
             self.robot_model.__dict__[joint_name].joint_angle(angle)
         self.robot_interface.angle_vector(self.robot_model.angle_vector(), time=3.0, time_scale=1.0)
-        self.robot_interface.move_gripper('larm', self.config.home_position['l_gripper_joint'], effort=100)
-        self.robot_interface.move_gripper('rarm', self.config.home_position['r_gripper_joint'], effort=100)
+        self.config.home_position[self.gripper_joint_name]
+        self.move_gripper(self.config.home_position[self.gripper_joint_name])
         self.robot_interface.wait_interpolation()
 
 
@@ -288,13 +310,17 @@ class PR2RightArmViveController(PR2ViveController):
         def default_controller(self):
             return [self.rarm_controller, self.torso_controller, self.head_controller]
 
-    robot_interface_type = RarmInterface
+    robot_interface_type = RarmInterface  # type: ignore
     arm_joint_names: List[str] = rarm_joint_names
     arm_end_effector_name: str = 'r_gripper_tool_frame'
-    arm_name: str = 'rarm'
+    gripper_joint_name: str = 'r_gripper_joint'
+    log_prefix: str = 'Right'
 
     def __init__(self, config: Config, scale: float):
         super().__init__(config, scale, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped')
+
+    def move_gripper(self, pos: float) -> None:
+        self.robot_interface.move_gripper('rarm', pos, effort=100)  # type: ignore
 
 
 class PR2LeftArmViveController(PR2ViveController):
@@ -303,13 +329,17 @@ class PR2LeftArmViveController(PR2ViveController):
         def default_controller(self):
             return [self.larm_controller, self.torso_controller, self.head_controller]
 
-    robot_interface_type = LarmInterface
+    robot_interface_type = LarmInterface  # type: ignore
     arm_joint_names: List[str] = larm_joint_names
     arm_end_effector_name: str = 'l_gripper_tool_frame'
-    arm_name: str = 'larm'
+    gripper_joint_name: str = 'l_gripper_joint'
+    log_prefix: str = 'Left'
 
     def __init__(self, config: Config, scale: float):
         super().__init__(config, scale, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped')
+
+    def move_gripper(self, pos: float) -> None:
+        self.robot_interface.move_gripper('larm', pos, effort=100)  # type: ignore
 
 
 if __name__ == '__main__':
