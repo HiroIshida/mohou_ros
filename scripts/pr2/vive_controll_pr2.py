@@ -41,7 +41,6 @@ class TopicDataManager(ABC, Generic[MessageT]):
 
 
 class PoseDataManager(TopicDataManager[PoseStamped]):
-    process_time: Optional[float] = None
     processor: Optional[Callable] = None
 
     def __init__(self, name):
@@ -65,15 +64,15 @@ class JoyDataManager(TopicDataManager[Joy]):
         SIDE = 3
 
     trigger_times: List[Optional[float]]
-    process_times: List[Optional[float]]
+    latest_process_times: List[Optional[float]]
     processors: List[Optional[Callable]]
-    event_check_threshold: float = 0.1
-    process_ignore_duration: float = 0.3
+    min_trigger_interval: float = 0.1
+    min_process_interval: float = 0.3
 
     def __init__(self, name):
         super().__init__(name, Joy)
         self.trigger_times = [None for _ in range(4)]
-        self.process_times = [None for _ in range(4)]
+        self.latest_process_times = [None for _ in range(4)]
         self.processors = [None for _ in range(4)]
 
     def callback(self, msg: Joy):
@@ -82,19 +81,19 @@ class JoyDataManager(TopicDataManager[Joy]):
             if msg.buttons[i] == 1:
                 self.trigger_times[i] = t
 
-    def is_processed(self, button_type: Button) -> bool:
-        process_time = self.process_times[button_type.value]
-        if process_time is None:
+    def is_recently_processed(self, button_type: Button) -> bool:
+        latest_process_time = self.latest_process_times[button_type.value]
+        if latest_process_time is None:
             return False
         current_time = rospy.Time.now().to_sec()
-        return (current_time - process_time) < self.process_ignore_duration
+        return (current_time - latest_process_time) < self.min_process_interval
 
-    def is_triggered(self, button_type: Button) -> bool:
+    def is_recently_triggered(self, button_type: Button) -> bool:
         trigger_time = self.trigger_times[button_type.value]
         if trigger_time is None:
             return False
         current_time = rospy.Time.now().to_sec()
-        return (current_time - trigger_time) < self.event_check_threshold
+        return (current_time - trigger_time) < self.min_trigger_interval
 
     def register_processor(self, button: Button, processor: Callable) -> None:
         self.processors[button.value] = processor
@@ -104,12 +103,12 @@ class JoyDataManager(TopicDataManager[Joy]):
             func = self.processors[button.value]
             if func is None:
                 continue
-            if not self.is_triggered(button):
+            if not self.is_recently_triggered(button):
                 continue
-            if self.is_processed(button):
+            if self.is_recently_processed(button):
                 continue
             func()
-            self.process_times[button.value] = rospy.Time.now().to_sec()
+            self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
 class ViveController(ABC):
