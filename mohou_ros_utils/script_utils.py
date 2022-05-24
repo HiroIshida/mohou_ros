@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Optional
 
 from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.config import Config
@@ -15,9 +16,11 @@ def count_rosbag_file(config: Config) -> int:
     return counter
 
 
-def get_latest_rosbag_filename(config: Config) -> str:
+def get_latest_rosbag_filename(config: Config) -> Optional[str]:
     rosbag_dir = get_rosbag_dir(config.project_name)
     filename_sorted = sorted(os.listdir(rosbag_dir))
+    if len(filename_sorted) == 0:
+        return None
     return os.path.join(rosbag_dir, filename_sorted[-1])
 
 

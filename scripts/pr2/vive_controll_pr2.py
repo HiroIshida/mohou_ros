@@ -366,7 +366,7 @@ class RosbagManager:
     def stop(self):
         assert self.is_running
         assert self.closure_stop is not None
-        n_count = count_rosbag_file(self.config)
+        n_count = count_rosbag_file(self.config) + 1  # because we are gonna add one
         self.sound_client.say('Finish saving rosbag. Total number is {}'.format(n_count))
 
         self.closure_stop()
@@ -427,9 +427,14 @@ class PR2LeftArmViveController(PR2ViveController):
 
     def delete_latest_rosbag(self) -> None:
         latest_rosbag = get_latest_rosbag_filename(self.config)
-        rospy.logwarn('delete rosbag file named {}'.format(latest_rosbag))
-        self.sound_client.say('delete latest rosbag')
-        os.remove(latest_rosbag)
+        if latest_rosbag is None:
+            message = 'deleting rosbag failed because there is no rosbag'
+            rospy.logwarn(message)
+            self.sound_client.say(message)
+        else:
+            rospy.logwarn('delete rosbag file named {}'.format(latest_rosbag))
+            self.sound_client.say('delete latest rosbag')
+            os.remove(latest_rosbag)
 
 
 if __name__ == '__main__':
