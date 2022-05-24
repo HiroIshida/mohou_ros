@@ -27,6 +27,8 @@ from mohou_ros_utils.utils import CoordinateTransform
 from mohou_ros_utils.pr2.params import rarm_joint_names, larm_joint_names
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.script_utils import create_rosbag_command
+from mohou_ros_utils.script_utils import count_rosbag_file
+from mohou_ros_utils.script_utils import get_latest_rosbag_filename
 
 
 MessageT = TypeVar('MessageT', bound=genpy.Message)
@@ -357,14 +359,16 @@ class RosbagManager:
                         os.kill(p.pid, signal.SIGTERM)
                         break
 
-        self.sound_client.say('start saving rosbag')
+        self.sound_client.say('Start saving rosbag')
         thread = Observer()
         thread.start()
 
     def stop(self):
         assert self.is_running
         assert self.closure_stop is not None
-        self.sound_client.say('finish saving rosbag')
+        n_count = count_rosbag_file(self.config)
+        self.sound_client.say('Finish saving rosbag. Total number is {}'.format(n_count))
+
         self.closure_stop()
         self.closure_stop = None
 
@@ -415,8 +419,17 @@ class PR2LeftArmViveController(PR2ViveController):
     def __init__(self, config: Config, scale: float):
         super().__init__(config, scale, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped')
 
+        self.joy_manager.register_processor(
+            JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
+
     def move_gripper(self, pos: float) -> None:
         self.robot_interface.move_gripper('larm', pos, effort=100)  # type: ignore
+
+    def delete_latest_rosbag(self) -> None:
+        latest_rosbag = get_latest_rosbag_filename(self.config)
+        rospy.logwarn('delete rosbag file named {}'.format(latest_rosbag))
+        self.sound_client.say('delete latest rosbag')
+        os.remove(latest_rosbag)
 
 
 if __name__ == '__main__':
