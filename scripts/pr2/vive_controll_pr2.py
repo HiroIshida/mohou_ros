@@ -122,6 +122,7 @@ class ViveController(ABC):
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
     scale: float
+    timer_interval: float
     is_initialized: bool
     is_tracking: bool
 
@@ -129,8 +130,9 @@ class ViveController(ABC):
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
         self.scale = scale
+        self.timer_interval = 0.05
 
-        rospy.Timer(rospy.Duration(0.05), self.on_timer)
+        rospy.Timer(rospy.Duration(self.timer_interval), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
         self.post_init_hook(config)
@@ -140,12 +142,19 @@ class ViveController(ABC):
         pass
 
     def on_timer(self, event):
+        t_start = time.time()
+
         if not self.is_initialized:
             return
         self.joy_manager.process()
 
         if self.is_tracking:
             self.pose_manager.process()
+
+        t_elapsed_in_cb = time.time() - t_start
+        process_time_rate = t_elapsed_in_cb / self.timer_interval
+        if process_time_rate > 0.5:
+            rospy.logwarn('take {:.2f} sec ({:.1f} \%) of callback duration {:.2f} sec'.format(t_elapsed_in_cb, process_time_rate * 100, self.timer_interval))
 
 
 class PR2ViveController(ViveController):
