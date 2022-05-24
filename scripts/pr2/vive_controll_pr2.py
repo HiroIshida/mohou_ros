@@ -19,6 +19,7 @@ import genpy
 import rospy
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import PoseStamped
+from sound_play.libsoundplay import SoundClient
 
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.utils import chain_transform
@@ -154,13 +155,16 @@ class ViveController(ABC):
         t_elapsed_in_cb = time.time() - t_start
         process_time_rate = t_elapsed_in_cb / self.timer_interval
         if process_time_rate > 0.5:
-            rospy.logwarn('take {:.2f} sec ({:.1f} \%) of callback duration {:.2f} sec'.format(t_elapsed_in_cb, process_time_rate * 100, self.timer_interval))
+            rospy.logwarn(
+                'take {:.2f} sec ({:.1f} %) of callback duration {:.2f} sec'.format(
+                    t_elapsed_in_cb, process_time_rate * 100, self.timer_interval))
 
 
 class PR2ViveController(ViveController):
     robot_model: PR2
     robot_interface: Optional[PR2ROSRobotInterface]
     config: Config
+    sound_client: SoundClient
     gripper_close: bool
     tf_handref2camera: Optional[CoordinateTransform]
     tf_gripperref2base: Optional[CoordinateTransform]
@@ -219,6 +223,7 @@ class PR2ViveController(ViveController):
 
         self.pose_manager.register_processor(self.track_arm)
         self.config = config
+        self.sound_client = SoundClient(blocking=False)
 
         self.is_initialized = True
         self.is_tracking = False
@@ -323,6 +328,7 @@ class PR2ViveController(ViveController):
 @dataclass
 class RosbagManager:
     config: Config
+    sound_client: SoundClient
     closure_stop: Optional[Callable] = None
 
     @property
@@ -351,12 +357,14 @@ class RosbagManager:
                         os.kill(p.pid, signal.SIGKILL)
                         break
 
+        self.sound_client.say('start saving rosbag')
         thread = Observer()
         thread.start()
 
     def stop(self):
         assert self.is_running
         assert self.closure_stop is not None
+        self.sound_client.say('finish saving rosbag')
         self.closure_stop()
         self.closure_stop = None
 
@@ -383,7 +391,7 @@ class PR2RightArmViveController(PR2ViveController):
 
     def __init__(self, config: Config, scale: float):
         super().__init__(config, scale, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped')
-        self.rosbag_manager = RosbagManager(config)
+        self.rosbag_manager = RosbagManager(config, self.sound_client)
 
         self.joy_manager.register_processor(
             JoyDataManager.Button.FRONT, self.rosbag_manager.switch_state)
