@@ -354,7 +354,7 @@ class RosbagManager:
                     time.sleep(0.5)
                     if not share['is_running']:
                         rospy.loginfo('kill rosbag process')
-                        os.kill(p.pid, signal.SIGKILL)
+                        os.kill(p.pid, signal.SIGTERM)
                         break
 
         self.sound_client.say('start saving rosbag')
