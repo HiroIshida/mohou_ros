@@ -122,15 +122,13 @@ class ViveController(ABC):
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
     scale: float
-    force: bool
     is_initialized: bool
     is_tracking: bool
 
-    def __init__(self, config: Config, scale: float, joy_topic_name: str, pose_topic_name: str, force: bool):
+    def __init__(self, config: Config, scale: float, joy_topic_name: str, pose_topic_name: str):
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
         self.scale = scale
-        self.force = force
 
         rospy.Timer(rospy.Duration(0.05), self.on_timer)
         self.is_initialized = False
@@ -197,11 +195,8 @@ class PR2ViveController(ViveController):
 
         robot_model = PR2()
         self.robot_model = robot_model
-        if self.force:
-            self.robot_interface = self.robot_interface_type(robot_model)
-            self.robot_model.angle_vector(self.robot_interface.angle_vector())
-        else:
-            self.robot_interface = None
+        self.robot_interface = self.robot_interface_type(robot_model)
+        self.robot_model.angle_vector(self.robot_interface.angle_vector())
         self.gripper_close = False
 
         self.joy_manager.register_processor(
@@ -377,8 +372,8 @@ class PR2RightArmViveController(PR2ViveController):
     gripper_joint_name: str = 'r_gripper_joint'
     log_prefix: str = 'Right'
 
-    def __init__(self, config: Config, scale: float, force: bool):
-        super().__init__(config, scale, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped', force)
+    def __init__(self, config: Config, scale: float):
+        super().__init__(config, scale, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped')
         self.rosbag_manager = RosbagManager(config)
 
         self.joy_manager.register_processor(
@@ -400,8 +395,8 @@ class PR2LeftArmViveController(PR2ViveController):
     gripper_joint_name: str = 'l_gripper_joint'
     log_prefix: str = 'Left'
 
-    def __init__(self, config: Config, scale: float, force: bool):
-        super().__init__(config, scale, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped', force)
+    def __init__(self, config: Config, scale: float):
+        super().__init__(config, scale, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped')
 
     def move_gripper(self, pos: float) -> None:
         self.robot_interface.move_gripper('larm', pos, effort=100)  # type: ignore
@@ -411,13 +406,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('-scale', type=float, default=1.5, help='controller to real scaling')
-    parser.add_argument('--force', action='store_true', help='disable dry option')
     args, unknown = parser.parse_known_args()
     scale = args.scale
-    force = args.force
     config = Config.from_project_name(args.pn)
 
     rospy.init_node('pr2_vive_mohou')
-    PR2RightArmViveController(config, scale, force)
-    PR2LeftArmViveController(config, scale, force)
+    PR2RightArmViveController(config, scale)
+    PR2LeftArmViveController(config, scale)
     rospy.spin()
