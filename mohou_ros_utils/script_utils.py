@@ -18,7 +18,8 @@ def count_rosbag_file(config: Config) -> int:
 
 def get_latest_rosbag_filename(config: Config) -> Optional[str]:
     rosbag_dir = get_rosbag_dir(config.project_name)
-    filename_sorted = sorted(os.listdir(rosbag_dir))
+    rosbag_files = [f for f in os.listdir(rosbag_dir) if f.endswith(".bag")]
+    filename_sorted = sorted(rosbag_files)
     if len(filename_sorted) == 0:
         return None
     return os.path.join(rosbag_dir, filename_sorted[-1])
