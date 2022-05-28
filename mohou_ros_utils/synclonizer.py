@@ -35,7 +35,7 @@ def get_first_last_true_indices(booleans: np.ndarray) -> Tuple[int, int]:
 def synclonize(
         seq_list: List[TimeStampedSequence],
         freq: float,
-        itp_rule: AbstractInterpolationRule = NullInterpolationRule()):
+        itp_rule: AbstractInterpolationRule = NullInterpolationRule()) -> List[TimeStampedSequence]:
 
     t_start, t_end = get_union_time_bound(seq_list)
     n_bins = int((t_end - t_start) // freq + 1) + 1
