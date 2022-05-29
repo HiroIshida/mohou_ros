@@ -4,6 +4,7 @@ import os
 import subprocess
 import pickle
 from dataclasses import dataclass
+import rosbag
 import rospy
 from typing import List, Optional
 from sensor_msgs.msg import CompressedImage, Image, JointState
@@ -25,7 +26,7 @@ from mohou.utils import canvas_to_ndarray
 from mohou_ros_utils.file import get_execution_debug_data_dir
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
-from mohou_ros_utils.script_utils import create_rosbag_command
+from mohou_ros_utils.script_utils import bag2clip, create_rosbag_command
 
 
 @dataclass
@@ -174,10 +175,10 @@ class ExecutorBase(ABC):
 
         if dump_debug_info:
             dir_name = get_execution_debug_data_dir(self.config.project_name)
-            rospy.loginfo('Please hang tight. Creating a debug gif image...')
-            file_name = os.path.join(dir_name, 'images-{}.gif'.format(self.str_time_postfix))
-            clip = ImageSequenceClip([debug_images.numpy() for debug_images in self.debug_images_seq], fps=20)
-            clip.write_gif(file_name, fps=20)
+            rospy.loginfo('Please hang tight. Creating a debug debug video...')
+            file_name = os.path.join(dir_name, 'images-{}.mp4'.format(self.str_time_postfix))
+            debug_image_clip = ImageSequenceClip([debug_images.numpy() for debug_images in self.debug_images_seq], fps=20)
+            debug_image_clip.write_videofile(file_name, fps=20)
 
             rospy.loginfo('Please hang tight. Saving debug edict sequence')
             file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(self.str_time_postfix))
@@ -187,6 +188,19 @@ class ExecutorBase(ABC):
             if self.rosbag_cmd_popen is not None:
                 os.kill(self.rosbag_cmd_popen.pid, signal.SIGKILL)
                 time.sleep(1)  # a workaround
+
+                # get rosbag_filename
+                assert self.rosbag_cmd_popen is not None
+                rosbag_filename = None
+                for i, arg in enumerate(self.rosbag_cmd_popen.args):
+                    if arg == '-O' or arg == '--output-name':
+                        rosbag_filename = self.rosbag_cmd_popen.args[i + 1]
+                assert rosbag_filename is not None
+                bag = rosbag.Bag(rosbag_filename)
+                movie_clip = bag2clip(bag, self.config, hz=10, speed=1.0)
+
+                video_file_name = os.path.join(dir_name, 'video-{}.mp4'.format(self.str_time_postfix))
+                movie_clip.write_videofile(video_file_name)
 
     @abstractmethod
     def post_init_hook(self) -> None:

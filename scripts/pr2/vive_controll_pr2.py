@@ -26,6 +26,7 @@ from mohou_ros_utils.utils import chain_transform
 from mohou_ros_utils.utils import CoordinateTransform
 from mohou_ros_utils.pr2.params import rarm_joint_names, larm_joint_names
 from mohou_ros_utils.config import Config
+from mohou_ros_utils.script_utils import get_rosbag_filename
 from mohou_ros_utils.script_utils import create_rosbag_command
 from mohou_ros_utils.script_utils import count_rosbag_file
 from mohou_ros_utils.script_utils import get_latest_rosbag_filename
@@ -337,9 +338,10 @@ class RosbagManager:
     def is_running(self) -> bool:
         return self.closure_stop is not None
 
-    def start(self):
+    def start(self) -> None:
         assert not self.is_running
-        cmd = create_rosbag_command(self.config)
+        filename = get_rosbag_filename(self.config, time.strftime("%Y%m%d%H%M%S"))
+        cmd = create_rosbag_command(filename, self.config)
         p = subprocess.Popen(cmd)
         rospy.loginfo(p)
         share = {'is_running': True}
@@ -363,7 +365,7 @@ class RosbagManager:
         thread = Observer()
         thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         assert self.is_running
         assert self.closure_stop is not None
         n_count = count_rosbag_file(self.config) + 1  # because we are gonna add one
@@ -372,7 +374,7 @@ class RosbagManager:
         self.closure_stop()
         self.closure_stop = None
 
-    def switch_state(self):
+    def switch_state(self) -> None:
         rospy.loginfo('switch rosbag state')
         if self.is_running:
             self.stop()
