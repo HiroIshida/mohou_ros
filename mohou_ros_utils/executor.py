@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
 import os
+import subprocess
 import pickle
 from dataclasses import dataclass
 import rospy
@@ -9,6 +10,7 @@ from sensor_msgs.msg import CompressedImage, Image, JointState
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import signal
 import time
 from moviepy.editor import ImageSequenceClip
 from pr2_controllers_msgs.msg import JointControllerState
@@ -19,11 +21,11 @@ from mohou.default import create_default_propagator, auto_detect_autoencoder_typ
 from mohou.types import AngleVector, ElementDict, RGBImage, GripperState, TerminateFlag
 from mohou.trainer import TrainCache
 from mohou.utils import canvas_to_ndarray
-from mohou.file import get_project_dir
 
+from mohou_ros_utils.file import get_execution_debug_data_dir
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
-from mohou_ros_utils.file import create_if_not_exist
+from mohou_ros_utils.script_utils import create_rosbag_command
 
 
 @dataclass
@@ -73,13 +75,15 @@ class ExecutorBase(ABC):
     debug_images_seq: List[DebugImages]
     edict_seq: List[ElementDict]
     is_terminatable: bool
+    str_time_postfix: str
 
+    rosbag_cmd_popen: Optional[subprocess.Popen] = None
     rgb_msg: Optional[CompressedImage] = None
     joint_state_msg: Optional[JointState] = None
     joint_cont_state_msg: Optional[JointControllerState] = None
     current_av: Optional[AngleVector] = None
 
-    def __init__(self, project_name: str, dryrun=True) -> None:
+    def __init__(self, project_name: str, dryrun=True, save_rosbag=True) -> None:
         propagator = create_default_propagator(project_name)
 
         ae_type = auto_detect_autoencoder_type(project_name)
@@ -109,6 +113,14 @@ class ExecutorBase(ABC):
         rospy.Timer(rospy.Duration(1.0 / self.hz), self.on_timer)
         self.running = False
         self.is_terminatable = False
+        self.str_time_postfix = time.strftime("%Y%m%d%H%M%S")
+
+        if save_rosbag:
+            rosbag_filename = os.path.join(get_execution_debug_data_dir(config.project_name), 'backup-{}.bag'.format(self.str_time_postfix))
+            cmd = create_rosbag_command(rosbag_filename, config)
+            self.rosbag_cmd_popen = subprocess.Popen(cmd)
+        else:
+            self.rosbag_cmd_popen = None
 
     def run(self):
         self.running = True
@@ -161,19 +173,20 @@ class ExecutorBase(ABC):
         self.running = False
 
         if dump_debug_info:
-            dir_name = os.path.join(get_project_dir(self.config.project_name), 'execution_debug_data')
-            str_time = time.strftime("%Y%m%d%H%M%S")
-            create_if_not_exist(dir_name)
-
+            dir_name = get_execution_debug_data_dir(self.config.project_name)
             rospy.loginfo('Please hang tight. Creating a debug gif image...')
-            file_name = os.path.join(dir_name, 'images-{}.gif'.format(str_time))
+            file_name = os.path.join(dir_name, 'images-{}.gif'.format(self.str_time_postfix))
             clip = ImageSequenceClip([debug_images.numpy() for debug_images in self.debug_images_seq], fps=20)
             clip.write_gif(file_name, fps=20)
 
             rospy.loginfo('Please hang tight. Saving debug edict sequence')
-            file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(str_time))
+            file_name = os.path.join(dir_name, 'edicts-{}.pkl'.format(self.str_time_postfix))
             with open(file_name, 'wb') as f:
                 pickle.dump(self.edict_seq, f)
+
+            if self.rosbag_cmd_popen is not None:
+                os.kill(self.rosbag_cmd_popen.pid, signal.SIGKILL)
+                time.sleep(1)  # a workaround
 
     @abstractmethod
     def post_init_hook(self) -> None:

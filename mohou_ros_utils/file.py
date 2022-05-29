@@ -25,6 +25,13 @@ def get_rosbag_dir(project_name: str) -> str:
     return rosbag_dir
 
 
+def get_execution_debug_data_dir(project_name: str) -> str:
+    directory = get_project_dir(project_name)
+    debug_dir = os.path.join(directory, 'execution_debug_data')
+    create_if_not_exist(debug_dir)
+    return debug_dir
+
+
 def get_home_position_file(project_name: str) -> str:
     directory = get_project_dir(project_name)
     return os.path.join(directory, 'home_position.yaml')

@@ -1,5 +1,4 @@
 import os
-import time
 from typing import Optional
 
 from mohou_ros_utils.file import get_rosbag_dir
@@ -31,9 +30,7 @@ def get_rosbag_filename(config: Config, postfix: str):
     return filename
 
 
-def create_rosbag_command(config: Config):
-    postfix = time.strftime("%Y%m%d%H%M%S")
-    filename = get_rosbag_filename(config, postfix)
+def create_rosbag_command(filename: str, config: Config):
     cmd_rosbag = ['rosbag', 'record']
     topic_list = config.topics.rosbag_topic_list
     cmd_rosbag.extend(topic_list + ['/tf'])
