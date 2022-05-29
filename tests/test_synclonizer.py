@@ -29,8 +29,8 @@ def test_synclonize_case1():
     N = 6
     times = np.array([float(i) for i in range(N)])
     times2 = times + 0.2
-    seq1 = TimeStampedSequence(int, [0 for _ in range(N)], times)
-    seq2 = TimeStampedSequence(int, [0 for _ in range(N)], times2)
+    seq1 = TimeStampedSequence(int, [0 for _ in range(N)], times.tolist())
+    seq2 = TimeStampedSequence(int, [0 for _ in range(N)], times2.tolist())
 
     with pytest.raises(AssertionError):
         synclonize([seq1, seq2], freq=0.6)
@@ -50,8 +50,8 @@ def test_synclonize_case2():
     N = 12
     times = np.array([float(i) * 1.0 for i in range(N)])
     times2 = np.array([float(i) * 1.2 for i in range(N)])
-    seq1 = TimeStampedSequence(int, [0 for _ in range(N)], times)
-    seq2 = TimeStampedSequence(int, [0 for _ in range(N)], times2)
+    seq1 = TimeStampedSequence(int, [0 for _ in range(N)], times.tolist())
+    seq2 = TimeStampedSequence(int, [0 for _ in range(N)], times2.tolist())
 
     freq = 2.0
     seqs_new = synclonize([seq1, seq2], freq=freq)
@@ -62,8 +62,8 @@ def test_synclonize_with_interpolator():
     N = 6
     times = np.array([float(i) for i in range(N)])
     times2 = np.array([float(i) + 0.2 for i in range(N) if i != 3])
-    seq1 = TimeStampedSequence(String, [String() for _ in range(N)], times)
-    seq2 = TimeStampedSequence(String, [String() for _ in range(N - 1)], times2)
+    seq1 = TimeStampedSequence(String, [String() for _ in range(N)], times.tolist())
+    seq2 = TimeStampedSequence(String, [String() for _ in range(N - 1)], times2.tolist())
 
     with pytest.raises(AssertionError):
         synclonize([seq1, seq2], freq=1.0 + 1e-12)

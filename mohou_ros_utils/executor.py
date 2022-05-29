@@ -230,7 +230,7 @@ class SequentialExecutor:
         for e in self.executors:
             assert not e.dryrun
 
-    def run(self):
+    def run(self) -> None:
         for idx, executor in enumerate(self.executors):
             rospy.loginfo('start executor {}'.format(idx))
             self.executor_current = executor
@@ -245,5 +245,6 @@ class SequentialExecutor:
             rospy.loginfo('stop executor {}'.format(idx))
         rospy.loginfo('executed all execturos')
 
-    def terminate(self):
+    def terminate(self) -> None:
+        assert self.executor_current is not None
         self.executor_current.terminate(dump_debug_info=False)
