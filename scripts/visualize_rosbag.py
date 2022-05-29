@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import numpy as np
 import rosbag
 from moviepy.editor import ImageSequenceClip
 from mohou.types import RGBImage
@@ -12,6 +13,11 @@ from mohou_ros_utils.types import TimeStampedSequence
 from mohou_ros_utils.synclonizer import synclonize
 from mohou_ros_utils.interpolator import NearestNeighbourInterpolator, AllSameInterpolationRule
 from mohou_ros_utils import _default_project_name
+
+
+def bgr2rgb(arr: np.ndarray) -> np.ndarray:
+    return arr[..., ::-1].copy()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -42,7 +48,7 @@ if __name__ == '__main__':
             seq.append(converter(msg), t.to_sec())
         rule = AllSameInterpolationRule(NearestNeighbourInterpolator)
         seq_regular = synclonize([seq], 1.0 / hz, itp_rule=rule)[0]
-        seq_numpy = [e.numpy() for e in seq_regular.object_list]  # type: ignore
+        seq_numpy = [bgr2rgb(e.numpy()) for e in seq_regular.object_list]  # type: ignore
 
         filename_raw, _ = os.path.splitext(filename)
         filename_out = 'debug-' + filename_raw + '-hz{}-{}x'.format(hz, speed) + '.' + ext_out
