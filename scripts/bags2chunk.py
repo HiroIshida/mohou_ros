@@ -6,14 +6,14 @@ import rosbag
 import rospkg
 from typing import List
 from moviepy.editor import ImageSequenceClip
-from mohou.file import get_project_dir
+from mohou.file import get_project_path
 from mohou.types import ExtraInfoType
 from mohou.types import RGBImage, AngleVector, ImageBase
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.file import get_rosbag_dir, create_if_not_exist
+from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
 from mohou_ros_utils.interpolator import AllSameInterpolationRule
@@ -87,18 +87,18 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool)
     chunk.dump(config.project_name, postfix)
 
     if dump_gif:
-        gif_dir = os.path.join(get_project_dir(config.project_name), 'train_data_gifs')
-        create_if_not_exist(gif_dir)
+        gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
+        gif_dir_path.mkdir(exist_ok=True)
         for i, episode_data in enumerate(chunk):
             fps = 20
             images = [rgb.numpy() for rgb in episode_data.get_sequence_by_type(RGBImage)]
             clip = ImageSequenceClip(images, fps=fps)
 
             if postfix is None:
-                gif_filename = os.path.join(gif_dir, '{}.gif'.format(i))
+                gif_file_path = gif_dir_path / '{}.gif'.format(i)
             else:
-                gif_filename = os.path.join(gif_dir, '{}-{}.gif'.format(i, postfix))
-            clip.write_gif(gif_filename, fps=fps)
+                gif_file_path = gif_dir_path / '{}-{}.gif'.format(i, postfix)
+            clip.write_gif(str(gif_file_path), fps=fps)
 
 
 if __name__ == '__main__':
