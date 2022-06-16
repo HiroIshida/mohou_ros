@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import argparse
+from dataclasses import dataclass
 import os
 import numpy as np
 import rosbag
 import rospkg
-from typing import List
+from typing import List, Optional
+from enum import Enum
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_path
 from mohou.types import ExtraInfoType
@@ -36,21 +38,62 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
     return EpisodeData.from_seq_list(mohou_elem_seqs)
 
 
-def has_too_long_static_av(edata: EpisodeData, coef: float = 0.1):
-    av_seq = edata.get_sequence_by_type(AngleVector)
-    static_state_len_threshold = len(av_seq) * coef
-    indices_static = None
-    for i in range(len(av_seq) - 1):
-        diff = np.linalg.norm(av_seq[i + 1].numpy() - av_seq[i].numpy())  # type: ignore
-        if diff > 0.005:  # TODO(HiroIshida) change this using mohou's std value
-            indices_static = i
-            break
-    if indices_static is None:
-        return False
-    return indices_static > static_state_len_threshold
+class AmendPolicy(Enum):
+    amend = "amend"  # amend if too long constant initial state found
+    donothing = "donothing"  # just do not alter data
+    skip = "skip"  # if too long constant initial state found, just ignore such data
 
 
-def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool):
+@dataclass
+class StaticInitialStateAmender:
+
+    policy: AmendPolicy = AmendPolicy.skip
+    threshold_coef: float = 0.1
+
+    @classmethod
+    def from_policy_name(cls, name: str) -> "StaticInitialStateAmender":
+        return cls(AmendPolicy(name))
+
+    @staticmethod
+    def find_av_static_duration(edata: EpisodeData) -> int:
+        av_seq = edata.get_sequence_by_type(AngleVector)
+        static_duration = 0
+        for i in range(len(av_seq) - 1):
+            diff = np.linalg.norm(av_seq[i + 1].numpy() - av_seq[i].numpy())  # type: ignore
+            if diff > 0.005:  # TODO(HiroIshida) change this using mohou's std value
+                static_duration = i
+                break
+        return static_duration
+
+    def has_too_long_static_av(self, episode: EpisodeData):
+        av_seq = episode.get_sequence_by_type(AngleVector)
+        static_state_len_threshold = len(av_seq) * self.threshold_coef
+        duration = self.find_av_static_duration(episode)
+        too_long_static_av_duration = duration > static_state_len_threshold
+        return too_long_static_av_duration
+
+    def amend(self, episode: EpisodeData) -> Optional[EpisodeData]:
+
+        if self.policy == AmendPolicy.donothing:
+            print("just do not alter...")
+            return episode
+
+        if self.has_too_long_static_av(episode):
+
+            if self.policy == AmendPolicy.skip:
+                print("returning None because skip policy is selected")
+                return None
+
+            static_duration = self.find_av_static_duration(episode)
+            print("amending: remove initial {} state".format(static_duration))
+            seq_list_new: List[ElementSequence] = [ElementSequence(seq[static_duration:]) for seq in episode]
+            episode_new = EpisodeData.from_seq_list(seq_list_new)
+            return episode_new
+        else:
+            return episode
+
+
+def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool, amender: StaticInitialStateAmender):
     postfix = 'image_autoencoder' if for_image_autoencoder else None
     rosbag_dir = get_rosbag_dir(config.project_name)
     episode_data_list = []
@@ -76,22 +119,26 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool)
         seqs = bag_to_synced_seqs(bag, 1.0 / hz, topic_names=topic_name_list, rule=rule)
         bag.close()
 
-        episode_data = seqs_to_episodedata(seqs, config)
-        if not for_image_autoencoder and has_too_long_static_av(episode_data):
-            print('skipped (strange too long initial static state found. skipped)')
-            continue
-        episode_data_list.append(episode_data)
+        episode = seqs_to_episodedata(seqs, config)
+        if not for_image_autoencoder:  # for image autoencodder angle vector is irrelevant
+            episode_new = amender.amend(episode)
+            if episode_new is None:
+                continue
+            episode = episode_new
+
+        episode_data_list.append(episode)
 
     extra_info: ExtraInfoType = {'hz': hz}
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
+    chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
 
     if dump_gif:
         gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
         gif_dir_path.mkdir(exist_ok=True)
-        for i, episode_data in enumerate(chunk):
+        for i, episode in enumerate(chunk):
             fps = 20
-            images = [rgb.numpy() for rgb in episode_data.get_sequence_by_type(RGBImage)]
+            images = [rgb.numpy() for rgb in episode.get_sequence_by_type(RGBImage)]
             clip = ImageSequenceClip(images, fps=fps)
 
             if postfix is None:
@@ -106,6 +153,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('-hz', type=float, default=5.0)
+    parser.add_argument('-amend_policy', type=str, default="skip", help='amend policy when too long initial static angle vector found')
+    parser.add_argument('--amend', action='store_true', help='amend sequence if too long static av sequence found')
     parser.add_argument('--image_autoencoder', action='store_true', help='chunk for image autoencoder')
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
@@ -113,5 +162,7 @@ if __name__ == '__main__':
     config = Config.from_project_name(args.pn)
     hz = args.hz
     dump_gif = args.gif
+
     for_image_autoencoder = args.image_autoencoder
-    main(config, hz, dump_gif, for_image_autoencoder)
+    amender = StaticInitialStateAmender.from_policy_name(args.amend_policy)
+    main(config, hz, dump_gif, for_image_autoencoder, amender)
