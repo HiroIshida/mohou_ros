@@ -39,7 +39,7 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
 
 
 class AmendPolicy(Enum):
-    amend = "amend"  # amend if too long constant initial state found
+    amend = "amend"  # remove all constant-initial-states
     donothing = "donothing"  # just do not alter data
     skip = "skip"  # if too long constant initial state found, just ignore such data
 
@@ -48,7 +48,7 @@ class AmendPolicy(Enum):
 class StaticInitialStateAmender:
 
     policy: AmendPolicy = AmendPolicy.skip
-    threshold_coef: float = 0.1
+    threshold_coef: float = 0.03
 
     @classmethod
     def from_policy_name(cls, name: str) -> "StaticInitialStateAmender":
@@ -78,19 +78,21 @@ class StaticInitialStateAmender:
             print("just do not alter...")
             return episode
 
-        if self.has_too_long_static_av(episode):
-
-            if self.policy == AmendPolicy.skip:
-                print("returning None because skip policy is selected")
-                return None
-
+        if self.policy == AmendPolicy.amend:
             static_duration = self.find_av_static_duration(episode)
             print("amending: remove initial {} state".format(static_duration))
-            seq_list_new: List[ElementSequence] = [ElementSequence(seq[static_duration:]) for seq in episode]
+            start_index = max(static_duration - 1, 0)
+            seq_list_new: List[ElementSequence] = [ElementSequence(seq[start_index:]) for seq in episode]
             episode_new = EpisodeData.from_seq_list(seq_list_new)
             return episode_new
-        else:
-            return episode
+
+        if self.policy == AmendPolicy.skip:
+            if self.has_too_long_static_av(episode):
+                return None
+            else:
+                return episode
+
+        assert False
 
 
 def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool, amender: StaticInitialStateAmender):
