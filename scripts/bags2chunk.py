@@ -131,7 +131,8 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool,
     extra_info: ExtraInfoType = {'hz': hz}
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
-    chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
+    if not for_image_autoencoder:
+        chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
 
     if dump_gif:
         gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
