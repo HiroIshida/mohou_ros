@@ -396,7 +396,8 @@ class PR2RightArmViveController(PR2ViveController):
     log_prefix: str = 'Right'
 
     def __init__(self, config: Config, scale: float):
-        super().__init__(config, scale, '/controller_LHR_FDF29FC7/joy', '/controller_LHR_FDF29FC7_as_posestamped')
+        controller_id = "LHR_F7AFBF47"
+        super().__init__(config, scale, '/controller_{}/joy'.format(controller_id), '/controller_{}_as_posestamped'.format(controller_id))
         self.rosbag_manager = RosbagManager(config, self.sound_client)
 
         self.joy_manager.register_processor(
@@ -419,7 +420,8 @@ class PR2LeftArmViveController(PR2ViveController):
     log_prefix: str = 'Left'
 
     def __init__(self, config: Config, scale: float):
-        super().__init__(config, scale, '/controller_LHR_FF3DFFC7/joy', '/controller_LHR_FF3DFFC7_as_posestamped')
+        controller_id = "LHR_FD35BD42"
+        super().__init__(config, scale, '/controller_{}/joy'.format(controller_id), '/controller_{}_as_posestamped'.format(controller_id))
 
         self.joy_manager.register_processor(
             JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
