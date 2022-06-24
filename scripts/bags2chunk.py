@@ -10,7 +10,7 @@ from enum import Enum
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_path
 from mohou.types import ExtraInfoType
-from mohou.types import RGBImage, AngleVector, ImageBase
+from mohou.types import RGBImage, AngleVector
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
 from mohou_ros_utils import _default_project_name
@@ -82,8 +82,7 @@ class StaticInitialStateAmender:
             static_duration = self.find_av_static_duration(episode)
             print("amending: remove initial {} state".format(static_duration))
             start_index = max(static_duration - 1, 0)
-            seq_list_new: List[ElementSequence] = [ElementSequence(seq[start_index:]) for seq in episode]
-            episode_new = EpisodeData.from_seq_list(seq_list_new)
+            episode_new = episode[start_index:]
             return episode_new
 
         if self.policy == AmendPolicy.skip:
@@ -95,8 +94,7 @@ class StaticInitialStateAmender:
         assert False
 
 
-def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool, amender: StaticInitialStateAmender):
-    postfix = 'image_autoencoder' if for_image_autoencoder else None
+def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateAmender, postfix: Optional[str] = None):
     rosbag_dir = get_rosbag_dir(config.project_name)
     episode_data_list = []
     for filename_ in os.listdir(rosbag_dir):
@@ -109,11 +107,6 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool,
         filename = os.path.join(rosbag_dir, filename_)
 
         topic_name_list = config.topics.use_topic_list
-        if for_image_autoencoder:
-            def fn(topic: str) -> bool:
-                tc = config.topics.name_config_table[topic]
-                return issubclass(tc.mohou_type, ImageBase)
-            topic_name_list = list(filter(fn, topic_name_list))
         print('topic_list: {}'.format(topic_name_list))
 
         rule = AllSameInterpolationRule(NearestNeighbourMessageInterpolator)
@@ -122,19 +115,15 @@ def main(config: Config, hz: float, dump_gif: bool, for_image_autoencoder: bool,
         bag.close()
 
         episode = seqs_to_episodedata(seqs, config)
-        if not for_image_autoencoder:  # for image autoencodder angle vector is irrelevant
-            episode_new = amender.amend(episode)
-            if episode_new is None:
-                continue
-            episode = episode_new
-
-        episode_data_list.append(episode)
+        episode_amended = amender.amend(episode)
+        if episode_amended is None:
+            continue
+        episode_data_list.append(episode_amended)
 
     extra_info: ExtraInfoType = {'hz': hz}
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
-    if not for_image_autoencoder:
-        chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
+    chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
 
     if dump_gif:
         gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
@@ -157,8 +146,8 @@ if __name__ == '__main__':
     parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
     parser.add_argument('-hz', type=float, default=5.0)
     parser.add_argument('-amend_policy', type=str, default="skip", help='amend policy when too long initial static angle vector found')
+    parser.add_argument('-postfix', type=str, default="", help='chunk postfix')
     parser.add_argument('--amend', action='store_true', help='amend sequence if too long static av sequence found')
-    parser.add_argument('--image_autoencoder', action='store_true', help='chunk for image autoencoder')
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
@@ -166,6 +155,6 @@ if __name__ == '__main__':
     hz = args.hz
     dump_gif = args.gif
 
-    for_image_autoencoder = args.image_autoencoder
+    postfix = None if args.postfix == "" else args.postfix
     amender = StaticInitialStateAmender.from_policy_name(args.amend_policy)
-    main(config, hz, dump_gif, for_image_autoencoder, amender)
+    main(config, hz, dump_gif, amender, postfix)
