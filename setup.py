@@ -10,8 +10,13 @@ install_requires = [
     "gdown"
 ]
 
-if os.environ["ROS_DISTRO"] != "noetic":
-    install_requires.append("bagpy")  # to avoid building rosbag from source
+if "ROS_DISTRO" in os.environ:
+    if os.environ["ROS_DISTRO"] != "noetic":
+        install_requires.append("bagpy")  # to avoid building rosbag from source
+else:
+    if not os.path.isdir("/opt/ros/noetic"):
+        install_requires.append("bagpy")  # to avoid building rosbag from source
+
 
 setup(
     name='mohou_ros_utils',
