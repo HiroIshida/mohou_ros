@@ -9,7 +9,7 @@ from typing import List, Optional
 from enum import Enum
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_path
-from mohou.types import ExtraInfoType
+from mohou.types import MetaData
 from mohou.types import RGBImage, AngleVector
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
@@ -120,7 +120,7 @@ def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateA
             continue
         episode_data_list.append(episode_amended)
 
-    extra_info: ExtraInfoType = {'hz': hz}
+    extra_info: MetaData = MetaData({'hz': hz})
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
     chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
