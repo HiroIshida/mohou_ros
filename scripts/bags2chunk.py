@@ -123,7 +123,7 @@ def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateA
     extra_info: MetaData = MetaData({'hz': hz})
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
-    chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz)
+    chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
 
     if dump_gif:
         gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
@@ -147,7 +147,6 @@ if __name__ == '__main__':
     parser.add_argument('-hz', type=float, default=5.0)
     parser.add_argument('-amend_policy', type=str, default="skip", help='amend policy when too long initial static angle vector found')
     parser.add_argument('-postfix', type=str, default="", help='chunk postfix')
-    parser.add_argument('--amend', action='store_true', help='amend sequence if too long static av sequence found')
     parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
 
     args = parser.parse_args()
