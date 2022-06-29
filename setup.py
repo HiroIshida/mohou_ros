@@ -1,14 +1,17 @@
+import os
 from setuptools import find_packages, setup
-
-setup_requires = []
 
 install_requires = [
     "numpy",
     "scipy",
     "scikit-robot",
     "mohou>=0.2.5",
-    "tunable-filter>=0.0.3"
+    "tunable-filter>=0.0.3",
+    "gdown"
 ]
+
+if os.environ["ROS_DISTRO"] != "noetic":
+    install_requires.append("bagpy")  # to avoid building rosbag from source
 
 setup(
     name='mohou_ros_utils',
@@ -18,5 +21,6 @@ setup(
     author_email='h-ishida@jsk.imi.i.u-tokyo.ac.jp',
     license='MIT',
     install_requires=install_requires,
+    setup_requires=["scikit-build"],
     packages=find_packages(exclude=('tests', 'docs'))
 )

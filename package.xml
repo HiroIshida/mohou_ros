@@ -11,4 +11,8 @@
   <depend>pr2_controllers_msgs</depend>
   <depend>move_base_msgs</depend>
   <depend>nav_msgs</depend>
+
+  <depend>ffmpeg</depend>
+  <depend>zip</depend>
+  <depend>suitesparse</depend>  <!-- actually it's dep of cvxopt of scikit-robot -->
 </package>
