@@ -8,6 +8,9 @@ pip3 install -e .
 If you are scared, please use virtualenv or whatever.
 Future direction would be using catkin virtual env.
 
+If you get stuck at installing opencv-python because of skbuild, please refere to
+https://stackoverflow.com/questions/63448467/installing-opencv-fails-because-it-cannot-find-skbuild
+
 Currently, there is no ros pacakge dependency which must be installed from source.
 So, no need to create new workspace and you can install this package by
 ```

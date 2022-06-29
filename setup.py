@@ -26,6 +26,5 @@ setup(
     author_email='h-ishida@jsk.imi.i.u-tokyo.ac.jp',
     license='MIT',
     install_requires=install_requires,
-    setup_requires=["scikit-build"],
     packages=find_packages(exclude=('tests', 'docs'))
 )
