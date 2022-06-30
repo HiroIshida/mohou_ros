@@ -66,7 +66,7 @@ ResolutionChangeResizer:resol change the image resolution. This must be 112 or 2
 For better training of autoencoder, much image is required. So we want to create a chunk
 with high hz. (20 hz or higher is recommended)
 ```bash
-rosrun mohou_ros bags2chunk.py -hz 20 -amend_policy donothing -pn {your_project_name}
+rosrun mohou_ros bags2chunk.py -hz 20 -amend_policy donothing -pn {your_project_name} -postfix autoencoder
 ```
 
 #### convert to the rosbag data to chunk for training the lstm
