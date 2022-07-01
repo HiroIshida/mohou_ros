@@ -40,5 +40,6 @@ if __name__ == '__main__':
 
     rgb = get_first_rgb(config)
     tunable = HSVBlurCropResolFilter.from_image(rgb.numpy())
-    tunable.start_tuning(rgb.numpy())
-    tunable.dump_yaml(get_image_config_path(project_name))
+
+    callback = lambda this: this.dump_yaml(get_image_config_path(project_name))
+    tunable.start_tuning(rgb.numpy(), callback=callback)

@@ -6,7 +6,7 @@ install_requires = [
     "scipy",
     "scikit-robot",
     "mohou>=0.2.5",
-    "tunable-filter>=0.0.3",
+    "tunable-filter>=0.0.4",
     "gdown"
 ]
 
