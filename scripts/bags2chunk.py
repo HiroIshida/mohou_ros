@@ -120,24 +120,23 @@ def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateA
             continue
         episode_data_list.append(episode_amended)
 
+        if dump_gif:
+            gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
+            gif_dir_path.mkdir(exist_ok=True)
+            fps = 20
+            images = [rgb.numpy() for rgb in episode_amended.get_sequence_by_type(RGBImage)]
+            clip = ImageSequenceClip(images, fps=fps)
+
+            if postfix is None:
+                gif_file_path = gif_dir_path / '{}.gif'.format(filename_)
+            else:
+                gif_file_path = gif_dir_path / '{}-{}.gif'.format(filename_, postfix)
+            clip.write_gif(str(gif_file_path), fps=fps)
+
     extra_info: MetaData = MetaData({'hz': hz})
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
     chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
-
-    if dump_gif:
-        gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
-        gif_dir_path.mkdir(exist_ok=True)
-        for i, episode in enumerate(chunk):
-            fps = 20
-            images = [rgb.numpy() for rgb in episode.get_sequence_by_type(RGBImage)]
-            clip = ImageSequenceClip(images, fps=fps)
-
-            if postfix is None:
-                gif_file_path = gif_dir_path / '{}.gif'.format(i)
-            else:
-                gif_file_path = gif_dir_path / '{}-{}.gif'.format(i, postfix)
-            clip.write_gif(str(gif_file_path), fps=fps)
 
 
 if __name__ == '__main__':
