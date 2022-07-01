@@ -54,7 +54,7 @@ rosrun mohou_ros save_home_position.py
 ### Tuning the image config
 Interactively create image config, which include crop and gaussian blur and hsv filter.
 ```bash
-# press `q` to quit and save the configuration as `image_config.yaml` under the project folder.
+# press Ctrl-C to quit and save the configuration as `image_config.yaml` under the project folder.
 rosrun mohou_ros tune_image_filter.py -pn {your_project_name}
 ```
 `GaussianBlurFilter:kernel_width = 5` is recommended. Altering HSV value is not recommended.
