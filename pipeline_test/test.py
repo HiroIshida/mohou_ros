@@ -1,13 +1,13 @@
-#/usr/bin/env python3
-import os
-import shutil
+# /usr/bin/env python3
 import subprocess
 import gdown
 from mohou.file import get_project_path
 
+
 def drive_url(file_id):
     url = "https://drive.google.com/uc?id={}".format(file_id)
     return url
+
 
 # prepare rosbag
 project_name = "_mohou_ros_utils_test"
@@ -31,8 +31,21 @@ main_config_path = project_path / "main_config.yaml"
 gdown.download(url=url, output=str(main_config_path), quiet=True)
 
 # run commands
-subprocess.run("rosrun mohou_ros bags2chunk.py -hz 5 -amend_policy donothing -pn {}".format(project_name), shell=True)
-subprocess.run("rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -amend_policy amend -pn {}".format(project_name), shell=True)
+subprocess.run(
+    "rosrun mohou_ros bags2chunk.py -hz 5 -amend_policy donothing -pn {}".format(
+        project_name
+    ),
+    shell=True,
+)
+subprocess.run(
+    "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -amend_policy amend -pn {}".format(
+        project_name
+    ),
+    shell=True,
+)
 n_epoch_ae = 1
 n_epoch_lstm = 1
-subprocess.run("rosrun mohou_ros train {} {} {}".format(project_name, n_epoch_ae, n_epoch_lstm), shell=True)
+subprocess.run(
+    "rosrun mohou_ros train {} {} {}".format(project_name, n_epoch_ae, n_epoch_lstm),
+    shell=True,
+)

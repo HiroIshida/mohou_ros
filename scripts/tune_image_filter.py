@@ -18,7 +18,7 @@ def get_first_rgb(config: Config) -> RGBImage:
     for filename in os.listdir(base_dir):
 
         _, ext = os.path.splitext(filename)
-        if ext != '.bag':
+        if ext != ".bag":
             continue
 
         rosbag_file = os.path.join(base_dir, filename)
@@ -31,9 +31,11 @@ def get_first_rgb(config: Config) -> RGBImage:
     assert False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
+    parser.add_argument(
+        "-pn", type=str, default=_default_project_name, help="project name"
+    )
     args = parser.parse_args()
     project_name = args.pn
     config = Config.from_project_name(project_name)
@@ -41,5 +43,7 @@ if __name__ == '__main__':
     rgb = get_first_rgb(config)
     tunable = HSVBlurCropResolFilter.from_image(rgb.numpy())
 
-    callback = lambda this: this.dump_yaml(get_image_config_path(project_name))
-    tunable.start_tuning(rgb.numpy(), callback=callback)
+    tunable.start_tuning(
+        rgb.numpy(),
+        callback=lambda this: this.dump_yaml(get_image_config_path(project_name)),
+    )
