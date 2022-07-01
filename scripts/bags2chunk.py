@@ -139,7 +139,6 @@ def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateA
     chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
 
 
-
 if __name__ == '__main__':
     config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
     parser = argparse.ArgumentParser()
