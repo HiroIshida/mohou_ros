@@ -9,7 +9,7 @@ from typing import List, Optional
 from enum import Enum
 from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_path
-from mohou.types import MetaData
+from mohou.types import MetaData, TimeStampSequence
 from mohou.types import RGBImage, AngleVector
 from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
 
@@ -23,7 +23,7 @@ from mohou_ros_utils.interpolator import NearestNeighbourMessageInterpolator
 from mohou_ros_utils.rosbag import bag_to_synced_seqs
 
 
-def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> EpisodeData:
+def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config, bagname: str) -> EpisodeData:
     vconv = VersatileConverter.from_config(config)
 
     mohou_elem_seqs = []
@@ -35,7 +35,11 @@ def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config) -> Epis
         elem_type = config.topics.get_by_topic_name(seq.topic_name).mohou_type
         elem_seq = ElementSequence([vconv.converters[elem_type](e) for e in seq.object_list])
         mohou_elem_seqs.append(elem_seq)
-    return EpisodeData.from_seq_list(mohou_elem_seqs)
+
+    time_stamps = TimeStampSequence(seqs[0].time_list)
+    metadata = MetaData()
+    metadata["rosbag"] = bagname
+    return EpisodeData.from_seq_list(mohou_elem_seqs, timestamp_seq=time_stamps, metadata=metadata)
 
 
 class AmendPolicy(Enum):
@@ -114,7 +118,7 @@ def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateA
         seqs = bag_to_synced_seqs(bag, 1.0 / hz, topic_names=topic_name_list, rule=rule)
         bag.close()
 
-        episode = seqs_to_episodedata(seqs, config)
+        episode = seqs_to_episodedata(seqs, config, filename_)
         episode_amended = amender.amend(episode)
         if episode_amended is None:
             continue
