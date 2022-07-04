@@ -101,7 +101,10 @@ class StaticInitialStateAmender:
 def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateAmender, postfix: Optional[str] = None):
     rosbag_dir = get_rosbag_dir(config.project_name)
     episode_data_list = []
-    for filename_ in os.listdir(rosbag_dir):
+    filenames = os.listdir(rosbag_dir)
+    assert len(filenames) > 0, "probably there is no rosbag files under the project directory"
+
+    for filename_ in filenames:
         print('processing {}'.format(filename_))
         _, ext = os.path.splitext(filename_)
         if ext != '.bag':
