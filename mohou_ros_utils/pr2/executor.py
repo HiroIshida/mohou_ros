@@ -11,14 +11,19 @@ from mohou_ros_utils.executor import ExecutorBase
 from mohou_ros_utils.pr2.controller_utils import check_pr2_is_executable
 
 
+class RarmInterface(PR2ROSRobotInterface):
+    def default_controller(self):
+        return [self.rarm_controller]
+
+
 class SkrobotPR2Executor(ExecutorBase):
     robot_model: PR2
-    robot_interface: PR2ROSRobotInterface
+    robot_interface: RarmInterface
 
     def _post_init(self):
         robot_model = PR2()
         self.robot_model = robot_model
-        self.robot_interface = PR2ROSRobotInterface(robot_model)
+        self.robot_interface = RarmInterface(robot_model)
         self.robot_model.angle_vector(self.robot_interface.angle_vector())
         check_pr2_is_executable()
 
