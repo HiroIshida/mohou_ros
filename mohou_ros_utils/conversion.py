@@ -8,6 +8,7 @@ import numpy as np
 from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage, GripperState
 from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
 from cv_bridge import CvBridge
+import cv2
 
 from mohou_ros_utils.utils import deprecated
 from mohou_ros_utils.config import Config
@@ -82,6 +83,7 @@ class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
 
     def __call__(self, msg: CompressedImage) -> RGBImage:
         image = CvBridge().compressed_imgmsg_to_cv2(msg)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.image_filter is not None:
             image = self.image_filter(image)
         return RGBImage(image)

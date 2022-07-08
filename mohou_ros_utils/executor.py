@@ -39,24 +39,28 @@ class DebugImages:
     def numpy(self) -> np.ndarray:
         fig = plt.figure()
 
-        def bgr2rgb(arr: np.ndarray) -> np.ndarray:
-            return arr[..., ::-1].copy()
+        # def bgr2rgb(arr: np.ndarray) -> np.ndarray:
+        #     return arr[..., ::-1].copy()
 
         font = {'fontsize': 8, 'fontweight': 'medium'}
         ax1 = fig.add_subplot(1, 4, 1)
-        ax1.imshow(bgr2rgb(self.robot_camera.numpy()))
+        # ax1.imshow(bgr2rgb(self.robot_camera.numpy()))
+        ax1.imshow(self.robot_camera.numpy())
         ax1.set_title('robot camera', fontdict=font)
 
         ax2 = fig.add_subplot(1, 4, 2)
-        ax2.imshow(bgr2rgb(self.network_input.numpy()))
+        # ax2.imshow(bgr2rgb(self.network_input.numpy()))
+        ax2.imshow(self.network_input.numpy())
         ax2.set_title('network input', fontdict=font)
 
         ax3 = fig.add_subplot(1, 4, 3)
-        ax3.imshow(bgr2rgb(self.reconstructed.numpy()))
+        # ax3.imshow(bgr2rgb(self.reconstructed.numpy()))
+        ax3.imshow(self.reconstructed.numpy())
         ax3.set_title('network output reconstructed', fontdict=font)
 
         ax3 = fig.add_subplot(1, 4, 4)
-        ax3.imshow(bgr2rgb(self.onestep_lookahaed_reconstructed.numpy()))
+        # ax3.imshow(bgr2rgb(self.onestep_lookahaed_reconstructed.numpy()))
+        ax3.imshow(self.onestep_lookahaed_reconstructed.numpy())
         ax3.set_title('reconstructed lookahead \n (one step)', fontdict=font)
 
         arr = canvas_to_ndarray(fig)
