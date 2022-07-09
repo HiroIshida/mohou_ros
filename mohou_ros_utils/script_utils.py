@@ -48,8 +48,8 @@ def create_rosbag_command(filename: str, config: Config):
 
 def bag2clip(bag: rosbag.Bag, config: Config, hz: float, speed: float) -> ImageSequenceClip:
 
-    def bgr2rgb(arr: np.ndarray) -> np.ndarray:
-        return arr[..., ::-1].copy()
+    # def bgr2rgb(arr: np.ndarray) -> np.ndarray:
+    #     return arr[..., ::-1].copy()
 
     converter = RGBImageConverter()
     seq = TimeStampedSequence.create_empty(RGBImage)
@@ -58,7 +58,8 @@ def bag2clip(bag: rosbag.Bag, config: Config, hz: float, speed: float) -> ImageS
         seq.append(converter(msg), t.to_sec())
     rule = AllSameInterpolationRule(NearestNeighbourInterpolator)
     seq_regular = synclonize([seq], 1.0 / hz, itp_rule=rule)[0]
-    seq_numpy = [bgr2rgb(e.numpy()) for e in seq_regular.object_list]  # type: ignore
+    # seq_numpy = [bgr2rgb(e.numpy()) for e in seq_regular.object_list]  # type: ignore
+    seq_numpy = [e.numpy() for e in seq_regular.object_list]  # type: ignore
     fps = int(hz * speed)
     clip = ImageSequenceClip(seq_numpy, fps=fps)
     return clip
