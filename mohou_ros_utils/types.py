@@ -1,11 +1,9 @@
 import re
 from collections.abc import Sequence
-
 from dataclasses import dataclass
-from typing import List, Optional, Type, TypeVar, Generic
+from typing import Generic, List, Optional, Type, TypeVar
 
-
-ObjectT = TypeVar('ObjectT')
+ObjectT = TypeVar("ObjectT")
 
 
 @dataclass
@@ -36,7 +34,9 @@ class TimeStampedSequence(Generic[ObjectT]):
         return self.__str__()
 
     def __str__(self):
-        return '{}, {}, {}'.format(self.__class__.__name__, self.object_type.__name__, self.__len__())
+        return "{}, {}, {}".format(
+            self.__class__.__name__, self.object_type.__name__, self.__len__()
+        )
 
 
 @dataclass
@@ -78,4 +78,4 @@ class TimeStampedSequenceChunk(Sequence):
     def __str__(self):
         types = [tss.object_type.__name__ for tss in self.tss_list]
         names = [tss.topic_name for tss in self.tss_list]
-        return '{} : {}'.format(self.__class__.__name__, list(zip(types, names)))
+        return "{} : {}".format(self.__class__.__name__, list(zip(types, names)))

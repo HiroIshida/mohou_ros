@@ -1,12 +1,16 @@
-import pytest
 import numpy as np
-
+import pytest
 from std_msgs.msg import String
 
-from mohou_ros_utils.synclonizer import TimeStampedSequence
-from mohou_ros_utils.synclonizer import synclonize, get_first_last_true_indices
-from mohou_ros_utils.interpolator import AllSameInterpolationRule
-from mohou_ros_utils.interpolator import NearestNeighbourInterpolator
+from mohou_ros_utils.interpolator import (
+    AllSameInterpolationRule,
+    NearestNeighbourInterpolator,
+)
+from mohou_ros_utils.synclonizer import (
+    TimeStampedSequence,
+    get_first_last_true_indices,
+    synclonize,
+)
 
 
 def assert_float_almost_equal(a, b):

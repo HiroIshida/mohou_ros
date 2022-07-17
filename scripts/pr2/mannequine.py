@@ -1,22 +1,32 @@
 #!/usr/bin/env python3
-from typing import Optional, List
-import actionlib
 import argparse
+import threading
 import time
+from typing import List, Optional
+
+import actionlib
+import rospy
+from pr2_controllers_msgs.msg import (
+    Pr2GripperCommandAction,
+    Pr2GripperCommandActionGoal,
+)
+from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Joint
 from skrobot.models import PR2
-from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
-import rospy
-import threading
-from pr2_controllers_msgs.msg import Pr2GripperCommandAction
-from pr2_controllers_msgs.msg import Pr2GripperCommandActionGoal
 
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
-
-from mohou_ros_utils.pr2.params import larm_joint_names, rarm_joint_names
-from mohou_ros_utils.pr2.params import larm_controller_name, rarm_controller_name, all_controller_names
-from mohou_ros_utils.pr2.controller_utils import get_controller_states, switch_controller
+from mohou_ros_utils.pr2.controller_utils import (
+    get_controller_states,
+    switch_controller,
+)
+from mohou_ros_utils.pr2.params import (
+    all_controller_names,
+    larm_controller_name,
+    larm_joint_names,
+    rarm_controller_name,
+    rarm_joint_names,
+)
 
 
 class Mannequin(object):
@@ -30,7 +40,14 @@ class Mannequin(object):
     enable_mirror: bool
     use_home_position: bool
 
-    def __init__(self, config: Config, loose_larm=True, loose_rarm=True, mirror=False, use_home_position=False):
+    def __init__(
+        self,
+        config: Config,
+        loose_larm=True,
+        loose_rarm=True,
+        mirror=False,
+        use_home_position=False,
+    ):
         if not mirror:
             assert loose_larm or loose_rarm
         if mirror:
@@ -69,7 +86,7 @@ class Mannequin(object):
             assert state_dict[cont]
 
     def reset_mannequin(self, wait_interpolation: bool = True):
-        rospy.loginfo('resetting')
+        rospy.loginfo("resetting")
         self.stop_mannequine()
 
         self.is_thread_active = False
@@ -78,17 +95,17 @@ class Mannequin(object):
 
         if self.use_home_position:
             if self.config.home_position is None:
-                message = 'before using --home, you must recored home position'
+                message = "before using --home, you must recored home position"
                 rospy.logerr(message)
                 assert False
 
-            rospy.loginfo('returning to home position')
+            rospy.loginfo("returning to home position")
             for joint_name in self.config.home_position.keys():
                 angle = self.config.home_position[joint_name]
                 self.robot.__dict__[joint_name].joint_angle(angle)
             self.ri.angle_vector(self.robot.angle_vector(), time=2.0, time_scale=1.0)
-            self.ri.move_gripper('larm', self.config.home_position['l_gripper_joint'], effort=100)
-            self.ri.move_gripper('rarm', self.config.home_position['r_gripper_joint'], effort=100)
+            self.ri.move_gripper("larm", self.config.home_position["l_gripper_joint"], effort=100)
+            self.ri.move_gripper("rarm", self.config.home_position["r_gripper_joint"], effort=100)
             rospy.loginfo("resetting pose...")
             if wait_interpolation:
                 self.ri.wait_interpolation()
@@ -103,7 +120,11 @@ class Mannequin(object):
         self.robot.angle_vector(self.ri.angle_vector())
         langles = [j.joint_angle() for j in self.larm_joints]
         for j, a in zip(self.rarm_joints, langles):
-            reverse_joints = ["r_upper_arm_roll_joint", "r_forearm_roll_joint", "r_wrist_roll_joint"]
+            reverse_joints = [
+                "r_upper_arm_roll_joint",
+                "r_forearm_roll_joint",
+                "r_wrist_roll_joint",
+            ]
             if j.name in reverse_joints:
                 j.joint_angle(-a)
             elif j.name == "r_shoulder_pan_joint":
@@ -136,15 +157,15 @@ class Mannequin(object):
         print("mannequin stopped")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
-    parser.add_argument('--rarm', action='store_true', help='loose rarm')
-    parser.add_argument('--larm', action='store_true', help='loose larm')
-    parser.add_argument('--mirror', action='store_true', help='mirror mode')
-    parser.add_argument('--home', action='store_true', help='use home position')
-    parser.add_argument('-open', type=float, default=0.06, help='max gripper position')
-    parser.add_argument('-close', type=float, default=0.00, help='max gripper position')
+    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("--rarm", action="store_true", help="loose rarm")
+    parser.add_argument("--larm", action="store_true", help="loose larm")
+    parser.add_argument("--mirror", action="store_true", help="mirror mode")
+    parser.add_argument("--home", action="store_true", help="use home position")
+    parser.add_argument("-open", type=float, default=0.06, help="max gripper position")
+    parser.add_argument("-close", type=float, default=0.00, help="max gripper position")
 
     args = parser.parse_args()
     loose_larm = args.larm
@@ -156,11 +177,13 @@ if __name__ == '__main__':
     config = Config.from_project_name(args.pn)
 
     # mannequin
-    mq = Mannequin(config,
-                   loose_larm=loose_larm,
-                   loose_rarm=loose_rarm,
-                   mirror=mirror,
-                   use_home_position=home)
+    mq = Mannequin(
+        config,
+        loose_larm=loose_larm,
+        loose_rarm=loose_rarm,
+        mirror=mirror,
+        use_home_position=home,
+    )
     mq.start()
 
     # gripper stuff TODO(HiroIshida): currently gripper controll is only on rarm
@@ -175,18 +198,18 @@ if __name__ == '__main__':
         return goal
 
     while True:
-        print('e: end mannequin, r: reset pose, o: open gripper, c: close gripper')
+        print("e: end mannequin, r: reset pose, o: open gripper, c: close gripper")
         key = input()
-        if key == 'e':
+        if key == "e":
             mq.terminate()
             break
-        elif key == 'r':
+        elif key == "r":
             mq.reset_mannequin(wait_interpolation=False)
             mq.start()
-        elif key == 'o':
+        elif key == "o":
             g = create_goal(pos_open)
             gripper_client.send_goal(g.goal)
-        elif key == 'c':
+        elif key == "c":
             g = create_goal(pos_close)
             gripper_client.send_goal(g.goal)
         else:

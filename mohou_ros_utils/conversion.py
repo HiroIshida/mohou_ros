@@ -1,22 +1,28 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, Optional, TypeVar, List, Type, Dict
+from typing import Dict, Generic, List, Optional, Type, TypeVar
 
-from sensor_msgs.msg import JointState, CompressedImage, Image
 import genpy
 import numpy as np
-from mohou.types import AngleVector, ElementT, ElementBase, RGBImage, DepthImage, GripperState
-from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
 from cv_bridge import CvBridge
-
-from mohou_ros_utils.utils import deprecated
-from mohou_ros_utils.config import Config
+from mohou.types import (
+    AngleVector,
+    DepthImage,
+    ElementBase,
+    ElementT,
+    GripperState,
+    RGBImage,
+)
 
 # Only pr2 user
 from pr2_controllers_msgs.msg import JointControllerState
+from sensor_msgs.msg import CompressedImage, Image, JointState
+from tunable_filter.tunable import CompositeFilter, CropResizer, ResolutionChangeResizer
 
+from mohou_ros_utils.config import Config
+from mohou_ros_utils.utils import deprecated
 
-MessageT = TypeVar('MessageT', bound=genpy.Message)
+MessageT = TypeVar("MessageT", bound=genpy.Message)
 
 
 @deprecated
@@ -32,7 +38,7 @@ def numpy_to_imgmsg(data: np.ndarray, encoding) -> Image:
     # NOTE: avoid cv_bridge for python3 on melodic
     # https://github.com/ros-perception/vision_opencv/issues/207
 
-    assert encoding in ['rgb8', 'bgr8']
+    assert encoding in ["rgb8", "bgr8"]
 
     # see: cv_bridge/core.py
     img_msg = Image()
@@ -43,7 +49,7 @@ def numpy_to_imgmsg(data: np.ndarray, encoding) -> Image:
     img_msg.data = data.tostring()  # type: ignore
     img_msg.step = len(img_msg.data) // img_msg.height
 
-    if data.dtype.byteorder == '>':
+    if data.dtype.byteorder == ">":
         img_msg.is_bigendian = True
     return img_msg
 
@@ -77,7 +83,7 @@ class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
     type_out = RGBImage
 
     @classmethod
-    def from_config(cls, config: Config) -> 'RGBImageConverter':
+    def from_config(cls, config: Config) -> "RGBImageConverter":
         return cls(config.image_filter)
 
     def __call__(self, msg: CompressedImage) -> RGBImage:
@@ -94,17 +100,19 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
     type_out = DepthImage
 
     @classmethod
-    def from_config(cls, config: Config) -> 'DepthImageConverter':
+    def from_config(cls, config: Config) -> "DepthImageConverter":
         assert config.image_filter is not None
         rgb_full_filter = config.image_filter
         depth_filter = rgb_full_filter.extract_subfilter([CropResizer, ResolutionChangeResizer])
         return cls(depth_filter)
 
     def __call__(self, msg: Image) -> DepthImage:
-        assert msg.encoding in ['32FC1']
+        assert msg.encoding in ["32FC1"]
 
         size = [msg.height, msg.width]
-        buf: np.ndarray = np.ndarray(shape=(1, int(len(msg.data) / 4)), dtype=np.float32, buffer=msg.data)
+        buf: np.ndarray = np.ndarray(
+            shape=(1, int(len(msg.data) / 4)), dtype=np.float32, buffer=msg.data
+        )
         image = np.nan_to_num(buf.reshape(*size))
         if self.image_filter is not None:
             assert len(self.image_filter.logical_filters) == 0
@@ -121,7 +129,7 @@ class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
     joint_indices: Optional[List[int]] = None
 
     @classmethod
-    def from_config(cls, config: Config) -> 'AngleVectorConverter':
+    def from_config(cls, config: Config) -> "AngleVectorConverter":
         return cls(config.control_joints)
 
     def __call__(self, msg: JointState) -> AngleVector:
@@ -144,7 +152,7 @@ class VersatileConverter:
             # image is exceptional
             if converter.type_in == type(msg):
                 return converter(msg)
-        assert False, 'no converter compatible with {}'.format(type(msg))
+        assert False, "no converter compatible with {}".format(type(msg))
 
     @classmethod
     def from_config(cls, config: Config):

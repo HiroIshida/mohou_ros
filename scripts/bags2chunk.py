@@ -1,29 +1,40 @@
 #!/usr/bin/env python3
 import argparse
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+from enum import Enum
+from typing import List, Optional
+
 import numpy as np
 import rosbag
 import rospkg
-from typing import List, Optional
-from enum import Enum
-from moviepy.editor import ImageSequenceClip
 from mohou.file import get_project_path
-from mohou.types import MetaData, TimeStampSequence
-from mohou.types import RGBImage, AngleVector
-from mohou.types import MultiEpisodeChunk, EpisodeData, ElementSequence
+from mohou.types import (
+    AngleVector,
+    ElementSequence,
+    EpisodeData,
+    MetaData,
+    MultiEpisodeChunk,
+    RGBImage,
+    TimeStampSequence,
+)
+from moviepy.editor import ImageSequenceClip
 
 from mohou_ros_utils import _default_project_name
-from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
-from mohou_ros_utils.interpolator import AllSameInterpolationRule
-from mohou_ros_utils.interpolator import NearestNeighbourMessageInterpolator
+from mohou_ros_utils.file import get_rosbag_dir
+from mohou_ros_utils.interpolator import (
+    AllSameInterpolationRule,
+    NearestNeighbourMessageInterpolator,
+)
 from mohou_ros_utils.rosbag import bag_to_synced_seqs
+from mohou_ros_utils.types import TimeStampedSequence
 
 
-def seqs_to_episodedata(seqs: List[TimeStampedSequence], config: Config, bagname: str) -> EpisodeData:
+def seqs_to_episodedata(
+    seqs: List[TimeStampedSequence], config: Config, bagname: str
+) -> EpisodeData:
     vconv = VersatileConverter.from_config(config)
 
     mohou_elem_seqs = []
@@ -98,23 +109,29 @@ class StaticInitialStateAmender:
         assert False
 
 
-def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateAmender, postfix: Optional[str] = None):
+def main(
+    config: Config,
+    hz: float,
+    dump_gif: bool,
+    amender: StaticInitialStateAmender,
+    postfix: Optional[str] = None,
+):
     rosbag_dir = get_rosbag_dir(config.project_name)
     episode_data_list = []
     filenames = os.listdir(rosbag_dir)
     assert len(filenames) > 0, "probably there is no rosbag files under the project directory"
 
     for filename_ in filenames:
-        print('processing {}'.format(filename_))
+        print("processing {}".format(filename_))
         _, ext = os.path.splitext(filename_)
-        if ext != '.bag':
-            print('skipped (invalid file extension)')
+        if ext != ".bag":
+            print("skipped (invalid file extension)")
             continue
 
         filename = os.path.join(rosbag_dir, filename_)
 
         topic_name_list = config.topics.use_topic_list
-        print('topic_list: {}'.format(topic_name_list))
+        print("topic_list: {}".format(topic_name_list))
 
         rule = AllSameInterpolationRule(NearestNeighbourMessageInterpolator)
         bag = rosbag.Bag(filename)
@@ -128,32 +145,37 @@ def main(config: Config, hz: float, dump_gif: bool, amender: StaticInitialStateA
         episode_data_list.append(episode_amended)
 
         if dump_gif:
-            gif_dir_path = get_project_path(config.project_name) / 'train_data_gifs'
+            gif_dir_path = get_project_path(config.project_name) / "train_data_gifs"
             gif_dir_path.mkdir(exist_ok=True)
             fps = 20
             images = [rgb.numpy() for rgb in episode_amended.get_sequence_by_type(RGBImage)]
             clip = ImageSequenceClip(images, fps=fps)
 
             if postfix is None:
-                gif_file_path = gif_dir_path / '{}.gif'.format(filename_)
+                gif_file_path = gif_dir_path / "{}.gif".format(filename_)
             else:
-                gif_file_path = gif_dir_path / '{}-{}.gif'.format(filename_, postfix)
+                gif_file_path = gif_dir_path / "{}-{}.gif".format(filename_, postfix)
             clip.write_gif(str(gif_file_path), fps=fps)
 
-    extra_info: MetaData = MetaData({'hz': hz})
+    extra_info: MetaData = MetaData({"hz": hz})
     chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
     chunk.dump(config.project_name, postfix)
     chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
 
 
-if __name__ == '__main__':
-    config_dir = os.path.join(rospkg.RosPack().get_path('mohou_ros'), 'configs')
+if __name__ == "__main__":
+    config_dir = os.path.join(rospkg.RosPack().get_path("mohou_ros"), "configs")
     parser = argparse.ArgumentParser()
-    parser.add_argument('-pn', type=str, default=_default_project_name, help='project name')
-    parser.add_argument('-hz', type=float, default=5.0)
-    parser.add_argument('-amend_policy', type=str, default="skip", help='amend policy when too long initial static angle vector found')
-    parser.add_argument('-postfix', type=str, default="", help='chunk postfix')
-    parser.add_argument('--gif', action='store_true', help='dump gifs for debugging')
+    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("-hz", type=float, default=5.0)
+    parser.add_argument(
+        "-amend_policy",
+        type=str,
+        default="skip",
+        help="amend policy when too long initial static angle vector found",
+    )
+    parser.add_argument("-postfix", type=str, default="", help="chunk postfix")
+    parser.add_argument("--gif", action="store_true", help="dump gifs for debugging")
 
     args = parser.parse_args()
     config = Config.from_project_name(args.pn)
