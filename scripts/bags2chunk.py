@@ -12,9 +12,9 @@ from mohou.file import get_project_path
 from mohou.types import (
     AngleVector,
     ElementSequence,
+    EpisodeBundle,
     EpisodeData,
     MetaData,
-    MultiEpisodeChunk,
     RGBImage,
     TimeStampSequence,
 )
@@ -158,9 +158,9 @@ def main(
             clip.write_gif(str(gif_file_path), fps=fps)
 
     extra_info: MetaData = MetaData({"hz": hz})
-    chunk = MultiEpisodeChunk.from_data_list(episode_data_list, extra_info=extra_info)
-    chunk.dump(config.project_name, postfix)
-    chunk.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
+    bundle = EpisodeBundle.from_data_list(episode_data_list, meta_data=extra_info)
+    bundle.dump(config.project_name, postfix)
+    bundle.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
 
 
 if __name__ == "__main__":
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         default="skip",
         help="amend policy when too long initial static angle vector found",
     )
-    parser.add_argument("-postfix", type=str, default="", help="chunk postfix")
+    parser.add_argument("-postfix", type=str, default="", help="bundle postfix")
     parser.add_argument("--gif", action="store_true", help="dump gifs for debugging")
 
     args = parser.parse_args()
