@@ -53,21 +53,21 @@ def seqs_to_episodedata(
     return EpisodeData.from_seq_list(mohou_elem_seqs, timestamp_seq=time_stamps, metadata=metadata)
 
 
-class AmendPolicy(Enum):
-    amend = "amend"  # remove all constant-initial-states
+class RemoveInitPolicy(Enum):
+    remove = "remove"  # remove all constant-initial-states
     donothing = "donothing"  # just do not alter data
     skip = "skip"  # if too long constant initial state found, just ignore such data
 
 
 @dataclass
-class StaticInitialStateAmender:
+class StaticInitStateRemover:
 
-    policy: AmendPolicy = AmendPolicy.skip
+    policy: RemoveInitPolicy = RemoveInitPolicy.skip
     threshold_coef: float = 0.03
 
     @classmethod
-    def from_policy_name(cls, name: str) -> "StaticInitialStateAmender":
-        return cls(AmendPolicy(name))
+    def from_policy_name(cls, name: str) -> "StaticInitStateRemover":
+        return cls(RemoveInitPolicy(name))
 
     @staticmethod
     def find_av_static_duration(edata: EpisodeData) -> int:
@@ -87,20 +87,20 @@ class StaticInitialStateAmender:
         too_long_static_av_duration = duration > static_state_len_threshold
         return too_long_static_av_duration
 
-    def amend(self, episode: EpisodeData) -> Optional[EpisodeData]:
+    def remove_init(self, episode: EpisodeData) -> Optional[EpisodeData]:
 
-        if self.policy == AmendPolicy.donothing:
+        if self.policy == RemoveInitPolicy.donothing:
             print("just do not alter...")
             return episode
 
-        if self.policy == AmendPolicy.amend:
+        if self.policy == RemoveInitPolicy.remove:
             static_duration = self.find_av_static_duration(episode)
-            print("amending: remove initial {} state".format(static_duration))
+            print("remove initial {} state".format(static_duration))
             start_index = max(static_duration - 1, 0)
             episode_new = episode[start_index:]
             return episode_new
 
-        if self.policy == AmendPolicy.skip:
+        if self.policy == RemoveInitPolicy.skip:
             if self.has_too_long_static_av(episode):
                 return None
             else:
@@ -113,7 +113,7 @@ def main(
     config: Config,
     hz: float,
     dump_gif: bool,
-    amender: StaticInitialStateAmender,
+    remover: StaticInitStateRemover,
     postfix: Optional[str] = None,
 ):
     rosbag_dir = get_rosbag_dir(config.project_name)
@@ -139,16 +139,16 @@ def main(
         bag.close()
 
         episode = seqs_to_episodedata(seqs, config, filename_)
-        episode_amended = amender.amend(episode)
-        if episode_amended is None:
+        episode_init_removed = remover.remove_init(episode)
+        if episode_init_removed is None:
             continue
-        episode_data_list.append(episode_amended)
+        episode_data_list.append(episode_init_removed)
 
         if dump_gif:
             gif_dir_path = get_project_path(config.project_name) / "train_data_gifs"
             gif_dir_path.mkdir(exist_ok=True)
             fps = 20
-            images = [rgb.numpy() for rgb in episode_amended.get_sequence_by_type(RGBImage)]
+            images = [rgb.numpy() for rgb in episode_init_removed.get_sequence_by_type(RGBImage)]
             clip = ImageSequenceClip(images, fps=fps)
 
             if postfix is None:
@@ -157,7 +157,7 @@ def main(
                 gif_file_path = gif_dir_path / "{}-{}.gif".format(filename_, postfix)
             clip.write_gif(str(gif_file_path), fps=fps)
 
-    extra_info: MetaData = MetaData({"hz": hz})
+    extra_info: MetaData = MetaData({"hz": hz, "remove_init_policy": remover.policy.value})
     bundle = EpisodeBundle.from_data_list(episode_data_list, meta_data=extra_info)
     bundle.dump(config.project_name, postfix)
     bundle.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
@@ -169,10 +169,10 @@ if __name__ == "__main__":
     parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
     parser.add_argument("-hz", type=float, default=5.0)
     parser.add_argument(
-        "-amend_policy",
+        "-remove_policy",
         type=str,
         default="skip",
-        help="amend policy when too long initial static angle vector found",
+        help="remove init policy when too long initial static angle vector found",
     )
     parser.add_argument("-postfix", type=str, default="", help="bundle postfix")
     parser.add_argument("--gif", action="store_true", help="dump gifs for debugging")
@@ -183,5 +183,5 @@ if __name__ == "__main__":
     dump_gif = args.gif
 
     postfix = None if args.postfix == "" else args.postfix
-    amender = StaticInitialStateAmender.from_policy_name(args.amend_policy)
-    main(config, hz, dump_gif, amender, postfix)
+    remover = StaticInitStateRemover.from_policy_name(args.remove_policy)
+    main(config, hz, dump_gif, remover, postfix)

@@ -33,11 +33,11 @@ gdown.download(url=url, output=str(main_config_path), quiet=True)
 
 # run commands
 subprocess.run(
-    "rosrun mohou_ros bags2chunk.py -hz 5 -amend_policy donothing -pn {}".format(project_name),
+    "rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy donothing -pn {}".format(project_name),
     shell=True,
 )
 subprocess.run(
-    "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -amend_policy amend -pn {}".format(
+    "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {}".format(
         project_name
     ),
     shell=True,
