@@ -1,0 +1,34 @@
+name: Lint
+
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout Code
+          uses: actions/checkout@v2
+        - name: pip install formatters
+          run: |
+              pip3 install black
+              pip3 install isort
+              pip3 install flake8
+
+        - name: check by black
+          run: |
+              black --version
+              black --check .
+        - name: check by isort
+          run: |
+              isort --version-number
+              isort --check-only --quiet . 
+        - name: check by flake8
+          run: |
+              flake8 --version
+              flake8 .
