@@ -1,12 +1,16 @@
 import os
-import yaml
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Type
+from typing import Dict, List, Optional, Type
+
+import yaml
+from mohou.types import PrimitiveElementBase, get_element_type
 from tunable_filter.tunable import CompositeFilter
 
-from mohou.types import get_element_type
-from mohou.types import PrimitiveElementBase
-from mohou_ros_utils.file import get_home_position_file, get_main_config_path, get_image_config_path
+from mohou_ros_utils.file import (
+    get_home_position_file,
+    get_image_config_path,
+    get_main_config_path,
+)
 
 
 @dataclass
@@ -17,13 +21,16 @@ class EachTopicConfig:
     use: bool
 
     @classmethod
-    def from_yaml_dict(cls, yaml_dict: Dict, mohou_type: Type[PrimitiveElementBase]) -> 'EachTopicConfig':
+    def from_yaml_dict(
+        cls, yaml_dict: Dict, mohou_type: Type[PrimitiveElementBase]
+    ) -> "EachTopicConfig":
         partial_yaml_dict = yaml_dict[mohou_type.__name__]
         return cls(
             mohou_type,
-            partial_yaml_dict['name'],
-            partial_yaml_dict['rosbag'],
-            partial_yaml_dict['use'])
+            partial_yaml_dict["name"],
+            partial_yaml_dict["rosbag"],
+            partial_yaml_dict["use"],
+        )
 
     def __post_init__(self):
         if self.use:
@@ -54,7 +61,7 @@ class TopicConfig:
         return self.name_config_table[name]
 
     @classmethod
-    def from_yaml_dict(cls, yaml_dict: Dict) -> 'TopicConfig':
+    def from_yaml_dict(cls, yaml_dict: Dict) -> "TopicConfig":
         type_config_table: Dict[Type[PrimitiveElementBase], EachTopicConfig] = {}
         for key in yaml_dict.keys():
             type_key: Type[PrimitiveElementBase] = get_element_type(key)  # type: ignore
@@ -76,18 +83,18 @@ class Config:
     image_filter: Optional[CompositeFilter]
 
     @classmethod
-    def from_project_name(cls, project_name: str) -> 'Config':
+    def from_project_name(cls, project_name: str) -> "Config":
         main_config_path = get_main_config_path(project_name)
-        with open(main_config_path, 'r') as f:
+        with open(main_config_path, "r") as f:
             main_config_dict = yaml.safe_load(f)
-        control_joints = main_config_dict['control_joints']
-        topics = TopicConfig.from_yaml_dict(main_config_dict['topic'])
+        control_joints = main_config_dict["control_joints"]
+        topics = TopicConfig.from_yaml_dict(main_config_dict["topic"])
 
         # maybe not set
         home_position = None
         home_position_file = get_home_position_file(project_name)
         if os.path.exists(home_position_file):
-            with open(home_position_file, 'r') as f:
+            with open(home_position_file, "r") as f:
                 home_position = yaml.safe_load(f)
 
         # maybe not set

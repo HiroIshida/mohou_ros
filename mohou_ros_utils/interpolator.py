@@ -1,20 +1,19 @@
-from abc import ABC, abstractmethod
 import copy
-from typing import List, Optional, Type, TypeVar, Generic
+from abc import ABC, abstractmethod
+from typing import Generic, List, Optional, Type, TypeVar
 
-import numpy as np
-from scipy import interpolate
-import rospy
 import genpy
+import numpy as np
+import rospy
+from scipy import interpolate
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
 
+from mohou_ros_utils.conversion import imgmsg_to_numpy, numpy_to_imgmsg
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.conversion import numpy_to_imgmsg
-from mohou_ros_utils.conversion import imgmsg_to_numpy
 
-ObjectT = TypeVar('ObjectT')
-MessageT = TypeVar('MessageT', bound=genpy.Message)
+ObjectT = TypeVar("ObjectT")
+MessageT = TypeVar("MessageT", bound=genpy.Message)
 
 
 def is_sorted(list):
@@ -27,19 +26,16 @@ class AbstractInterpolator(ABC, Generic[ObjectT]):
     object_list: List[ObjectT]
     time_list: List[float]
 
-    def __init__(
-            self,
-            object_list: List[ObjectT],
-            time_list: List[float]):
+    def __init__(self, object_list: List[ObjectT], time_list: List[float]):
 
         self.object_type = type(object_list[0])
-        assert is_sorted(time_list), 'your time stamp is not sorted'
+        assert is_sorted(time_list), "your time stamp is not sorted"
 
         self.object_list = object_list
         self.time_list = time_list
 
     @classmethod
-    def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> 'AbstractInterpolator':
+    def from_time_stamped_sequence(cls, seq: TimeStampedSequence) -> "AbstractInterpolator":
         indices_valid = [idx for idx in range(len(seq)) if seq.object_list[idx] is not None]
 
         time_list_valid = [seq.time_list[i] for i in indices_valid]
@@ -52,22 +48,20 @@ class AbstractInterpolator(ABC, Generic[ObjectT]):
 
 
 class ROSMessageMixin(AbstractInterpolator[MessageT]):
-
     @classmethod
-    def from_headered_messages(cls, messages: List[MessageT]) -> 'ROSMessageMixin':
-        assert hasattr(messages[0], 'header')
+    def from_headered_messages(cls, messages: List[MessageT]) -> "ROSMessageMixin":
+        assert hasattr(messages[0], "header")
         time_list = [msg.header.stamp.to_sec() for msg in messages]
         return cls(messages, time_list)
 
     def __call__(self, time_stamp: rospy.rostime.Time) -> MessageT:
         msg_itped = self.apply(time_stamp.to_sec())
-        if hasattr(msg_itped, 'header') and isinstance(msg_itped.header, Header):
+        if hasattr(msg_itped, "header") and isinstance(msg_itped.header, Header):
             msg_itped.header.stamp = copy.deepcopy(time_stamp)
         return msg_itped
 
 
 class NearestNeighbourInterpolator(AbstractInterpolator, Generic[ObjectT]):
-
     def apply(self, t: float) -> ObjectT:
         diffs = np.abs(np.array(self.time_list) - t)
         idx_closest = np.argmin(diffs)
@@ -82,8 +76,13 @@ class VectorizationBasedInterpolator(AbstractInterpolator, ABC, Generic[ObjectT]
     itp: interpolate.interp1d
     kind: str
 
-    def __init__(self, msg_list: List[ObjectT], time_stamp_list: List[rospy.rostime.Time], kind: str = 'linear'):
-        assert kind in ['linear', 'cubic', 'nearest']
+    def __init__(
+        self,
+        msg_list: List[ObjectT],
+        time_stamp_list: List[rospy.rostime.Time],
+        kind: str = "linear",
+    ):
+        assert kind in ["linear", "cubic", "nearest"]
         super().__init__(msg_list, time_stamp_list)
         self.itp = self.crate_interpolator()
 
@@ -112,7 +111,7 @@ class ImageInterpolator(VectorizationBasedInterpolator, Image):
         if self.image_tmpl is None:
             self.image_tmpl = msg
 
-        if self.image_tmpl.encoding in ['rgb8', 'bgr8']:
+        if self.image_tmpl.encoding in ["rgb8", "bgr8"]:
             img = imgmsg_to_numpy(msg)
             return img.flatten()
 
@@ -130,20 +129,19 @@ class ImageInterpolator(VectorizationBasedInterpolator, Image):
 
 
 class AbstractInterpolationRule:
-
     @abstractmethod
     def apply(self, seq: TimeStampedSequence) -> None:
         pass
 
 
 class NullInterpolationRule(AbstractInterpolationRule):
-
     def apply(self, seq: TimeStampedSequence) -> None:
         pass
 
 
 class AllSameInterpolationRule(AbstractInterpolationRule):
     """Apply the same interpolator independent on message types"""
+
     itp_type: Type[AbstractInterpolator]
 
     def __init__(self, itp_type: Type[AbstractInterpolator]):

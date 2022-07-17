@@ -1,15 +1,20 @@
 import os
+from typing import Optional
+
 import numpy as np
 import rosbag
-from typing import Optional
-from moviepy.editor import ImageSequenceClip
 from mohou.types import RGBImage
-from mohou_ros_utils.interpolator import NearestNeighbourInterpolator, AllSameInterpolationRule
+from moviepy.editor import ImageSequenceClip
+
+from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import RGBImageConverter
+from mohou_ros_utils.file import get_rosbag_dir
+from mohou_ros_utils.interpolator import (
+    AllSameInterpolationRule,
+    NearestNeighbourInterpolator,
+)
 from mohou_ros_utils.synclonizer import synclonize
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.file import get_rosbag_dir
-from mohou_ros_utils.config import Config
 
 
 def count_rosbag_file(config: Config) -> int:
@@ -17,7 +22,7 @@ def count_rosbag_file(config: Config) -> int:
     counter = 0
     for filename in os.listdir(rosbag_dir):
         _, ext = os.path.splitext(filename)
-        if ext == '.bag':
+        if ext == ".bag":
             counter += 1
     return counter
 
@@ -33,21 +38,20 @@ def get_latest_rosbag_filename(config: Config) -> Optional[str]:
 
 def get_rosbag_filename(config: Config, postfix: str):
     rosbag_dir = get_rosbag_dir(config.project_name)
-    filename = os.path.join(rosbag_dir, 'train-episode-{0}.bag'.format(postfix))
+    filename = os.path.join(rosbag_dir, "train-episode-{0}.bag".format(postfix))
     return filename
 
 
 def create_rosbag_command(filename: str, config: Config):
-    cmd_rosbag = ['rosbag', 'record']
+    cmd_rosbag = ["rosbag", "record"]
     topic_list = config.topics.rosbag_topic_list
-    cmd_rosbag.extend(topic_list + ['/tf'])
-    cmd_rosbag.extend(['--output-name', filename])
-    print('subprocess cmd: {}'.format(cmd_rosbag))
+    cmd_rosbag.extend(topic_list + ["/tf"])
+    cmd_rosbag.extend(["--output-name", filename])
+    print("subprocess cmd: {}".format(cmd_rosbag))
     return cmd_rosbag
 
 
 def bag2clip(bag: rosbag.Bag, config: Config, hz: float, speed: float) -> ImageSequenceClip:
-
     def bgr2rgb(arr: np.ndarray) -> np.ndarray:
         return arr[..., ::-1].copy()
 

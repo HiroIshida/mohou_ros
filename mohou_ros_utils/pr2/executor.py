@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import rospy
 import numpy as np
-from skrobot.models import PR2
-from skrobot.model import Joint
+import rospy
+from mohou.types import AngleVector, ElementDict, GripperState
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
-from mohou.types import AngleVector, GripperState, ElementDict
+from skrobot.model import Joint
+from skrobot.models import PR2
 
 from mohou_ros_utils.executor import ExecutorBase
 from mohou_ros_utils.pr2.controller_utils import check_pr2_is_executable
@@ -26,22 +26,23 @@ class SkrobotPR2Executor(ExecutorBase):
         if GripperState in edict_next:
             gs_current = edict_current[GripperState]
             gs_next = edict_next[GripperState]
-            rospy.loginfo('current_gs {}, next_gs {}'.format(gs_current.numpy(), gs_next.numpy()))
+            rospy.loginfo("current_gs {}, next_gs {}".format(gs_current.numpy(), gs_next.numpy()))
 
         av_current = edict_current[AngleVector]
         av_next = edict_next[AngleVector]
-        rospy.loginfo('current_av {}, next_av {}'.format(av_current.numpy(), av_next.numpy()))
+        rospy.loginfo("current_av {}, next_av {}".format(av_current.numpy(), av_next.numpy()))
 
         for angle, joint_name in zip(av_next.numpy(), self.control_joint_names):
             self.robot_model.__dict__[joint_name].joint_angle(angle)
 
         if not self.dryrun:
             self.robot_interface.angle_vector(
-                self.robot_model.angle_vector(), time=1.0, time_scale=1.0)
+                self.robot_model.angle_vector(), time=1.0, time_scale=1.0
+            )
 
             if GripperState in edict_next:
                 # TOOD(HiroIshdia): handle gs is multi
-                self.robot_interface.move_gripper('rarm', gs_next.numpy().item())  # type: ignore
+                self.robot_interface.move_gripper("rarm", gs_next.numpy().item())  # type: ignore
 
     def get_angle_vector(self) -> AngleVector:
         angles = []

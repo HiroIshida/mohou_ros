@@ -1,9 +1,12 @@
 from typing import List, Tuple
+
 import numpy as np
 
+from mohou_ros_utils.interpolator import (
+    AbstractInterpolationRule,
+    NullInterpolationRule,
+)
 from mohou_ros_utils.types import TimeStampedSequence
-from mohou_ros_utils.interpolator import AbstractInterpolationRule
-from mohou_ros_utils.interpolator import NullInterpolationRule
 
 
 def get_intersection_time_bound(seq_list: List[TimeStampedSequence]):
@@ -33,9 +36,10 @@ def get_first_last_true_indices(booleans: np.ndarray) -> Tuple[int, int]:
 
 
 def synclonize(
-        seq_list: List[TimeStampedSequence],
-        freq: float,
-        itp_rule: AbstractInterpolationRule = NullInterpolationRule()) -> List[TimeStampedSequence]:
+    seq_list: List[TimeStampedSequence],
+    freq: float,
+    itp_rule: AbstractInterpolationRule = NullInterpolationRule(),
+) -> List[TimeStampedSequence]:
 
     t_start, t_end = get_union_time_bound(seq_list)
     n_bins = int((t_end - t_start) // freq + 1) + 1
@@ -60,7 +64,9 @@ def synclonize(
     seq_new_list: List[TimeStampedSequence] = []
     for seq, binidx_to_seqidx in zip(seq_list, table):
 
-        seq_new = TimeStampedSequence.create_empty(object_type=seq.object_type, topic_name=seq.topic_name)
+        seq_new = TimeStampedSequence.create_empty(
+            object_type=seq.object_type, topic_name=seq.topic_name
+        )
         for binidx in range(idx_first_valid, idx_last_valid + 1):
             seqidx = binidx_to_seqidx[binidx]
             t = t_bin_middle_list[binidx]

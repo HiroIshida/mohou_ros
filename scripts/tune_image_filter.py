@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import rosbag
 
-from tunable_filter.composite_zoo import HSVBlurCropResolFilter
+import rosbag
 from mohou.types import RGBImage
+from tunable_filter.composite_zoo import HSVBlurCropResolFilter
+
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import RGBImageConverter
-from mohou_ros_utils.file import get_rosbag_dir
-from mohou_ros_utils.file import get_image_config_path
+from mohou_ros_utils.file import get_image_config_path, get_rosbag_dir
 
 
 def get_first_rgb(config: Config) -> RGBImage:
@@ -33,9 +33,7 @@ def get_first_rgb(config: Config) -> RGBImage:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-pn", type=str, default=_default_project_name, help="project name"
-    )
+    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
     args = parser.parse_args()
     project_name = args.pn
     config = Config.from_project_name(project_name)
