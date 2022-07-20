@@ -29,6 +29,11 @@ Actually if you don't want `~/.mohou` be the root of the data directory, you can
 echo "root_path: your_root_path" >> ~/.mohou/setting.yaml"
 ```
 
+Also to keep some of episodes being untouched please set (for example you want it to be 2)
+```bash
+echo "n_untouch_episode: 2" >> ~/.mohou/setting.yaml
+```
+
 ### save rosbag
 Please save your rosbag files under `~/.mohou/{project_name}/rosbag`. Each rosbag file name must be ended with `.bag` extension.
 
