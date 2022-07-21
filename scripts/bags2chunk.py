@@ -114,6 +114,7 @@ def main(
     hz: float,
     dump_gif: bool,
     remover: StaticInitStateRemover,
+    n_untouch_episode: int,
     postfix: Optional[str] = None,
 ):
     rosbag_dir = get_rosbag_dir(config.project_name)
@@ -160,7 +161,9 @@ def main(
             clip.write_gif(str(gif_file_path), fps=fps)
 
     extra_info: MetaData = MetaData({"hz": hz, "remove_init_policy": remover.policy.value})
-    bundle = EpisodeBundle.from_data_list(episode_data_list, meta_data=extra_info)
+    bundle = EpisodeBundle.from_episodes(
+        episode_data_list, meta_data=extra_info, n_untouch_episode=n_untouch_episode
+    )
     bundle.dump(project_path, postfix)
     bundle.plot_vector_histories(AngleVector, project_path, hz=hz, postfix=postfix)
 
@@ -178,12 +181,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("-postfix", type=str, default="", help="bundle postfix")
     parser.add_argument("--gif", action="store_true", help="dump gifs for debugging")
+    parser.add_argument("-untouch", type=int, default=5, help="num of untouch episode")
 
     args = parser.parse_args()
     config = Config.from_project_name(args.pn)
-    hz = args.hz
-    dump_gif = args.gif
+    hz: float = args.hz
+    dump_gif: bool = args.gif
+    n_untouch: int = args.untouch
 
     postfix = None if args.postfix == "" else args.postfix
     remover = StaticInitStateRemover.from_policy_name(args.remove_policy)
-    main(config, hz, dump_gif, remover, postfix)
+    main(config, hz, dump_gif, remover, n_untouch, postfix)
