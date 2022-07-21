@@ -121,6 +121,8 @@ def main(
     filenames = os.listdir(rosbag_dir)
     assert len(filenames) > 0, "probably there is no rosbag files under the project directory"
 
+    project_path = get_project_path(config.project_name)
+
     for filename_ in filenames:
         print("processing {}".format(filename_))
         _, ext = os.path.splitext(filename_)
@@ -145,7 +147,7 @@ def main(
         episode_data_list.append(episode_init_removed)
 
         if dump_gif:
-            gif_dir_path = get_project_path(config.project_name) / "train_data_gifs"
+            gif_dir_path = project_path / "train_data_gifs"
             gif_dir_path.mkdir(exist_ok=True)
             fps = 20
             images = [rgb.numpy() for rgb in episode_init_removed.get_sequence_by_type(RGBImage)]
@@ -159,8 +161,8 @@ def main(
 
     extra_info: MetaData = MetaData({"hz": hz, "remove_init_policy": remover.policy.value})
     bundle = EpisodeBundle.from_data_list(episode_data_list, meta_data=extra_info)
-    bundle.dump(config.project_name, postfix)
-    bundle.plot_vector_histories(AngleVector, config.project_name, hz=hz, postfix=postfix)
+    bundle.dump(project_path, postfix)
+    bundle.plot_vector_histories(AngleVector, project_path, hz=hz, postfix=postfix)
 
 
 if __name__ == "__main__":

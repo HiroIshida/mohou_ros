@@ -6,6 +6,7 @@ import subprocess
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
@@ -87,15 +88,15 @@ class ExecutorBase(ABC):
     joint_cont_state_msg: Optional[JointControllerState] = None
     current_av: Optional[AngleVector] = None
 
-    def __init__(self, project_name: str, dryrun=True, save_rosbag=True) -> None:
-        propagator = create_default_propagator(project_name)
+    def __init__(self, project_path: Path, dryrun=True, save_rosbag=True) -> None:
+        propagator = create_default_propagator(project_path)
 
-        ae_type = auto_detect_autoencoder_type(project_name)
-        tcache_autoencoder = TrainCache.load(project_name, ae_type)
+        ae_type = auto_detect_autoencoder_type(project_path)
+        tcache_autoencoder = TrainCache.load(project_path, ae_type)
         assert tcache_autoencoder.best_model is not None
         self.autoencoder = tcache_autoencoder.best_model
 
-        config = Config.from_project_name(project_name)
+        config = Config.from_project_name(project_path.name)
         vconv = VersatileConverter.from_config(config)
 
         self.config = config
