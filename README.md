@@ -71,24 +71,26 @@ ResolutionChangeResizer:resol change the image resolution. This must be 112 or 2
 For better training of autoencoder, much image is required. So we want to create a chunk
 with high hz. (20 hz or higher is recommended)
 ```bash
-rosrun mohou_ros bags2chunk.py -hz 20 -amend_policy donothing -pn {your_project_name} -postfix autoencoder
+rosrun mohou_ros bags2chunk.py -hz 20 -remove_policy donothing -pn {your_project_name} -postfix autoencoder
 ```
 
 #### convert to the rosbag data to chunk for training the lstm
 
 On the other hand, lstm training require lower frequency data (5hz ~ 8hz) is recommended.
 ```bash
-rosrun mohou_ros bags2chunk.py -hz 5 -amend_policy amend -pn {your_project_name}
+rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy remove -pn {your_project_name}
 ```
-#### amend policy
+#### remove init policy
 
-Sometimes, in the initial phase of the episode, data is static. `amend_policy` may fix such data.
+Sometimes, in the initial phase of the episode, data is static, which is usually bad for learning lstm because the policy becomes long-time-dependent. `remove_policy` may fix such data.
 
-1. `amend_policy = amend`, the such too long static initial sequence will be removed and the amended sequence will be added to chunk. (recommended if your many of your episode needs to be ammended)
+1. `remove_policy = remove`, the such too long static initial sequence will be removed and the removeed sequence will be added to chunk. (recommended if your many of your episode needs to be ammended)
 
-2. `amend_policy = skip`, too long static initial sequence will be skipped and will not be added to the chunk. 
+2. `remove_policy = skip`, too long static initial sequence will be skipped and will not be added to the chunk. 
 
-3. `amend_policy = donothing`, regardless of the initial static phase, any episode will be added to the chunk. (recommended for autoencoder training)
+3. `remove_policy = donothing`, regardless of the initial static phase, any episode will be added to the chunk. (recommended for autoencoder training)
+
+Currently theses remover handles only initial state.
 
 
 ### training
