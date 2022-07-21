@@ -14,7 +14,9 @@ def example_config():
 
     # remove project if exists
     project_path = get_project_path(project_name)
-    shutil.rmtree(str(project_path))
+    if project_path.exists():
+        shutil.rmtree(str(project_path))
+    project_path.mkdir(exist_ok=True)
 
     # create project and  move the main_config to project dir
     get_project_path(project_name)
