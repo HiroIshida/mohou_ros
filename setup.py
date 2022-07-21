@@ -5,7 +5,6 @@ from setuptools import find_packages, setup
 install_requires = [
     "numpy",
     "scipy",
-    "scikit-robot",
     "mohou==0.3.1",
     "tunable-filter>=0.0.4",
 ]
@@ -27,4 +26,5 @@ setup(
     license="MIT",
     install_requires=install_requires,
     packages=find_packages(exclude=("tests", "docs")),
+    extras_require={"all": ["scikit-robot"]},
 )

@@ -73,6 +73,7 @@ class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
         return cls()
 
     def __call__(self, msg: JointControllerState) -> GripperState:
+        assert isinstance(msg, JointControllerState)
         return GripperState(np.array([msg.set_point]))
 
 
@@ -87,6 +88,7 @@ class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
         return cls(config.image_filter)
 
     def __call__(self, msg: CompressedImage) -> RGBImage:
+        assert isinstance(msg, CompressedImage)
         image = CvBridge().compressed_imgmsg_to_cv2(msg)
         if self.image_filter is not None:
             image = self.image_filter(image)
@@ -108,6 +110,7 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
 
     def __call__(self, msg: Image) -> DepthImage:
         assert msg.encoding in ["32FC1"]
+        assert isinstance(msg, DepthImage)
 
         size = [msg.height, msg.width]
         buf: np.ndarray = np.ndarray(
@@ -133,6 +136,7 @@ class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
         return cls(config.control_joints)
 
     def __call__(self, msg: JointState) -> AngleVector:
+        assert isinstance(msg, JointState)
 
         if self.joint_indices is None:
             name_idx_map = {name: i for (i, name) in enumerate(msg.name)}
