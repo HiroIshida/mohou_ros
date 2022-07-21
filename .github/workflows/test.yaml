@@ -20,7 +20,7 @@ jobs:
             - name: Setup python
               uses: actions/setup-python@v2
               with:
-                  python-version: '3.7'
+                  python-version: '3.8'
 
             - name: Install ros packages
               run: |
@@ -32,6 +32,7 @@ jobs:
 
             - name: pip install this package
               run: |
+                  pip3 --version
                   pip3 install -e .
                   # All these packages are included in ros, but I just want to run CI quickly
                   pip install --extra-index-url https://rospypi.github.io/simple/ rospy
