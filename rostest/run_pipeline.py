@@ -13,6 +13,7 @@ def drive_url(file_id):
 # prepare rosbag
 project_name = "_mohou_ros_utils_test"
 project_path = get_project_path(project_name)
+project_path.mkdir(exist_ok=True)
 
 url = drive_url("18EtBZHK1SIxgGMKOrITd_Eg5MK3KnQXA")
 zip_path = project_path / "rosbag.zip"
