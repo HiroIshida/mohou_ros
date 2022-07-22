@@ -34,4 +34,4 @@ jobs:
         roscd mohou_ros && rosdep install --from-paths . -i -r -y
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
-        rostest mohou_ros pipeline.test
+        rostest mohou_ros pipeline.test --text
