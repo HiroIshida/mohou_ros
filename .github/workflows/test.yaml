@@ -32,6 +32,7 @@ jobs:
 
             - name: pip install this package
               run: |
+                  pip install --upgrade setuptools
                   pip3 install -e .
                   # All these packages are included in ros, but I just want to run CI quickly
                   pip install --extra-index-url https://rospypi.github.io/simple/ rospy
