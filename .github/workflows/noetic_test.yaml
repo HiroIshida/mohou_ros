@@ -32,4 +32,4 @@ jobs:
         source ${CATKIN_WS}/devel/setup.bash
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
-        rostest mohou_ros pipline.test
+        rostest mohou_ros pipeline.test
