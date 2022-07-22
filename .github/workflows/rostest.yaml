@@ -18,7 +18,7 @@ jobs:
                 BUILDER: catkin_tools_devel
                 WRITABLE_SOUCE: true
                 BEFORE_RUN_TARGET_TEST:
-                    pip3 install . --user
+                    pip3 install . --user --quiet
                 ADDITIONAL_DEBS: |
                     wget git
         steps:
