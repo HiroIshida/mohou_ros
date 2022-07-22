@@ -1,4 +1,4 @@
-name: ROS test workflow
+name: rostest-noetic
 
 on:
     push:

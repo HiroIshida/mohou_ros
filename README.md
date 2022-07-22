@@ -1,3 +1,5 @@
+## mohou_ros [![pytest](https://github.com/HiroIshida/mohou_ros/actions/workflows/test.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/test.yaml) [![lint](https://github.com/HiroIshida/mohou_ros/actions/workflows/format.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/format.yaml) [![rostest-noetic](https://github.com/HiroIshida/mohou_ros/actions/workflows/noetic_test.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/noetic_test.yaml)
+
 Collection of peripheral functions around [mohou](https://github.com/HiroIshida/mohou) and ros wrapper.
 
 ## installation
