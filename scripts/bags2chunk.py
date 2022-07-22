@@ -3,6 +3,7 @@ import argparse
 import os
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
@@ -117,31 +118,29 @@ def main(
     n_untouch_episode: int,
     postfix: Optional[str] = None,
 ):
-    rosbag_dir = get_rosbag_dir(config.project_name)
-    episode_data_list = []
-    filenames = os.listdir(rosbag_dir)
-    assert len(filenames) > 0, "probably there is no rosbag files under the project directory"
+    rosbag_dir_path = Path(get_rosbag_dir(config.project_name))
+    rosbag_paths = [p.expanduser() for p in rosbag_dir_path.iterdir() if p.name.endswith(".bag")]
+    assert (
+        len(rosbag_paths) > 0
+    ), "please check if rosbag files are put in '{project_path}/rosbag' with .bag extension"
 
     project_path = get_project_path(config.project_name)
 
-    for filename_ in filenames:
-        print("processing {}".format(filename_))
-        _, ext = os.path.splitext(filename_)
-        if ext != ".bag":
-            print("skipped (invalid file extension)")
-            continue
+    episode_data_list = []
+    for rosbag_path in rosbag_paths:
+        print("processing {}".format(rosbag_path))
 
-        filename = os.path.join(rosbag_dir, filename_)
+        bagname = rosbag_path.name
 
         topic_name_list = config.topics.use_topic_list
         print("topic_list: {}".format(topic_name_list))
 
         rule = AllSameInterpolationRule(NearestNeighbourMessageInterpolator)
-        bag = rosbag.Bag(filename)
+        bag = rosbag.Bag(str(rosbag_path))
         seqs = bag_to_synced_seqs(bag, 1.0 / hz, topic_names=topic_name_list, rule=rule)
         bag.close()
 
-        episode = seqs_to_episodedata(seqs, config, filename_)
+        episode = seqs_to_episodedata(seqs, config, bagname)
         episode_init_removed = remover.remove_init(episode)
         if episode_init_removed is None:
             continue
@@ -155,9 +154,9 @@ def main(
             clip = ImageSequenceClip(images, fps=fps)
 
             if postfix is None:
-                gif_file_path = gif_dir_path / "{}.gif".format(filename_)
+                gif_file_path = gif_dir_path / "{}.gif".format(bagname)
             else:
-                gif_file_path = gif_dir_path / "{}-{}.gif".format(filename_, postfix)
+                gif_file_path = gif_dir_path / "{}-{}.gif".format(bagname, postfix)
             clip.write_gif(str(gif_file_path), fps=fps)
 
     extra_info: MetaData = MetaData({"hz": hz, "remove_init_policy": remover.policy.value})
