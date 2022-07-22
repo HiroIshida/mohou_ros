@@ -1,0 +1,37 @@
+name: ROS test workflow
+
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    env:
+      CATKIN_WS: /home/runner/work/catkin_ws
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup ROS
+      uses: ros-tooling/setup-ros@v0.2
+      with:
+        required-ros-distributions: noetic
+
+    - name: Init workspace
+      run: |
+        source /opt/ros/noetic/setup.bash
+        mkdir -p ${CATKIN_WS}/src && cd ${CATKIN_WS} && catkin_make
+        ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
+
+    - name: Run tests
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        rosdep update
+        roscd mohou_ros && rosdep install --from-paths . -i -r -y
+        pip3 install scikit-build
+        roscd mohou_ros && pip3 install . --user
+        rostest mohou_ros pipeline.test --text
