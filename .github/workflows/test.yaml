@@ -32,7 +32,9 @@ jobs:
 
             - name: pip install this package
               run: |
+                  # remove the downgrade command after https://github.com/iory/pySDFGen/pull/15 merged
                   python3 -m pip install pip==20.0.2  # downgrade
+
                   pip3 install -e .
                   # All these packages are included in ros, but I just want to run CI quickly
                   pip install --extra-index-url https://rospypi.github.io/simple/ rospy
