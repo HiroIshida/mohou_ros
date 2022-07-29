@@ -20,6 +20,23 @@ rosdep install --from-paths . -i -r -y
 catkin bt
 ```
 
+### Workspace build (Melodic + cv-bridge-python3)
+If you are using melodic, you need to build cv-bridge with the following configuration to use python3.
+```bash
+sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
+sudo apt-get install python3-opencv
+sudo apt-get install ros-melodic-catkin
+source /opt/ros/melodic/setup.bash
+mkdir -p ~/mohou_ws/src
+cd ~/mohou_ws/src
+git clone https://github.com/HiroIshida/mohou_ros.git
+rosdep install --from-paths . --ignore-src -y -r
+cd ~/mohou_ws
+catkin init
+catkin build
+
+```
+
 ## Usage
 Please note that in the many commands in the following instruction you can omit `-pn {your_project_name}` option by
 ```bash
