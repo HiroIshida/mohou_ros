@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     postfix = time.strftime("%Y%m%d%H%M%S")
     filepath = get_rosbag_filepath(project_path, postfix)
-    cmd = create_rosbag_command(str(filepath), config)
+    cmd = create_rosbag_command(filepath, config)
     p = subprocess.Popen(cmd)
 
     try:

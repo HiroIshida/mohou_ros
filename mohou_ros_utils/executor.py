@@ -134,7 +134,7 @@ class ExecutorBase(ABC):
 
             debug_data_path = get_subpath(project_path, RelativeName.exec_debug)
             rosbag_file_path = debug_data_path / "backup-{}.bag".format(self.str_time_postfix)
-            cmd = create_rosbag_command(str(rosbag_file_path), config)
+            cmd = create_rosbag_command(rosbag_file_path, config)
             self.rosbag_cmd_popen = subprocess.Popen(cmd)
         else:
             self.rosbag_cmd_popen = None

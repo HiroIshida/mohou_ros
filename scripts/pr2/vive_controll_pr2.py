@@ -342,7 +342,7 @@ class RosbagManager:
     def start(self) -> None:
         assert not self.is_running
         path = get_rosbag_filepath(self.config.project_path, time.strftime("%Y%m%d%H%M%S"))
-        cmd = create_rosbag_command(str(path), config)
+        cmd = create_rosbag_command(path, config)
         p = subprocess.Popen(cmd)
         rospy.loginfo(p)
         share = {"is_running": True}
