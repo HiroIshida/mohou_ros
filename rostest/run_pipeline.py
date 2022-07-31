@@ -15,7 +15,7 @@ from mohou_ros_utils.script_utils import get_rosbag_paths
 
 
 class TestNode(unittest.TestCase):
-    project_name = "_mohou_ros_data_collection"
+    project_name = "_mohou_ros_pipeline"
 
     @property
     def project_path(self) -> Path:
@@ -46,13 +46,13 @@ class TestNode(unittest.TestCase):
 
     def _test_bags2bundle(self):
 
-        cmd = "rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy donothing -pn {}".format(
+        cmd = "rosrun mohou_ros bags2chunk.py -hz 10 -remove_policy donothing -pn {} -untouch 1".format(
             self.project_name
         )
         self._run_command(cmd)
         EpisodeBundle.load(self.project_path)
 
-        cmd = "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {}".format(
+        cmd = "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {} -untouch 1".format(
             self.project_name
         )
         self._run_command(cmd)

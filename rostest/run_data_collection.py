@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import shutil
 import subprocess
+import time
 import unittest
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from mohou_ros_utils.script_utils import get_rosbag_paths
 
 
 class TestNode(unittest.TestCase):
-    project_name = "_mohou_ros_data_collection"
+    project_name = "_mohou_ros_pipeline"
 
     @property
     def project_path(self) -> Path:
@@ -25,8 +26,10 @@ class TestNode(unittest.TestCase):
         return project_path
 
     def setUp(self):
+        time.sleep(3)  # wait a bit for other launch files
         # create project_path
-        shutil.rmtree(self.project_path)
+        if self.project_path.exists():
+            shutil.rmtree(self.project_path)
         self.project_path.mkdir(exist_ok=True)
 
         pack_path = Path(rospkg.RosPack().get_path("mohou_ros"))
