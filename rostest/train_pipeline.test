@@ -1,0 +1,3 @@
+<launch>
+  <test pkg="mohou_ros" type="run_train_pipeline.py" test-name="pipeline" time-limit="600"/>
+</launch>
