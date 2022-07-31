@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>mohou_ros</name>
-  <version>0.0.0</version>
+  <version>0.0.2</version>
   <description>mohou_ros package</description>
   <maintainer email="h-ishida@jsk.imi.i.u-tokyo.ac.jp">Hirokazu Ishdia</maintainer>
 

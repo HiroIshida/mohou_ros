@@ -20,7 +20,7 @@ else:
 
 setup(
     name="mohou_ros_utils",
-    version="0.0.1",
+    version="0.0.2",
     description="utility for imitation learning data processing",
     author="Hirokazu Ishida",
     author_email="h-ishida@jsk.imi.i.u-tokyo.ac.jp",
