@@ -1,4 +1,4 @@
-name: rostest-noetic
+name: rostest-melodic
 
 on:
     push:
