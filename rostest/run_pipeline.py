@@ -5,6 +5,9 @@ import unittest
 import gdown
 import rospy
 from mohou.file import get_project_path
+from mohou.model.autoencoder import VariationalAutoEncoder
+from mohou.model.lstm import LSTM
+from mohou.trainer import TrainCache
 
 import rostest
 from mohou_ros_utils.file import RelativeName, get_subpath
@@ -59,8 +62,35 @@ class TestNode(unittest.TestCase):
         )
         self._run_command(cmd)
 
-        cmd = "rosrun mohou_ros train {} 1 1".format(self.project_name)
+        cmd = "rosrun mohou_ros train.py -pn {} --test".format(self.project_name)
         self._run_command(cmd)
+
+        project_path = get_project_path(self.project_name)
+
+        # check train model is cached
+        tcache_lstm_list = TrainCache.load_all(project_path, LSTM)
+        assert len(tcache_lstm_list) > 0
+
+        tcache_vae_list = TrainCache.load_all(project_path, VariationalAutoEncoder)
+        assert len(tcache_vae_list) > 0
+
+        # check history plot is saved
+        train_history_dir_path = project_path / "train_history"
+        png_list = [p for p in train_history_dir_path.iterdir() if str(p).endswith(".png")]
+        assert len(png_list) == 2
+
+        # check vae and lstm result gif is found
+        vae_result_dir_path = project_path / "autoencoder_result"
+        png_list = [p for p in vae_result_dir_path.iterdir() if str(p).endswith(".png")]
+        assert len(png_list) > 0
+        gif_list = [p for p in vae_result_dir_path.iterdir() if str(p).endswith(".gif")]
+        assert len(gif_list) > 0
+
+        lstm_result_dir_path = project_path / "lstm_result"
+        png_list = [p for p in lstm_result_dir_path.iterdir() if str(p).endswith(".png")]
+        assert len(png_list) > 0
+        gif_list = [p for p in lstm_result_dir_path.iterdir() if str(p).endswith(".gif")]
+        assert len(gif_list) > 0
 
 
 if __name__ == "__main__":
