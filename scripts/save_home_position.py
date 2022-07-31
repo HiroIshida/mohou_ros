@@ -10,6 +10,7 @@ from mohou.types import AngleVector
 from sensor_msgs.msg import JointState
 
 from mohou_ros_utils.config import Config
+from mohou_ros_utils.file import RelativeName, get_subpath
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -38,5 +39,7 @@ if __name__ == "__main__":
     joint_indices = [name_idx_map[name] for name in msg.name]
     joint_angle_map = {name: msg.position[name_idx_map[name]] for name in msg.name}
 
-    with config.project_path.open(mode="w") as f:
+    project_path.mkdir(exist_ok=True)
+    home_position_path = get_subpath(project_path, RelativeName.home_position)
+    with home_position_path.open(mode="w") as f:
         yaml.dump(joint_angle_map, f)

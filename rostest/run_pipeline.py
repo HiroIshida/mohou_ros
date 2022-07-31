@@ -7,6 +7,7 @@ import rospy
 from mohou.file import get_project_path
 
 import rostest
+from mohou_ros_utils.file import RelativeName, get_subpath
 
 
 class TestNode(unittest.TestCase):
@@ -33,7 +34,7 @@ class TestNode(unittest.TestCase):
         subprocess.call("unzip -o {} -d {}".format(zip_path, rosbag_path), shell=True)
 
         url = drive_url("1_d2ijjxXTzmsfADccuwY2t8DqaYC6OyK")
-        main_config_path = project_path / "main_config.yaml"
+        main_config_path = get_subpath(project_path, RelativeName.main_config)
         gdown.download(url=url, output=str(main_config_path), quiet=True)
 
     @staticmethod

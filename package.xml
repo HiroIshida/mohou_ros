@@ -23,4 +23,5 @@
   <depend>suitesparse</depend>  <!-- actually it's dep of cvxopt of scikit-robot -->
 
   <test_depend>rostest</test_depend>
+  <test_depend>pr2_gazebo</test_depend>
 </package>
