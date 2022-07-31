@@ -1,50 +1,50 @@
 #!/usr/bin/env python3
 import argparse
 import os
+from typing import Optional
 
 import rosbag
+from mohou.file import get_project_path
 
-from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.file import get_rosbag_dir
-from mohou_ros_utils.script_utils import bag2clip
+from mohou_ros_utils.file import RelativeName, get_subpath
+from mohou_ros_utils.script_utils import bag2clip, get_rosbag_paths
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("-pn", type=str, help="project name")
     parser.add_argument("-hz", type=float, default=5, help="sampling hz")
     parser.add_argument("-n", type=int, help="number of rosbags to be processed")
     parser.add_argument("-speed", type=float, default=3, help="x")
     parser.add_argument("-ext", type=str, default="mp4", help="gif or mp4")
 
     args = parser.parse_args()
-    hz = args.hz
-    n_gif_creation = args.n
-    speed = args.speed
-    ext_out = args.ext
+    hz: float = args.hz
+    n_gif_creation: Optional[int] = args.n
+    speed: float = args.speed
+    ext_out: str = args.ext
+    project_name: Optional[str] = args.pn
+
     assert ext_out in ("mp4", "gif")
-    config = Config.from_project_name(args.pn)
 
-    rosbag_dir = get_rosbag_dir(config.project_name)
+    project_path = get_project_path(project_name)
+    config = Config.from_project_path(project_path)
 
-    filenames = os.listdir(rosbag_dir)
+    rosbag_dir_path = get_subpath(project_path, RelativeName.rosbag)
+    rosbag_paths = get_rosbag_paths(project_path)
     if n_gif_creation is not None:
-        filenames = filenames[:n_gif_creation]
+        rosbag_paths = rosbag_paths[:n_gif_creation]
 
-    for filename in filenames:
-        _, ext = os.path.splitext(filename)
-        if ext != ".bag":
-            continue
-
-        full_path = os.path.join(rosbag_dir, filename)
-        bag = rosbag.Bag(full_path)
+    for rosbag_path in get_rosbag_paths(project_path):
+        bag = rosbag.Bag(str(rosbag_path))
         clip = bag2clip(bag, config, hz, speed)
 
-        filename_raw, _ = os.path.splitext(filename)
+        filename_raw, _ = os.path.splitext(rosbag_path.name)
         filename_out = "debug-" + filename_raw + "-hz{}-{}x".format(hz, speed) + "." + ext_out
-        filename_out_full = os.path.join(rosbag_dir, filename_out)
+
+        file_path = rosbag_dir_path / filename_out
         fps = int(hz * speed)
         if ext_out == "mp4":
-            clip.write_videofile(filename_out_full, fps=clip.fps)
+            clip.write_videofile(str(file_path), fps=clip.fps)
         else:
-            clip.write_gif(filename_out_full, fps=clip.fps)
+            clip.write_gif(str(file_path), fps=clip.fps)

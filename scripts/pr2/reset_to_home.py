@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 import argparse
+from typing import Optional
 
+from mohou.file import get_project_path
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.models import PR2
 
-from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("-pn", type=str, help="project name")
     parser.add_argument("--rarm", action="store_true", help="loose rarm")
     parser.add_argument("--larm", action="store_true", help="loose larm")
     parser.add_argument("--mirror", action="store_true", help="mirror mode")
@@ -18,13 +19,16 @@ if __name__ == "__main__":
     parser.add_argument("-close", type=float, default=0.00, help="max gripper position")
 
     args = parser.parse_args()
-    loose_larm = args.larm
-    loose_rarm = args.rarm
-    pos_open = args.open
-    pos_close = args.close
-    mirror = args.mirror
-    home = args.home
-    config = Config.from_project_name(args.pn)
+    loose_larm: str = args.larm
+    loose_rarm: str = args.rarm
+    pos_open: float = args.open
+    pos_close: float = args.close
+    mirror: bool = args.mirror
+    home: bool = args.home
+    project_name: Optional[str] = args.pn
+
+    project_path = get_project_path(project_name)
+    config = Config.from_project_path(project_path)
 
     robot = PR2()
     ri = PR2ROSRobotInterface(robot)

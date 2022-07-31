@@ -6,6 +6,7 @@ from typing import List, Optional
 
 import actionlib
 import rospy
+from mohou.file import get_project_path
 from pr2_controllers_msgs.msg import (
     Pr2GripperCommandAction,
     Pr2GripperCommandActionGoal,
@@ -14,7 +15,6 @@ from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Joint
 from skrobot.models import PR2
 
-from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.pr2.controller_utils import (
     get_controller_states,
@@ -159,7 +159,7 @@ class Mannequin(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("-pn", type=str, help="project name")
     parser.add_argument("--rarm", action="store_true", help="loose rarm")
     parser.add_argument("--larm", action="store_true", help="loose larm")
     parser.add_argument("--mirror", action="store_true", help="mirror mode")
@@ -168,13 +168,16 @@ if __name__ == "__main__":
     parser.add_argument("-close", type=float, default=0.00, help="max gripper position")
 
     args = parser.parse_args()
-    loose_larm = args.larm
-    loose_rarm = args.rarm
-    pos_open = args.open
-    pos_close = args.close
-    mirror = args.mirror
-    home = args.home
-    config = Config.from_project_name(args.pn)
+    loose_larm: bool = args.larm
+    loose_rarm: bool = args.rarm
+    pos_open: float = args.open
+    pos_close: float = args.close
+    mirror: bool = args.mirror
+    home: bool = args.home
+
+    project_name: Optional[str] = args.pn
+    project_path = get_project_path(project_name)
+    config = Config.from_project_path(project_path)
 
     # mannequin
     mq = Mannequin(
