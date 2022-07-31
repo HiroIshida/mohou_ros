@@ -17,11 +17,6 @@
   <depend>move_base_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>sensor_msgs</depend>
-  <!-- <depend>cv_bridge</depend> -->
-  <exec_depend>python3-rospkg-modules</exec_depend>
-  <exec_depend>python3-empy</exec_depend>
-  <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-setuptools</exec_depend>
 
   <depend>ffmpeg</depend>
   <depend>zip</depend>
