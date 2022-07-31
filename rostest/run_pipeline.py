@@ -1,67 +1,64 @@
 #!/usr/bin/env python3
 import subprocess
 import unittest
+from pathlib import Path
 
-import gdown
 import rospy
 from mohou.file import get_project_path
 from mohou.model.autoencoder import VariationalAutoEncoder
 from mohou.model.lstm import LSTM
 from mohou.trainer import TrainCache
+from mohou.types import EpisodeBundle
 
 import rostest
-from mohou_ros_utils.file import RelativeName, get_subpath
+from mohou_ros_utils.script_utils import get_rosbag_paths
 
 
 class TestNode(unittest.TestCase):
-    project_name = "_mohou_ros_utils_test"
+    project_name = "_mohou_ros_data_collection"
+
+    @property
+    def project_path(self) -> Path:
+        project_path = get_project_path(self.project_name)
+        return project_path
 
     def setUp(self):
-
-        rospy.loginfo("prepare rosbag")
-
-        def drive_url(file_id):
-            url = "https://drive.google.com/uc?id={}".format(file_id)
-            return url
-
-        # prepare rosbag
-        project_path = get_project_path(self.project_name)
-        project_path.mkdir(exist_ok=True)
-
-        url = drive_url("18EtBZHK1SIxgGMKOrITd_Eg5MK3KnQXA")
-        zip_path = project_path / "rosbag.zip"
-        gdown.download(url=url, output=str(zip_path), quiet=False)
-
-        rosbag_path = project_path
-        rosbag_path.mkdir(exist_ok=True)
-        subprocess.call("unzip -o {} -d {}".format(zip_path, rosbag_path), shell=True)
-
-        url = drive_url("1_d2ijjxXTzmsfADccuwY2t8DqaYC6OyK")
-        main_config_path = get_subpath(project_path, RelativeName.main_config)
-        gdown.download(url=url, output=str(main_config_path), quiet=True)
+        pass
 
     @staticmethod
     def _run_command(cmd: str):
         rospy.loginfo(cmd)
         subprocess.run(cmd, shell=True)
 
-    def test_pipeline(self):
+    def _test_data_collection_finsihed(self):
+        # check if data collection rostest is already finished
+        assert self.project_path.exists()
+        rosbag_paths = get_rosbag_paths(self.project_path)
+        assert len(rosbag_paths) > 2
+
+    def _test_visualize_rosbag(self):
         cmd = "rosrun mohou_ros visualize_rosbag.py -pn {} -n 2 -ext mp4".format(self.project_name)
         self._run_command(cmd)
 
+    def _test_tune_image_filter(self):
         cmd = "rosrun mohou_ros tune_image_filter.py -pn {} --testrun".format(self.project_name)
         self._run_command(cmd)
+
+    def _test_bags2bundle(self):
 
         cmd = "rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy donothing -pn {}".format(
             self.project_name
         )
         self._run_command(cmd)
+        EpisodeBundle.load(self.project_path)
 
         cmd = "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {}".format(
             self.project_name
         )
         self._run_command(cmd)
+        EpisodeBundle.load(self.project_path, postfix="autoencoder")
 
+    def _test_train(self):
         cmd = "rosrun mohou_ros train.py -pn {} --test".format(self.project_name)
         self._run_command(cmd)
 
@@ -91,6 +88,13 @@ class TestNode(unittest.TestCase):
         assert len(png_list) > 0
         gif_list = [p for p in lstm_result_dir_path.iterdir() if str(p).endswith(".gif")]
         assert len(gif_list) > 0
+
+    def test_pipeline(self):
+        self._test_data_collection_finsihed()
+        self._test_visualize_rosbag()
+        self._test_tune_image_filter()
+        self._test_bags2bundle()
+        self._test_train()
 
 
 if __name__ == "__main__":
