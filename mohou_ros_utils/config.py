@@ -90,14 +90,16 @@ class Config:
         home_position_path = get_subpath(project_path, RelativeName.home_position)
         if home_position_path.exists():
             with home_position_path.open(mode="r") as f:
-                home_position = yaml.safe_load(f)
+                home_position: Optional[Dict] = yaml.safe_load(f)
         else:
             home_position = None
 
         # maybe not set
         image_config_path = get_subpath(project_path, RelativeName.image_config)
         if image_config_path.exists():
-            image_filter = CompositeFilter.from_yaml(str(image_config_path))
+            image_filter: Optional[CompositeFilter] = CompositeFilter.from_yaml(
+                str(image_config_path)
+            )
         else:
             image_filter = None
 
