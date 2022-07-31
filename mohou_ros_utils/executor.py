@@ -221,8 +221,8 @@ class ExecutorBase(ABC):
             is_rosbag_recorded = self.rosbag_cmd_popen is not None
             if is_rosbag_recorded:
                 assert self.rosbag_cmd_popen is not None  # just for mypy
-                os.kill(self.rosbag_cmd_popen.pid, signal.SIGKILL)
-                time.sleep(1)  # a workaround
+                os.kill(self.rosbag_cmd_popen.pid, signal.SIGTERM)
+                self.rosbag_cmd_popen.wait(timeout=10)
 
                 # get rosbag_filename
                 assert self.rosbag_cmd_popen is not None
@@ -234,7 +234,7 @@ class ExecutorBase(ABC):
                 bag = rosbag.Bag(rosbag_filename)
                 movie_clip = bag2clip(bag, self.config, hz=10, speed=1.0)
                 bag_video_file_path = debug_data_path / "video-{}.mp4".format(self.str_time_postfix)
-                movie_clip.write_videofile(bag_video_file_path)
+                movie_clip.write_videofile(str(bag_video_file_path))
 
     @abstractmethod
     def post_init_hook(self) -> None:
