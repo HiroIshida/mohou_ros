@@ -35,15 +35,23 @@ def get_first_rgb(config: Config) -> RGBImage:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument(
+        "--testrun", action="store_true", help="not using gui. just save the default value"
+    )
     args = parser.parse_args()
     project_name = args.pn
+    is_testrun = args.testrun
     config = Config.from_project_name(project_name)
 
     rgb = get_first_rgb(config)
     tunable = HSVBlurCropResolFilter.from_image(rgb.numpy())
     tunable.set_value(ResolutionChangeResizer, "resol", 112)
 
-    tunable.start_tuning(
-        rgb.numpy(),
-        callback=lambda this: this.dump_yaml(get_image_config_path(project_name)),
-    )
+    if is_testrun:
+        tunable.dump_yaml(get_image_config_path(project_name))
+    else:
+        tunable.launch_window()
+        tunable.start_tuning(
+            rgb.numpy(),
+            callback=lambda this: this.dump_yaml(get_image_config_path(project_name)),
+        )
