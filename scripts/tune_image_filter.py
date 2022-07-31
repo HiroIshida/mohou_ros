@@ -5,6 +5,7 @@ import os
 import rosbag
 from mohou.types import RGBImage
 from tunable_filter.composite_zoo import HSVBlurCropResolFilter
+from tunable_filter.tunable import ResolutionChangeResizer
 
 from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
@@ -40,6 +41,7 @@ if __name__ == "__main__":
 
     rgb = get_first_rgb(config)
     tunable = HSVBlurCropResolFilter.from_image(rgb.numpy())
+    tunable.set_value(ResolutionChangeResizer, "resol", 112)
 
     tunable.start_tuning(
         rgb.numpy(),
