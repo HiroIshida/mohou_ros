@@ -36,26 +36,30 @@ class TestNode(unittest.TestCase):
         main_config_path = project_path / "main_config.yaml"
         gdown.download(url=url, output=str(main_config_path), quiet=True)
 
-    def test_pipeline(self):
-        cmd = "rosrun mohou_ros tune_image_filter.py -pn {} --testrun".format(self.project_name)
+    @staticmethod
+    def _run_command(cmd: str):
         rospy.loginfo(cmd)
         subprocess.run(cmd, shell=True)
+
+    def test_pipeline(self):
+        cmd = "rosrun mohou_ros visualize_rosbag.py -pn {} -n 2 -ext mp4".format(self.project_name)
+        self._run_command(cmd)
+
+        cmd = "rosrun mohou_ros tune_image_filter.py -pn {} --testrun".format(self.project_name)
+        self._run_command(cmd)
 
         cmd = "rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy donothing -pn {}".format(
             self.project_name
         )
-        rospy.loginfo(cmd)
-        subprocess.run(cmd, shell=True)
+        self._run_command(cmd)
 
         cmd = "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {}".format(
             self.project_name
         )
-        rospy.loginfo(cmd)
-        subprocess.run(cmd, shell=True)
+        self._run_command(cmd)
 
         cmd = "rosrun mohou_ros train {} 1 1".format(self.project_name)
-        rospy.loginfo(cmd)
-        subprocess.run(cmd, shell=True)
+        self._run_command(cmd)
 
 
 if __name__ == "__main__":

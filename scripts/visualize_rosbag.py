@@ -13,18 +13,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
     parser.add_argument("-hz", type=float, default=5, help="sampling hz")
+    parser.add_argument("-n", type=int, help="number of rosbags to be processed")
     parser.add_argument("-speed", type=float, default=3, help="x")
     parser.add_argument("-ext", type=str, default="mp4", help="gif or mp4")
 
     args = parser.parse_args()
     hz = args.hz
+    n_gif_creation = args.n
     speed = args.speed
     ext_out = args.ext
     assert ext_out in ("mp4", "gif")
     config = Config.from_project_name(args.pn)
 
     rosbag_dir = get_rosbag_dir(config.project_name)
-    for filename in os.listdir(rosbag_dir):
+
+    filenames = os.listdir(rosbag_dir)
+    if n_gif_creation is not None:
+        filenames = filenames[:n_gif_creation]
+
+    for filename in filenames:
         _, ext = os.path.splitext(filename)
         if ext != ".bag":
             continue
