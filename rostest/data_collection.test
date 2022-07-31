@@ -1,0 +1,3 @@
+<launch>
+  <test pkg="mohou_ros" type="run_data_collection.py" test-name="data_collection" time-limit="600"/>
+</launch>
