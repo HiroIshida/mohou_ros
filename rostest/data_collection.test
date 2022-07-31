@@ -1,3 +1,7 @@
 <launch>
+  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch">
+    <arg name="gui" value="false" />
+    <arg name="headless" value="true" />
+  </include>
   <test pkg="mohou_ros" type="run_data_collection.py" test-name="data_collection" time-limit="600"/>
 </launch>
