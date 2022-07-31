@@ -89,7 +89,7 @@ class ExecutorBase(ABC):
     current_av: Optional[AngleVector] = None
 
     def __init__(self, project_path: Path, dryrun=True, save_rosbag=True) -> None:
-        propagator = create_default_propagator(project_path)
+        propagator: Propagator = create_default_propagator(project_path)  # type: ignore
 
         ae_type = auto_detect_autoencoder_type(project_path)
         tcache_autoencoder = TrainCache.load(project_path, ae_type)
