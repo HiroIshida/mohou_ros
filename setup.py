@@ -7,7 +7,7 @@ install_requires = [
     "scipy",
     "scikit-robot",
     "mohou>=0.3.3",
-    "tunable-filter>=0.0.5",
+    "tunable-filter>=0.0.6",
 ]
 
 if "ROS_DISTRO" in os.environ:

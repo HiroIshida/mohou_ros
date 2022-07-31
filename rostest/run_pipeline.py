@@ -32,19 +32,15 @@ class TestNode(unittest.TestCase):
         rosbag_path.mkdir(exist_ok=True)
         subprocess.call("unzip -o {} -d {}".format(zip_path, rosbag_path), shell=True)
 
-        # prepare config files
-        rospy.loginfo("prepare configs")
-        url = drive_url("1LAF9JklX0NLUK_3isQOyFjNHSj-UzzWI")
-        image_config_path = project_path / "image_config.yaml"
-        gdown.download(url=url, output=str(image_config_path), quiet=True)
-
         url = drive_url("1_d2ijjxXTzmsfADccuwY2t8DqaYC6OyK")
         main_config_path = project_path / "main_config.yaml"
         gdown.download(url=url, output=str(main_config_path), quiet=True)
 
     def test_pipeline(self):
+        cmd = "rosrun mohou_ros tune_image_filter.py -pn {} --testrun".format(self.project_name)
+        rospy.loginfo(cmd)
+        subprocess.run(cmd, shell=True)
 
-        # run commands
         cmd = "rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy donothing -pn {}".format(
             self.project_name
         )
