@@ -24,4 +24,6 @@
 
   <test_depend>rostest</test_depend>
   <test_depend>pr2_gazebo</test_depend>
+  <test_depend>image_transport</test_depend>
+  <test_depend>image_transport_plugins</test_depend>
 </package>

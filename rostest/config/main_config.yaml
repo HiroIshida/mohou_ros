@@ -1,0 +1,22 @@
+topic: 
+    AngleVector:
+        name: /joint_states
+        rosbag: True
+        use: True
+    RGBImage: 
+        name: /l_forearm_cam/image_color/compressed
+        rosbag: True
+        use: True
+    GripperState:
+        name: /r_gripper_controller/state
+        rosbag: True
+        use: True
+
+control_joints:
+    - r_shoulder_pan_joint 
+    - r_shoulder_lift_joint
+    - r_upper_arm_roll_joint
+    - r_elbow_flex_joint
+    - r_forearm_roll_joint
+    - r_wrist_flex_joint 
+    - r_wrist_roll_joint
