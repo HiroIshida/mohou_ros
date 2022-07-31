@@ -73,8 +73,7 @@ class PR2ViveController(ViveController):
     def logwarn(self, message):
         rospy.logwarn("{} => ".format(self.log_prefix) + message)
 
-    def post_init_hook(self, config: Config) -> None:
-
+    def post_init_hook(self) -> None:
         robot_model = PR2()
         self.robot_model = robot_model
         self.robot_interface = self.robot_interface_type(robot_model)

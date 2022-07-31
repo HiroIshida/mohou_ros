@@ -1,5 +1,6 @@
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
+from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Generic, List, Optional, Type, TypeVar
 
@@ -7,8 +8,6 @@ import genpy
 import rospy
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
-
-from mohou_ros_utils.config import Config
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -99,7 +98,23 @@ class JoyDataManager(TopicDataManager[Joy]):
             self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
-class ViveController(ABC):
+@dataclass
+class ViveConfig:
+    scale: float = 0.5
+    timer_interval: float = 0.05
+    joy_topic_name: str = ""
+    pose_topic_name: str = ""
+
+    def __post_init__(self):
+        assert len(self.joy_topic_name) > 0
+        assert len(self.pose_topic_name) > 0
+
+
+ViveConfigT = TypeVar("ViveConfigT", bound="ViveConfig")
+
+
+class ViveController(ABC, Generic[ViveConfigT]):
+    config: ViveConfigT
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
     scale: float
@@ -107,19 +122,21 @@ class ViveController(ABC):
     is_initialized: bool
     is_tracking: bool
 
-    def __init__(self, config: Config, scale: float, joy_topic_name: str, pose_topic_name: str):
-        self.joy_manager = JoyDataManager(joy_topic_name)
-        self.pose_manager = PoseDataManager(pose_topic_name)
-        self.scale = scale
-        self.timer_interval = 0.05
+    def __init__(
+        self, config: ViveConfigT, scale: float, joy_topic_name: str, pose_topic_name: str
+    ):
+        self.config = config
+        self.joy_manager = JoyDataManager(config.joy_topic_name)
+        self.pose_manager = PoseDataManager(config.pose_topic_name)
+        self.scale = config.scale
+        self.timer_interval = config.timer_interval
 
         rospy.Timer(rospy.Duration(self.timer_interval), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
-        self.post_init_hook(config)
+        self.post_init_hook()
 
-    @abstractmethod
-    def post_init_hook(self, config: Config) -> None:
+    def post_init_hook(self) -> None:
         pass
 
     def on_timer(self, event):
