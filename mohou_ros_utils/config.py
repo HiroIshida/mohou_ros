@@ -1,16 +1,12 @@
-import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Optional, Type
 
 import yaml
 from mohou.types import PrimitiveElementBase, get_element_type
 from tunable_filter.tunable import CompositeFilter
 
-from mohou_ros_utils.file import (
-    get_home_position_file,
-    get_image_config_path,
-    get_main_config_path,
-)
+from mohou_ros_utils.file import RelativeName, get_subpath
 
 
 @dataclass
@@ -76,31 +72,33 @@ class TopicConfig:
 
 @dataclass
 class Config:
-    project_name: str
+    project_path: Path
     control_joints: List[str]
     topics: TopicConfig
     home_position: Optional[Dict[str, float]]
     image_filter: Optional[CompositeFilter]
 
     @classmethod
-    def from_project_name(cls, project_name: str) -> "Config":
-        main_config_path = get_main_config_path(project_name)
-        with open(main_config_path, "r") as f:
+    def from_project_path(cls, project_path: Path) -> "Config":
+        main_config_path = get_subpath(project_path, RelativeName.main_config)
+        with main_config_path.open(mode="r") as f:
             main_config_dict = yaml.safe_load(f)
         control_joints = main_config_dict["control_joints"]
         topics = TopicConfig.from_yaml_dict(main_config_dict["topic"])
 
         # maybe not set
-        home_position = None
-        home_position_file = get_home_position_file(project_name)
-        if os.path.exists(home_position_file):
-            with open(home_position_file, "r") as f:
+        home_position_path = get_subpath(project_path, RelativeName.home_position)
+        if home_position_path.exists():
+            with home_position_path.open(mode="r") as f:
                 home_position = yaml.safe_load(f)
+        else:
+            home_position = None
 
         # maybe not set
-        image_filter = None
-        image_config_path = get_image_config_path(project_name)
-        if os.path.exists(image_config_path):
-            image_filter = CompositeFilter.from_yaml(image_config_path)
+        image_config_path = get_subpath(project_path, RelativeName.image_config)
+        if image_config_path.exists():
+            image_filter = CompositeFilter.from_yaml(str(image_config_path))
+        else:
+            image_filter = None
 
-        return cls(project_name, control_joints, topics, home_position, image_filter)
+        return cls(project_path, control_joints, topics, home_position, image_filter)

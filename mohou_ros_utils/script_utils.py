@@ -1,5 +1,6 @@
 import os
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
 import numpy as np
 import rosbag
@@ -8,7 +9,7 @@ from moviepy.editor import ImageSequenceClip
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import RGBImageConverter
-from mohou_ros_utils.file import get_rosbag_dir
+from mohou_ros_utils.file import RelativeName, get_subpath
 from mohou_ros_utils.interpolator import (
     AllSameInterpolationRule,
     NearestNeighbourInterpolator,
@@ -17,29 +18,38 @@ from mohou_ros_utils.synclonizer import synclonize
 from mohou_ros_utils.types import TimeStampedSequence
 
 
-def count_rosbag_file(config: Config) -> int:
-    rosbag_dir = get_rosbag_dir(config.project_name)
-    counter = 0
-    for filename in os.listdir(rosbag_dir):
-        _, ext = os.path.splitext(filename)
+def get_rosbag_paths(project_path: Path) -> List[Path]:
+    rosbag_dir_path = get_subpath(project_path, RelativeName.rosbag)
+    paths = []
+    for filepath in rosbag_dir_path.iterdir():
+        _, ext = os.path.splitext(filepath)
         if ext == ".bag":
-            counter += 1
-    return counter
+            paths.append(filepath)
+    return paths
 
 
-def get_latest_rosbag_filename(config: Config) -> Optional[str]:
-    rosbag_dir = get_rosbag_dir(config.project_name)
-    rosbag_files = [f for f in os.listdir(rosbag_dir) if f.endswith(".bag")]
-    filename_sorted = sorted(rosbag_files)
-    if len(filename_sorted) == 0:
+def count_rosbag_file(project_path: Path) -> int:
+    paths = get_rosbag_paths(project_path)
+    return len(paths)
+
+
+def get_latest_rosbag_filename(project_path: Path) -> Optional[Path]:
+    """
+    NOTE: this function assumes that rosbag file has time-stamp postfix
+    """
+    assert False, "Ishida: please check behavior before delting this assrtion"
+
+    paths = get_rosbag_paths(project_path)
+    if len(paths) == 0:
         return None
-    return os.path.join(rosbag_dir, filename_sorted[-1])
+    names_sorted = sorted([str(p) for p in paths])
+    return Path(names_sorted[-1])
 
 
-def get_rosbag_filename(config: Config, postfix: str):
-    rosbag_dir = get_rosbag_dir(config.project_name)
-    filename = os.path.join(rosbag_dir, "train-episode-{0}.bag".format(postfix))
-    return filename
+def get_rosbag_filepath(project_path: Path, postfix: str) -> Path:
+    rosbag_dir_path = get_subpath(project_path, RelativeName.rosbag)
+    filepath = rosbag_dir_path / "train-episode-{0}.bag".format(postfix)
+    return filepath
 
 
 def create_rosbag_command(filename: str, config: Config):

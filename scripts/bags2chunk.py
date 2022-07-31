@@ -3,7 +3,6 @@ import argparse
 import os
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
@@ -21,15 +20,14 @@ from mohou.types import (
 )
 from moviepy.editor import ImageSequenceClip
 
-from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
-from mohou_ros_utils.file import get_rosbag_dir
 from mohou_ros_utils.interpolator import (
     AllSameInterpolationRule,
     NearestNeighbourMessageInterpolator,
 )
 from mohou_ros_utils.rosbag import bag_to_synced_seqs
+from mohou_ros_utils.script_utils import get_rosbag_paths
 from mohou_ros_utils.types import TimeStampedSequence
 
 
@@ -118,13 +116,10 @@ def main(
     n_untouch_episode: int,
     postfix: Optional[str] = None,
 ):
-    rosbag_dir_path = Path(get_rosbag_dir(config.project_name))
-    rosbag_paths = [p.expanduser() for p in rosbag_dir_path.iterdir() if p.name.endswith(".bag")]
+    rosbag_paths = get_rosbag_paths(config.project_path)
     assert (
         len(rosbag_paths) > 0
     ), "please check if rosbag files are put in '{project_path}/rosbag' with .bag extension"
-
-    project_path = get_project_path(config.project_name)
 
     episode_data_list = []
     for rosbag_path in rosbag_paths:
@@ -147,7 +142,7 @@ def main(
         episode_data_list.append(episode_init_removed)
 
         if dump_gif:
-            gif_dir_path = project_path / "train_data_gifs"
+            gif_dir_path = config.project_path / "train_data_gifs"
             gif_dir_path.mkdir(exist_ok=True)
             fps = 20
             images = [rgb.numpy() for rgb in episode_init_removed.get_sequence_by_type(RGBImage)]
@@ -163,14 +158,14 @@ def main(
     bundle = EpisodeBundle.from_episodes(
         episode_data_list, meta_data=extra_info, n_untouch_episode=n_untouch_episode
     )
-    bundle.dump(project_path, postfix)
-    bundle.plot_vector_histories(AngleVector, project_path, hz=hz, postfix=postfix)
+    bundle.dump(config.project_path, postfix)
+    bundle.plot_vector_histories(AngleVector, config.project_path, hz=hz, postfix=postfix)
 
 
 if __name__ == "__main__":
     config_dir = os.path.join(rospkg.RosPack().get_path("mohou_ros"), "configs")
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("-pn", type=str, help="project name")
     parser.add_argument("-hz", type=float, default=5.0)
     parser.add_argument(
         "-remove_policy",
@@ -183,10 +178,14 @@ if __name__ == "__main__":
     parser.add_argument("-untouch", type=int, default=5, help="num of untouch episode")
 
     args = parser.parse_args()
-    config = Config.from_project_name(args.pn)
+
+    project_name: Optional[str] = args.pn
     hz: float = args.hz
     dump_gif: bool = args.gif
     n_untouch: int = args.untouch
+
+    project_path = get_project_path(project_name)
+    config = Config.from_project_path(project_path)
 
     postfix = None if args.postfix == "" else args.postfix
     remover = StaticInitStateRemover.from_policy_name(args.remove_policy)

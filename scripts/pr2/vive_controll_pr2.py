@@ -14,20 +14,20 @@ import genpy
 import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
+from mohou.file import get_project_path
 from sensor_msgs.msg import Joy
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Link
 from skrobot.models import PR2
 from sound_play.libsoundplay import SoundClient
 
-from mohou_ros_utils import _default_project_name
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.pr2.params import larm_joint_names, rarm_joint_names
 from mohou_ros_utils.script_utils import (
     count_rosbag_file,
     create_rosbag_command,
     get_latest_rosbag_filename,
-    get_rosbag_filename,
+    get_rosbag_filepath,
 )
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
 
@@ -341,8 +341,8 @@ class RosbagManager:
 
     def start(self) -> None:
         assert not self.is_running
-        filename = get_rosbag_filename(self.config, time.strftime("%Y%m%d%H%M%S"))
-        cmd = create_rosbag_command(filename, self.config)
+        path = get_rosbag_filepath(self.config.project_path, time.strftime("%Y%m%d%H%M%S"))
+        cmd = create_rosbag_command(str(path), config)
         p = subprocess.Popen(cmd)
         rospy.loginfo(p)
         share = {"is_running": True}
@@ -368,7 +368,7 @@ class RosbagManager:
     def stop(self) -> None:
         assert self.is_running
         assert self.closure_stop is not None
-        n_count = count_rosbag_file(self.config) + 1  # because we are gonna add one
+        n_count = count_rosbag_file(self.config.project_path) + 1  # because we are gonna add one
         self.sound_client.say("Finish saving rosbag. Total number is {}".format(n_count))
 
         self.closure_stop()
@@ -439,7 +439,7 @@ class PR2LeftArmViveController(PR2ViveController):
         self.robot_interface.move_gripper("larm", pos, effort=100)  # type: ignore
 
     def delete_latest_rosbag(self) -> None:
-        latest_rosbag = get_latest_rosbag_filename(self.config)
+        latest_rosbag = get_latest_rosbag_filename(self.config.project_path)
         if latest_rosbag is None:
             message = "deleting rosbag failed because there is no rosbag"
             rospy.logwarn(message)
@@ -452,11 +452,15 @@ class PR2LeftArmViveController(PR2ViveController):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pn", type=str, default=_default_project_name, help="project name")
+    parser.add_argument("-pn", type=str, help="project name")
     parser.add_argument("-scale", type=float, default=1.5, help="controller to real scaling")
     args, unknown = parser.parse_known_args()
-    scale = args.scale
-    config = Config.from_project_name(args.pn)
+
+    scale: float = args.scale
+    project_name: Optional[str] = args.pn
+
+    project_path = get_project_path(project_name)
+    config = Config.from_project_path(project_path)
 
     rospy.init_node("pr2_vive_mohou")
     PR2RightArmViveController(config, scale)

@@ -26,7 +26,7 @@ from sensor_msgs.msg import CompressedImage, Image, JointState
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import VersatileConverter
-from mohou_ros_utils.file import get_execution_debug_data_dir
+from mohou_ros_utils.file import RelativeName, get_subpath
 from mohou_ros_utils.script_utils import bag2clip, create_rosbag_command
 
 
@@ -96,7 +96,7 @@ class ExecutorBase(ABC):
         assert tcache_autoencoder.best_model is not None
         self.autoencoder = tcache_autoencoder.best_model
 
-        config = Config.from_project_name(project_path.name)
+        config = Config.from_project_path(project_path)
         vconv = VersatileConverter.from_config(config)
 
         self.config = config
@@ -131,11 +131,10 @@ class ExecutorBase(ABC):
         self.str_time_postfix = time.strftime("%Y%m%d%H%M%S")
 
         if save_rosbag:
-            rosbag_filename = os.path.join(
-                get_execution_debug_data_dir(config.project_name),
-                "backup-{}.bag".format(self.str_time_postfix),
-            )
-            cmd = create_rosbag_command(rosbag_filename, config)
+
+            debug_data_path = get_subpath(project_path, RelativeName.exec_debug)
+            rosbag_file_path = debug_data_path / "backup-{}.bag".format(self.str_time_postfix)
+            cmd = create_rosbag_command(str(rosbag_file_path), config)
             self.rosbag_cmd_popen = subprocess.Popen(cmd)
         else:
             self.rosbag_cmd_popen = None
@@ -204,21 +203,24 @@ class ExecutorBase(ABC):
     def terminate(self, dump_debug_info: bool = True):
         self.running = False
 
+        debug_data_path = get_subpath(self.config.project_path, RelativeName.exec_debug)
+
         if dump_debug_info:
-            dir_name = get_execution_debug_data_dir(self.config.project_name)
             rospy.loginfo("Please hang tight. Creating a debug debug video...")
-            file_name = os.path.join(dir_name, "images-{}.mp4".format(self.str_time_postfix))
+            video_file_path = debug_data_path / "images-{}.mp4".format(self.str_time_postfix)
             debug_image_clip = ImageSequenceClip(
                 [debug_images.numpy() for debug_images in self.debug_images_seq], fps=20
             )
-            debug_image_clip.write_videofile(file_name, fps=20)
+            debug_image_clip.write_videofile(str(video_file_path), fps=20)
 
             rospy.loginfo("Please hang tight. Saving debug edict sequence")
-            file_name = os.path.join(dir_name, "edicts-{}.pkl".format(self.str_time_postfix))
-            with open(file_name, "wb") as f:
+            edict_file_path = debug_data_path / "edicts-{}.pkl".format(self.str_time_postfix)
+            with edict_file_path.open(mode="wb") as f:
                 pickle.dump(self.edict_seq, f)
 
-            if self.rosbag_cmd_popen is not None:
+            is_rosbag_recorded = self.rosbag_cmd_popen is not None
+            if is_rosbag_recorded:
+                assert self.rosbag_cmd_popen is not None  # just for mypy
                 os.kill(self.rosbag_cmd_popen.pid, signal.SIGKILL)
                 time.sleep(1)  # a workaround
 
@@ -231,11 +233,8 @@ class ExecutorBase(ABC):
                 assert rosbag_filename is not None
                 bag = rosbag.Bag(rosbag_filename)
                 movie_clip = bag2clip(bag, self.config, hz=10, speed=1.0)
-
-                video_file_name = os.path.join(
-                    dir_name, "video-{}.mp4".format(self.str_time_postfix)
-                )
-                movie_clip.write_videofile(video_file_name)
+                bag_video_file_path = debug_data_path / "video-{}.mp4".format(self.str_time_postfix)
+                movie_clip.write_videofile(bag_video_file_path)
 
     @abstractmethod
     def post_init_hook(self) -> None:
