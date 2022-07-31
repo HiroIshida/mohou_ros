@@ -59,7 +59,7 @@ class TestNode(unittest.TestCase):
         )
         self._run_command(cmd)
 
-        cmd = "rosrun mohou_ros train {} 1 1".format(self.project_name)
+        cmd = "rosrun mohou_ros train.py -pn {} --test".format(self.project_name)
         self._run_command(cmd)
 
 
