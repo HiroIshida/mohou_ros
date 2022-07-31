@@ -53,7 +53,7 @@ class TestNode(unittest.TestCase):
 
     def _test_save_rosbag(self):
         cmd = "rosrun mohou_ros save_rosbag.py -pn {} -t 4".format(self.project_name)
-        n_episode = 6
+        n_episode = 3
         for _ in range(n_episode):
             self._run_command(cmd)
 
@@ -64,8 +64,14 @@ class TestNode(unittest.TestCase):
         topic_list = config.topics.rosbag_topic_list
         rosbag_path = rosbag_paths[0]
         bag = Bag(str(rosbag_path))
-        bag_to_seqs(bag, topic_list)
+        seqs = bag_to_seqs(bag, topic_list)
         bag.close()
+
+        for seq in seqs:
+            assert len(seq) > 1
+
+        obtained_topic_names = set([seq.topic_name for seq in seqs])
+        assert obtained_topic_names == set(topic_list)
 
     def test_pipeline(self):
         self._test_save_home_position()
