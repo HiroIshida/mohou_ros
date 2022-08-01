@@ -39,6 +39,11 @@ jobs:
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
 
+    - name: Show installed package
+      run: |
+          dpkg -l
+          pip3 freeze
+
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash
