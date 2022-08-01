@@ -4,5 +4,6 @@ find_package(catkin REQUIRED)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
+  add_rostest(rostest/data_collection.test)
   add_rostest(rostest/pipeline.test)
 endif()
