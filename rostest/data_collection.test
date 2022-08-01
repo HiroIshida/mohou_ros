@@ -4,10 +4,7 @@
     <arg name="headless" value="true" />
   </include>
 
-  <node name="image_republish" pkg="image_transport" type="republish" args="compressed raw">
-   <remap from="in" to="/l_forearm_cam/image_color" />
-   <remap from="out" to="/l_forearm_cam/image_color/compressed" />
-  </node>
+  <node pkg="mohou_ros" type="random_image_publisher.py" name="random_image_publisher"/>
 
   <test pkg="mohou_ros" type="run_data_collection.py" test-name="data_collection" time-limit="600"/>
 </launch>
