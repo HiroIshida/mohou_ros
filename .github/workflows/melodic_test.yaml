@@ -40,8 +40,8 @@ jobs:
         wstool set -y src/geometry2 --git https://github.com/ros/geometry2 -v 0.6.5
         wstool update
         rosdep update
-        roscd mohou_ros && rosdep install --from-paths . -i -r -y
-        catkin_make --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
+        rosdep install --from-paths . -i -r -y
+        cd ${CATKIN_WS} && catkin_make --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
 
