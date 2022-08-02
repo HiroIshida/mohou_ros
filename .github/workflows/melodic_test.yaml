@@ -69,14 +69,17 @@ jobs:
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros data_collection.test
 
     - name: rostest train_pipeline
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros train_pipeline.test
 
     - name: rostest executor
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros executor.test
