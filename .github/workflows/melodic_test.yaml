@@ -27,6 +27,8 @@ jobs:
 
     - name: Init workspace
       run: |
+        sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
+        sudo apt-get install ros-melodic-catkin python-wstool
         source /opt/ros/melodic/setup.bash
         mkdir -p ${CATKIN_WS}/src && cd ${CATKIN_WS} && catkin_make
         ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
@@ -34,8 +36,12 @@ jobs:
     - name: install package
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        wstool init
+        wstool set -y src/geometry2 --git https://github.com/ros/geometry2 -v 0.6.5
+        wstool update
         rosdep update
-        roscd mohou_ros && rosdep install --from-paths . -i -r -y
+        rosdep install --from-paths . -i -r -y
+        cd ${CATKIN_WS} && catkin_make --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
 
