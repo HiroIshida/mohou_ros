@@ -20,24 +20,25 @@ rosdep install --from-paths . -i -r -y
 catkin bt
 ```
 
-### Workspace build (Melodic + cv-bridge-python3)
+### Workspace build (Melodic + cv-bridge-python3 + tf2)
 If you are using melodic, you need to build cv-bridge with the following configuration to use python3.
 ```bash
 sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
-sudo apt-get install ros-melodic-catkin python-wstool
+sudo apt-get install ros-melodic-catkin python-wstool ros-melodic-rostest
 source /opt/ros/melodic/setup.bash
 mkdir -p ~/mohou_ws/src
 cd ~/mohou_ws/src
 git clone https://github.com/HiroIshida/mohou_ros.git
 wstool init
 wstool set -y geometry2 --git https://github.com/ros/geometry2 -v 0.6.5
-wstool up
+wstool update
 rosdep install --from-paths . --ignore-src -y -r
 cd ~/mohou_ws
 catkin init
 catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
 catkin build
 ```
+<!--
 If you use `catkin_make` instead of `catkin build`.
 ```bash
 sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
@@ -54,6 +55,7 @@ wstool update
 rosdep install --from-paths . --ignore-src -y -r
 catkin_make --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
 ```
+-->
 
 ## Usage
 Please note that in the many commands in the following instruction you can omit `-pn {your_project_name}` option by
