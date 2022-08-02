@@ -20,7 +20,7 @@ rosdep install --from-paths . -i -r -y
 catkin bt
 ```
 
-### Workspace build (Melodic + cv-bridge-python3)
+### Workspace build (Melodic + cv-bridge-python3 + tf2)
 If you are using melodic, you need to build cv-bridge with the following configuration to use python3.
 ```bash
 sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
