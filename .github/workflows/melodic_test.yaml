@@ -36,17 +36,14 @@ jobs:
     - name: install package
       run: |
         source /opt/ros/melodic/setup.bash
-        cd ${CATKIN_WS}/src && wstool init
-        wstool set -y geometry2 --git https://github.com/ros/geometry2 -v 0.6.5
-        wstool update
-        rosdep update
-        rosdep install --from-paths . -i -r -y
+        cd ${CATKIN_WS}/src && wstool init && wstool merge mohou_ros/rosinstall.melodic && wstool update
+        cd ${CATKIN_WS}/src && rosdep update && rosdep install --from-paths . -i -r -y
         cd ${CATKIN_WS} && catkin init
         catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
-        catkin build
+        cd ${CATKIN_WS} && catkin build tf2_py gazebo_ros mohou_ros  # because caktin build all package takes toooo long in github action
         source ${CATKIN_WS}/devel/setup.bash
         pip3 install scikit-build
-        roscd mohou_ros && pip3 install . --user
+        cd ${GITHUB_WORKSPACE} && pip3 install  . --user
 
     - name: temp install skrobot
       run: |
