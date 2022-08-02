@@ -24,7 +24,7 @@ catkin bt
 If you are using melodic, you need to build cv-bridge with the following configuration to use python3.
 ```bash
 sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
-sudo apt-get install ros-melodic-catkin python-wstool
+sudo apt-get install ros-melodic-catkin python-wstool ros-melodic-rostest
 source /opt/ros/melodic/setup.bash
 mkdir -p ~/mohou_ws/src
 cd ~/mohou_ws/src

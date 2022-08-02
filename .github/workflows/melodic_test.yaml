@@ -27,8 +27,8 @@ jobs:
 
     - name: Init workspace
       run: |
-        sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
-        sudo apt-get install python-catkin-tools python-wstool python-rostest
+        sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-empy
+        sudo apt-get install python-catkin-tools python-wstool ros-melodic-rostest
         source /opt/ros/melodic/setup.bash
         mkdir -p ${CATKIN_WS}/src
         ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
