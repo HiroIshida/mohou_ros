@@ -39,6 +39,7 @@ jobs:
         rosdep install --from-paths . -i -r -y
         cd ${CATKIN_WS} && catkin init
         catkin build
+        source ${CATKIN_WS}/devel/setup.bash
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
 
