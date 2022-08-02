@@ -27,6 +27,7 @@ jobs:
 
     - name: Init workspace
       run: |
+        sudo apt-get install python3-osrf-pycommon python3-catkin-tools
         source /opt/ros/noetic/setup.bash
         mkdir -p ${CATKIN_WS}/src
         ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
