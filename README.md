@@ -31,13 +31,14 @@ cd ~/mohou_ws/src
 git clone https://github.com/HiroIshida/mohou_ros.git
 wstool init
 wstool set -y geometry2 --git https://github.com/ros/geometry2 -v 0.6.5
-wstool up
+wstool update
 rosdep install --from-paths . --ignore-src -y -r
 cd ~/mohou_ws
 catkin init
 catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
 catkin build
 ```
+<!--
 If you use `catkin_make` instead of `catkin build`.
 ```bash
 sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
@@ -54,6 +55,7 @@ wstool update
 rosdep install --from-paths . --ignore-src -y -r
 catkin_make --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
 ```
+-->
 
 ## Usage
 Please note that in the many commands in the following instruction you can omit `-pn {your_project_name}` option by
