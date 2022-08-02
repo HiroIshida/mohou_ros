@@ -35,6 +35,7 @@ jobs:
 
     - name: install package
       run: |
+        source /opt/ros/noetic/setup.bash
         cd ${CATKIN_WS}/src && wstool init
         wstool set -y geometry2 --git https://github.com/ros/geometry2 -v 0.6.5
         wstool update
