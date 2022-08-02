@@ -1,0 +1,9 @@
+- git:
+    local-name: gazebo_ros_pkgs
+    uri: https://github.com/HiroIshida/gazebo_ros_pkgs.git
+    version: tmp/fix_shebang_to_python3
+
+- git:
+    local-name: geometry2
+    uri: https://github.com/ros/geometry2
+    version: melodic-devel
