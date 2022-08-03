@@ -63,8 +63,9 @@ if __name__ == "__main__":
     project_path = get_project_path(project_name)
     if is_testing:
         # as fast as possible. run only by rostest
+        # note that n_aug_lstm must be required to avoid data generation with small number of samples
         train_and_visualize(
-            project_path, 1, 1, n_hidden=1, n_layer=1, valid_ratio=0.5, n_aug_vae=0, n_aug_lstm=0
+            project_path, 1, 1, n_hidden=1, n_layer=1, valid_ratio=0.5, n_aug_vae=0, n_aug_lstm=4
         )
     else:
         train_and_visualize(project_path, n_epoch_vae, n_epoch_lstm, n_hidden=400, n_layer=2)
