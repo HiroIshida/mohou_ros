@@ -223,6 +223,7 @@ class ExecutorBase(ABC):
                 assert self.rosbag_cmd_popen is not None  # just for mypy
                 os.kill(self.rosbag_cmd_popen.pid, signal.SIGTERM)
                 self.rosbag_cmd_popen.wait(timeout=10)
+                time.sleep(2)  # maybe takes a little bit to save rosbag
 
                 # get rosbag_filename
                 assert self.rosbag_cmd_popen is not None
