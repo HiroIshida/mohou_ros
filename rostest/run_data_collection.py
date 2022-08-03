@@ -8,6 +8,7 @@ from pathlib import Path
 import rospkg
 import rospy
 from mohou.file import get_project_path
+from mohou.utils import assert_equal_with_message
 from rosbag import Bag
 
 import rostest
@@ -55,7 +56,7 @@ class TestNode(unittest.TestCase):
         assert home_postion_path.exists()
 
     def _test_save_rosbag(self):
-        cmd = "rosrun mohou_ros save_rosbag.py -pn {} -t 4".format(self.project_name)
+        cmd = "rosrun mohou_ros save_rosbag.py -pn {} -t 8".format(self.project_name)
         n_episode = 3
         for _ in range(n_episode):
             self._run_command(cmd)
@@ -74,7 +75,7 @@ class TestNode(unittest.TestCase):
             assert len(seq) > 1
 
         obtained_topic_names = set([seq.topic_name for seq in seqs])
-        assert obtained_topic_names == set(topic_list)
+        assert_equal_with_message(obtained_topic_names, set(topic_list), "topic set in rosbag")
 
     def test_pipeline(self):
         self._test_save_home_position()
