@@ -29,7 +29,7 @@ def train_and_visualize(
         hidden=n_hidden,
         layer=n_layer,
         vr=valid_ratio,
-        aug=n_epoch_lstm,
+        aug=n_aug_lstm,
     )
     cmd_history = "python3 -m mohou.script.visualize_train_history -pp {}".format(project_path)
     cmd_visualize_lstm = "python3 -m mohou.script.visualize_lstm_result -pp {}".format(project_path)
