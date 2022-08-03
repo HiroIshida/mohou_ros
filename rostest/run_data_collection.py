@@ -57,7 +57,7 @@ class TestNode(unittest.TestCase):
 
     def _test_save_rosbag(self):
         cmd = "rosrun mohou_ros save_rosbag.py -pn {} -t 8".format(self.project_name)
-        n_episode = 3
+        n_episode = 6
         for _ in range(n_episode):
             self._run_command(cmd)
 
