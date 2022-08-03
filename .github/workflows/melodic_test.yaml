@@ -27,38 +27,59 @@ jobs:
 
     - name: Init workspace
       run: |
+        sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-empy
+        sudo apt-get install python-catkin-tools python-wstool ros-melodic-rostest
         source /opt/ros/melodic/setup.bash
-        mkdir -p ${CATKIN_WS}/src && cd ${CATKIN_WS} && catkin_make
+        mkdir -p ${CATKIN_WS}/src
         ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
 
     - name: install package
       run: |
+        source /opt/ros/melodic/setup.bash
+        cd ${CATKIN_WS}/src && wstool init && wstool merge mohou_ros/rosinstall.melodic && wstool update
+        cd ${CATKIN_WS}/src && rosdep update && rosdep install --from-paths . -i -r -y
+        cd ${CATKIN_WS} && catkin init
+        catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
+        cd ${CATKIN_WS} && catkin build tf2_py gazebo_ros mohou_ros  # because caktin build all package takes toooo long in github action
         source ${CATKIN_WS}/devel/setup.bash
-        rosdep update
-        roscd mohou_ros && rosdep install --from-paths . -i -r -y
         pip3 install scikit-build
-        roscd mohou_ros && pip3 install . --user
+        cd ${GITHUB_WORKSPACE} && pip3 install  . --user
 
     - name: temp install skrobot
       run: |
           git clone https://github.com/HiroIshida/scikit-robot.git --branch raise_import_error && cd scikit-robot && pip3 install . && cd .. && rm -rf scikit-robot
 
-    - name: Show installed package
+    - name: Show installed package (for debugging)
       run: |
-          dpkg -l
-          pip3 freeze
+        dpkg -l
+        pip3 freeze
+
+    - name: Show environment (for debugging)
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        echo "env"
+        env
+        echo "show python sys.path"
+        python3 -c "import sys; print(sys.path)"
+        echo "show CMAKE_PREFIX_PATH"
+        echo $CMAKE_PREFIX_PATH
+        echo "show ROS_PACKAGE_PATH"
+        echo $ROS_PACKAGE_PATH
 
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros data_collection.test
 
     - name: rostest train_pipeline
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros train_pipeline.test
 
     - name: rostest executor
       run: |
         source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros executor.test
