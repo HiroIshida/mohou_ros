@@ -48,6 +48,18 @@ jobs:
           dpkg -l
           pip3 freeze
 
+    - name: Show environment (for debugging)
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        echo "env"
+        env
+        echo "show python sys.path"
+        python3 -c "import sys; print(sys.path)"
+        echo "show CMAKE_PREFIX_PATH"
+        echo $CMAKE_PREFIX_PATH
+        echo "show ROS_PACKAGE_PATH"
+        echo $ROS_PACKAGE_PATH
+
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash
