@@ -1,6 +1,6 @@
 ## mohou_ros [![pytest](https://github.com/HiroIshida/mohou_ros/actions/workflows/test.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/test.yaml) [![lint](https://github.com/HiroIshida/mohou_ros/actions/workflows/format.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/format.yaml) [![rostest-noetic](https://github.com/HiroIshida/mohou_ros/actions/workflows/noetic_test.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/noetic_test.yaml) [![rostest-melodic](https://github.com/HiroIshida/mohou_ros/actions/workflows/melodic_test.yaml/badge.svg)](https://github.com/HiroIshida/mohou_ros/actions/workflows/melodic_test.yaml)
 
-Collection of peripheral functions around [mohou](https://github.com/HiroIshida/mohou) and ros wrapper.
+This packages provides a ros-wrapper for [mohou](https://github.com/HiroIshida/mohou), which enables collect data (via kinesthetic teaching or HTC vive controller), data conversion to mohou's format, train, and execute on the real robot.
 
 ## installation
 install this package as pip 
@@ -13,6 +13,7 @@ Future direction would be using catkin virtual env.
 If you get stuck at installing opencv-python because of skbuild, please refere to
 https://stackoverflow.com/questions/63448467/installing-opencv-fails-because-it-cannot-find-skbuild
 
+### Catkin build (Noetic)
 Currently, there is no ros pacakge dependency which must be installed from source.
 So, no need to create new workspace and you can install this package by
 ```
@@ -21,7 +22,7 @@ catkin bt
 ```
 
 ### Workspace build (Melodic + Python3)
-If you are using melodic, you need to build cv-bridge with the following configuration to use python3.
+If you are using melodic, you need to build some packages from source with the following configuration to use python3.
 ```bash
 sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-venv python3-empy
 sudo apt-get install python-catkin-tools python-wstool ros-melodic-rostest
