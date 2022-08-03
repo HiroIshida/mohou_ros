@@ -4,7 +4,7 @@ topic:
         rosbag: True
         use: True
     RGBImage: 
-        name: /l_forearm_cam/image_color/compressed
+        name: /sample_image/compressed
         rosbag: True
         use: True
     GripperState:

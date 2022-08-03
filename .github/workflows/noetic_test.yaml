@@ -27,16 +27,44 @@ jobs:
 
     - name: Init workspace
       run: |
+        sudo apt-get install python3-osrf-pycommon python3-catkin-tools
         source /opt/ros/noetic/setup.bash
-        mkdir -p ${CATKIN_WS}/src && cd ${CATKIN_WS} && catkin_make
+        mkdir -p ${CATKIN_WS}/src
         ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
 
-    - name: Run tests
+    - name: install package
       run: |
+        source /opt/ros/noetic/setup.bash
+        cd ${CATKIN_WS}/src && rosdep update
+        rosdep install --from-paths . -i -r -y
+        cd ${CATKIN_WS} && catkin init
+        catkin build
         source ${CATKIN_WS}/devel/setup.bash
-        rosdep update
-        roscd mohou_ros && rosdep install --from-paths . -i -r -y
         pip3 install scikit-build
         roscd mohou_ros && pip3 install . --user
-        rostest mohou_ros data_collection.test --text
-        rostest mohou_ros pipeline.test --text
+
+    - name: Show installed package (for debugging)
+      run: |
+        dpkg -l
+        pip3 freeze
+
+    - name: Show environment (for debugging)
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        env
+        python3 -c "import sys; print(sys.path)"
+
+    - name: rostest data_collection
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        rostest mohou_ros data_collection.test
+
+    - name: rostest train_pipeline
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        rostest mohou_ros train_pipeline.test
+
+    - name: rostest executor
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        rostest mohou_ros executor.test

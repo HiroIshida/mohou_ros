@@ -5,7 +5,6 @@
   </include>
 
   <node pkg="mohou_ros" type="random_image_publisher.py" name="random_image_publisher"/>
-  <node pkg="mohou_ros" type="periodic_pr2_controller.py" name="random_pr2_controller"/>
 
-  <test pkg="mohou_ros" type="run_data_collection.py" test-name="data_collection" time-limit="600"/>
+  <test pkg="mohou_ros" type="run_executor.py" test-name="excutor" time-limit="600"/>
 </launch>
