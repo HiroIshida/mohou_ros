@@ -7,7 +7,7 @@ import threading
 import time
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Type
+from typing import Callable, ClassVar, List, Optional, Type
 
 import numpy as np
 import rospy
@@ -26,11 +26,14 @@ from mohou_ros_utils.script_utils import (
     get_rosbag_filepath,
 )
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
+from mohou_ros_utils.vive_controller.robot_interface import (
+    PR2InterfaceT,
+    ScikitRobotPR2Interface,
+)
 from mohou_ros_utils.vive_controller.vive_base import JoyDataManager, ViveController
-from mohou_ros_utils.vive_controller.robot_interface import ScikitRobotPR2Interface
 
 
-class PR2ViveController(ViveController, ScikitRobotPR2Interface):
+class PR2ViveController(ViveController, ScikitRobotPR2Interface[PR2InterfaceT]):
     robot_model: PR2
     config: Config
     sound_client: SoundClient
@@ -40,7 +43,7 @@ class PR2ViveController(ViveController, ScikitRobotPR2Interface):
 
     @property
     @abstractmethod
-    def robot_interface_type(self) -> Type[PR2ROSRobotInterface]:
+    def pr2_interface_type(self) -> Type[PR2InterfaceT]:
         pass
 
     @property
@@ -73,8 +76,8 @@ class PR2ViveController(ViveController, ScikitRobotPR2Interface):
 
         robot_model = PR2()
         self.robot_model = robot_model
-        self.robot_interface = self.robot_interface_type(robot_model)
-        self.robot_model.angle_vector(self.robot_interface.angle_vector())
+        self._post_init_setup(self.pr2_interface_type, robot_model)
+        self.robot_model.angle_vector(self.get_real_robot_joint_angles())
         self.gripper_close = False
 
         self.joy_manager.register_processor(JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
@@ -249,7 +252,7 @@ class PR2RightArmViveController(PR2ViveController):
         def default_controller(self):
             return [self.rarm_controller, self.torso_controller, self.head_controller]
 
-    robot_interface_type = RarmInterface  # type: ignore
+    pr2_interface_type: ClassVar[Type[PR2ROSRobotInterface]] = RarmInterface
     arm_joint_names: List[str] = rarm_joint_names
     arm_end_effector_name: str = "r_gripper_tool_frame"
     gripper_joint_name: str = "r_gripper_joint"
@@ -278,7 +281,7 @@ class PR2LeftArmViveController(PR2ViveController):
         def default_controller(self):
             return [self.larm_controller, self.torso_controller, self.head_controller]
 
-    robot_interface_type = LarmInterface  # type: ignore
+    pr2_interface_type: ClassVar[Type[PR2ROSRobotInterface]] = LarmInterface
     arm_joint_names: List[str] = larm_joint_names
     arm_end_effector_name: str = "l_gripper_tool_frame"
     gripper_joint_name: str = "l_gripper_joint"

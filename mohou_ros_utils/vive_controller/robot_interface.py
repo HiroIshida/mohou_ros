@@ -1,14 +1,12 @@
-import numpy as np
-from abc import abstractmethod, ABC
-from typing import Optional, Tuple
+from abc import ABC, abstractmethod
+from typing import Generic, Type, TypeVar
 
-from mohou_ros_utils.utils import CoordinateTransform
-from skrobot.models import PR2
+import numpy as np
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
+from skrobot.models import PR2
 
 
 class RobotInterfaceBase(ABC):
-
     @abstractmethod
     def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
         pass
@@ -21,9 +19,19 @@ class RobotInterfaceBase(ABC):
     def move_gripper(self, pos: float):
         pass
 
+    @abstractmethod
+    def _post_init_setup(self, *arg, **kwargs):
+        pass
 
-class ScikitRobotPR2Interface(RobotInterfaceBase):
-    robot_interface: PR2ROSRobotInterface
+
+PR2InterfaceT = TypeVar("PR2InterfaceT", bound=PR2ROSRobotInterface)
+
+
+class ScikitRobotPR2Interface(RobotInterfaceBase, Generic[PR2InterfaceT]):
+    robot_interface: PR2InterfaceT
+
+    def _post_init_setup(self, interface_t: Type[PR2InterfaceT], robot_model: PR2):  # type: ignore
+        self.robot_interface = interface_t(robot_model)
 
     def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
         assert joint_angles.ndim == 1
@@ -34,6 +42,5 @@ class ScikitRobotPR2Interface(RobotInterfaceBase):
 
 
 class RoseusRobotInterface(RobotInterfaceBase):
-
     def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
         pass
