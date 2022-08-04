@@ -10,6 +10,7 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
 
 from mohou_ros_utils.config import Config
+from mohou_ros_utils.vive_controller.robot_interface import RobotInterfaceBase
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -100,7 +101,7 @@ class JoyDataManager(TopicDataManager[Joy]):
             self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
-class ViveController(ABC):
+class ViveController(RobotInterfaceBase, ABC):
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
     scale: float

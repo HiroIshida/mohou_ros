@@ -27,11 +27,11 @@ from mohou_ros_utils.script_utils import (
 )
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
 from mohou_ros_utils.vive_controller.vive_base import JoyDataManager, ViveController
+from mohou_ros_utils.vive_controller.robot_interface import ScikitRobotPR2Interface
 
 
-class PR2ViveController(ViveController):
+class PR2ViveController(ViveController, ScikitRobotPR2Interface):
     robot_model: PR2
-    robot_interface: Optional[PR2ROSRobotInterface]
     config: Config
     sound_client: SoundClient
     gripper_close: bool
@@ -61,10 +61,6 @@ class PR2ViveController(ViveController):
     @property
     @abstractmethod
     def gripper_joint_name(self) -> str:
-        pass
-
-    @abstractmethod
-    def move_gripper(self, pos: float) -> None:
         pass
 
     def loginfo(self, message):
@@ -137,7 +133,7 @@ class PR2ViveController(ViveController):
         )
 
         if isinstance(av_next, np.ndarray):
-            self.robot_interface.angle_vector(av_next, time=0.8, time_scale=1.0)
+            self.update_real_robot(av_next, time=0.8)
         else:
             self.logwarn("solving inverse kinematics failed")
 
@@ -159,8 +155,6 @@ class PR2ViveController(ViveController):
             self.loginfo("turn on tracker")
 
     def calibrate_controller(self) -> None:
-        assert self.robot_interface is not None
-
         self.loginfo("calibrating controller")
         pose_msg = self.pose_manager.msg
 
@@ -170,7 +164,7 @@ class PR2ViveController(ViveController):
         tf_handref2camera = CoordinateTransform.from_ros_pose(pose_msg.pose, "hand-ref", "camera")
         self.tf_handref2camera = tf_handref2camera
 
-        self.robot_model.angle_vector(self.robot_interface.angle_vector())
+        self.robot_model.angle_vector(self.get_real_robot_joint_angles())
         end_effector: Link = self.robot_model.__dict__[self.arm_end_effector_name]
         coords = end_effector.copy_worldcoords()
         self.tf_gripperref2base = CoordinateTransform.from_skrobot_coords(
