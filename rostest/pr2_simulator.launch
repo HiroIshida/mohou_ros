@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch">
+    <arg name="gui" value="false" />
+    <arg name="headless" value="true" />
+  </include>
+  <node pkg="mohou_ros" type="random_image_publisher.py" name="random_image_publisher"/>
+</launch>
