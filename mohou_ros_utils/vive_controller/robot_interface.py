@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Type, TypeVar
+from typing import ClassVar, Type, TypeVar
 
 import numpy as np
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
-from skrobot.models import PR2
+from skrobot.model import RobotModel
 
 
-class RobotInterfaceBase(ABC):
+class RobotControllerBase(ABC):
+    robot_model: RobotModel
+
     @abstractmethod
     def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
         pass
@@ -19,19 +21,18 @@ class RobotInterfaceBase(ABC):
     def move_gripper(self, pos: float):
         pass
 
-    @abstractmethod
-    def _post_init_setup(self, *arg, **kwargs):
-        pass
-
 
 PR2InterfaceT = TypeVar("PR2InterfaceT", bound=PR2ROSRobotInterface)
 
 
-class ScikitRobotPR2Interface(RobotInterfaceBase, Generic[PR2InterfaceT]):
-    robot_interface: PR2InterfaceT
+class SkrobotPR2Controller(RobotControllerBase):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]]
+    robot_interface: PR2ROSRobotInterface
 
-    def _post_init_setup(self, interface_t: Type[PR2InterfaceT], robot_model: PR2):  # type: ignore
-        self.robot_interface = interface_t(robot_model)
+    def __init__(self, robot_model: RobotModel):
+        self.robot_interface = self.ri_type(robot_model)
+        robot_model.angle_vector(self.robot_interface.angle_vector())
+        self.robot_model = robot_model
 
     def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
         assert joint_angles.ndim == 1
@@ -41,6 +42,30 @@ class ScikitRobotPR2Interface(RobotInterfaceBase, Generic[PR2InterfaceT]):
         return self.robot_interface.angle_vector()  # type: ignore
 
 
-class RoseusRobotInterface(RobotInterfaceBase):
+class RarmInterface(PR2ROSRobotInterface):
+    def default_controller(self):
+        return [self.rarm_controller, self.torso_controller, self.head_controller]
+
+
+class LarmInterface(PR2ROSRobotInterface):
+    def default_controller(self):
+        return [self.larm_controller, self.torso_controller, self.head_controller]
+
+
+class SkrobotPR2RarmController(SkrobotPR2Controller):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = RarmInterface
+
+    def move_gripper(self, pos: float) -> None:
+        self.robot_interface.move_gripper("rarm", pos, effort=100)  # type: ignore
+
+
+class SkrobotPR2LarmController(SkrobotPR2Controller):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = LarmInterface
+
+    def move_gripper(self, pos: float) -> None:
+        self.robot_interface.move_gripper("larm", pos, effort=100)  # type: ignore
+
+
+class RoseusRobotInterface(RobotControllerBase):
     def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
         pass

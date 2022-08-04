@@ -10,7 +10,6 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.vive_controller.robot_interface import RobotInterfaceBase
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -101,28 +100,21 @@ class JoyDataManager(TopicDataManager[Joy]):
             self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
-class ViveController(RobotInterfaceBase, ABC):
+class ViveController:
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
-    scale: float
     timer_interval: float
     is_initialized: bool
     is_tracking: bool
 
-    def __init__(self, config: Config, scale: float, joy_topic_name: str, pose_topic_name: str):
+    def __init__(self, config: Config, joy_topic_name: str, pose_topic_name: str):
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
-        self.scale = scale
         self.timer_interval = 0.05
 
         rospy.Timer(rospy.Duration(self.timer_interval), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
-        self.post_init_hook(config)
-
-    @abstractmethod
-    def post_init_hook(self, config: Config) -> None:
-        pass
 
     def on_timer(self, event):
         t_start = time.time()
