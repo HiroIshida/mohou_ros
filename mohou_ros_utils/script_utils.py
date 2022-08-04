@@ -37,8 +37,6 @@ def get_latest_rosbag_filename(project_path: Path) -> Optional[Path]:
     """
     NOTE: this function assumes that rosbag file has time-stamp postfix
     """
-    assert False, "Ishida: please check behavior before delting this assrtion"
-
     paths = get_rosbag_paths(project_path)
     if len(paths) == 0:
         return None
