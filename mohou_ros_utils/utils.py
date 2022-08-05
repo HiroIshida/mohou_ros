@@ -1,12 +1,13 @@
 import functools
 import warnings
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from geometry_msgs.msg import Pose
 from skrobot.coordinates import Coordinates
 from skrobot.coordinates.math import quaternion2matrix
+from skrobot.model import Joint, LinearJoint, RobotModel, RotationalJoint
 
 
 def deprecated(func):
@@ -69,3 +70,22 @@ def chain_transform(
     src_new = tf_a2b.src
     dest_new = tf_b2c.dest
     return CoordinateTransform(trans_a2c, rot_a2c, src_new, dest_new)
+
+
+def standard_unit_to_euslisp_unit(
+    robot: RobotModel, joint_names: List[str], joint_angles: np.ndarray
+) -> np.ndarray:
+    assert len(joint_names) == len(joint_angles)
+    len(joint_names)
+
+    joint_angles_new = []
+    for name, angle in zip(joint_names, joint_angles):
+        joint = robot.__dict__[name]
+        assert isinstance(joint, Joint)
+        if isinstance(joint, RotationalJoint):
+            joint_angles_new.append(np.rad2deg(angle))
+        elif isinstance(joint, LinearJoint):
+            joint_angles_new.append(angle * 1000.0)
+        else:
+            assert False, "{} is not compatible joint type".format(joint.__class__.__name__)
+    return np.array(joint_angles_new)
