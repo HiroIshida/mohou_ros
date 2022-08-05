@@ -66,6 +66,12 @@ jobs:
         echo "show ROS_PACKAGE_PATH"
         echo $ROS_PACKAGE_PATH
 
+    - name: rostest pr2eus commander
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
+        rostest mohou_ros test_pr2eus_commander.test
+
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash

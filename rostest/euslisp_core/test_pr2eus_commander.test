@@ -1,0 +1,10 @@
+<launch>
+  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch">
+    <arg name="gui" value="false" />
+    <arg name="headless" value="true" />
+  </include>
+
+  <node pkg="mohou_ros" type="pr2_point_attraction_command_publisher.py" name="python_pr2_dummy_commander"/>
+  <node pkg="mohou_ros" type="pr2_commander.l" name="pr2_commander"/>
+  <test pkg="mohou_ros" type="test_pr2eus_commander.py" test-name="pipeline" time-limit="1200"/>
+</launch>

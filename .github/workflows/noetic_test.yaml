@@ -54,6 +54,11 @@ jobs:
         env
         python3 -c "import sys; print(sys.path)"
 
+    - name: rostest pr2eus commander
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        rostest mohou_ros test_pr2eus_commander.test
+
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash
