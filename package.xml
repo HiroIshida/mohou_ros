@@ -12,6 +12,8 @@
   <build_depend condition="$ROS_PYTHON_VERSION == 2">cv_bridge_python3</build_depend>
   <!-- for noetic -->
   <build_depend condition="$ROS_PYTHON_VERSION == 3">cv_bridge</build_depend>
+  <build_depend>message_generation</build_depend>
+  <depend>message_runtime</depend>
   <depend>pr2_mechanism_msgs</depend>
   <depend>pr2_controllers_msgs</depend>
   <depend>sensor_msgs</depend>

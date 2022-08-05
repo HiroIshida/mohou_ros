@@ -118,7 +118,7 @@ class ExecutorBase(ABC):
             self.on_joint_cont_state,
         )
 
-        self.post_init_hook()
+        self._post_init()
         self.dryrun = dryrun
 
         # start!
@@ -238,7 +238,7 @@ class ExecutorBase(ABC):
                 movie_clip.write_videofile(str(bag_video_file_path))
 
     @abstractmethod
-    def post_init_hook(self) -> None:
+    def _post_init(self) -> None:
         pass
 
     @abstractmethod
