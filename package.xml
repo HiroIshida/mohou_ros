@@ -21,6 +21,7 @@
   <depend>trajectory_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>control_msgs</depend>
+  <depend>pr2eus</depend>
 
   <depend>ffmpeg</depend>
   <depend>zip</depend>
