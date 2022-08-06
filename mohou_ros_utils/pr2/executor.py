@@ -78,9 +78,10 @@ class EusPR2Executor(ExecutorBase):
         control_cmd.joint_names = self.control_joint_names
         control_cmd.angles = list(av_next.numpy())
 
+        if GripperState in edict_next:
+            rospy.logwarn("if you want to send gripper state, please make a PR.")
+
         if not self.dryrun:
-            if GripperState in edict_next:
-                rospy.logwarn("if you want to send gripper state, please make a PR.")
             self.pub_command.publish(control_cmd)
 
     def get_angle_vector(self) -> AngleVector:
