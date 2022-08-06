@@ -26,7 +26,7 @@ def get_first_rgb(config: Config) -> RGBImage:
 
         bag = rosbag.Bag(str(filepath))
         for topic, msg, _ in bag.read_messages():
-            if topic == config.topics.get_by_mohou_type(RGBImage).name:
+            if topic == config.topics.get_by_mohou_type(RGBImage).topic_name_list:
                 bag.close()
                 return rgb_conv.apply((msg,))
         bag.close()

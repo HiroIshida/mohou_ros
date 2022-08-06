@@ -3,6 +3,7 @@ import shutil
 
 import pytest
 from mohou.file import get_project_path
+from mohou.types import AngleVector, GripperState, RGBImage
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.file import RelativeName, get_subpath
@@ -32,3 +33,16 @@ def example_config():
     shutil.copyfile(src, dist)
 
     return Config.from_project_path(project_path)
+
+
+def test_config(example_config):  # type: ignore # noqa
+    config: Config = example_config
+
+    rgb_config = config.topics.type_config_table[RGBImage]
+    assert rgb_config.topic_name_list == ["/kinect_head/rgb/image_rect_color"]
+
+    gripper_config = config.topics.type_config_table[GripperState]
+    assert gripper_config.topic_name_list == ["/r_gripper_controller/state"]
+
+    av_config = config.topics.type_config_table[AngleVector]
+    assert av_config.topic_name_list == ["/joint_states"]

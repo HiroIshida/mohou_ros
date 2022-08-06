@@ -66,7 +66,7 @@ def bag2clip(bag: rosbag.Bag, config: Config, hz: float, speed: float) -> ImageS
     converter = RGBImageConverter.from_config_topic_name_only(config)
     seq = TimeStampedSequence.create_empty(RGBImage)
     rgb_config = config.topics.get_by_mohou_type(RGBImage)
-    for topic, msg, t in bag.read_messages(topics=[rgb_config.name]):  # type: ignore
+    for topic, msg, t in bag.read_messages(topics=[rgb_config.topic_name_list]):  # type: ignore
         seq.append(converter.apply((msg,)), t.to_sec())
     rule = AllSameInterpolationRule(NearestNeighbourInterpolator)
     seq_regular = synclonize([seq], 1.0 / hz, itp_rule=rule)[0]

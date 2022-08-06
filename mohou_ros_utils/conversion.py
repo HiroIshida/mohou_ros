@@ -80,9 +80,7 @@ class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
     def config_to_topic_name_list(cls, config: Config) -> List[str]:
         output_type = cls.out_element_type()
         topic_config = config.topics.type_config_table[output_type]
-        topic_name = topic_config.name
-        topic_name_list = [topic_name]  # TODO: extend to multiple message
-        return topic_name_list
+        return topic_config.topic_name_list
 
     @classmethod
     @abstractmethod

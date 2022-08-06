@@ -12,7 +12,7 @@ from mohou_ros_utils.file import RelativeName, get_subpath
 @dataclass
 class EachTopicConfig:
     mohou_type: Type[PrimitiveElementBase]
-    name: str
+    topic_name_list: List[str]
     rosbag: bool
     use: bool
 
@@ -21,9 +21,12 @@ class EachTopicConfig:
         cls, yaml_dict: Dict, mohou_type: Type[PrimitiveElementBase]
     ) -> "EachTopicConfig":
         partial_yaml_dict = yaml_dict[mohou_type.__name__]
+        name_list = partial_yaml_dict["name"]
+        if not isinstance(name_list, list):
+            name_list = [name_list]
         return cls(
             mohou_type,
-            partial_yaml_dict["name"],
+            name_list,
             partial_yaml_dict["rosbag"],
             partial_yaml_dict["use"],
         )
@@ -36,7 +39,6 @@ class EachTopicConfig:
 @dataclass
 class TopicConfig:
     type_config_table: Dict[Type[PrimitiveElementBase], EachTopicConfig]
-    name_config_table: Dict[str, EachTopicConfig]
 
     @property
     def topic_config_list(self) -> List[EachTopicConfig]:
@@ -44,17 +46,22 @@ class TopicConfig:
 
     @property
     def rosbag_topic_list(self) -> List[str]:
-        return [t.name for t in self.topic_config_list if t.rosbag]
+        topic_list = []
+        for topic_config in self.topic_config_list:
+            if topic_config.rosbag:
+                topic_list.extend(topic_config.topic_name_list)
+        return topic_list
 
     @property
     def use_topic_list(self) -> List[str]:
-        return [t.name for t in self.topic_config_list if t.use]
+        topic_list = []
+        for topic_config in self.topic_config_list:
+            if topic_config.use:
+                topic_list.extend(topic_config.topic_name_list)
+        return topic_list
 
     def get_by_mohou_type(self, mohou_type: Type[PrimitiveElementBase]) -> EachTopicConfig:
         return self.type_config_table[mohou_type]
-
-    def get_by_topic_name(self, name: str) -> EachTopicConfig:
-        return self.name_config_table[name]
 
     @classmethod
     def from_yaml_dict(cls, yaml_dict: Dict) -> "TopicConfig":
@@ -62,12 +69,7 @@ class TopicConfig:
         for key in yaml_dict.keys():
             type_key: Type[PrimitiveElementBase] = get_element_type(key)  # type: ignore
             type_config_table[type_key] = EachTopicConfig.from_yaml_dict(yaml_dict, type_key)
-
-        # create name config table
-        name_config_table: Dict[str, EachTopicConfig] = {}
-        for key, val in type_config_table.items():
-            name_config_table[val.name] = val
-        return cls(type_config_table, name_config_table)
+        return cls(type_config_table)
 
 
 @dataclass

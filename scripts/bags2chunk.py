@@ -3,7 +3,7 @@ import argparse
 import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import genpy
 import numpy as np
@@ -12,7 +12,6 @@ import rospkg
 from mohou.file import get_project_path
 from mohou.types import (
     AngleVector,
-    ElementSequence,
     EpisodeBundle,
     EpisodeData,
     MetaData,
@@ -32,31 +31,38 @@ from mohou_ros_utils.script_utils import get_rosbag_paths
 from mohou_ros_utils.types import TimeStampedSequence
 
 
+def slice_synced_seqs(
+    seqs: List[TimeStampedSequence[genpy.Message]], index: int
+) -> Dict[str, genpy.Message]:
+
+    msg_table = {}
+    for seq in seqs:
+        msg = seq.object_list[index]
+        assert seq.topic_name is not None
+        msg_table[seq.topic_name] = msg
+    return msg_table
+
+
 def seqs_to_episodedata(
     seqs: List[TimeStampedSequence], config: Config, bagname: str
 ) -> EpisodeData:
     conv = MessageConverterCollection.from_config(config)
 
-    mohou_elem_seqs = []
-    for seq in seqs:
-        assert seq.topic_name is not None
-        if seq.topic_name not in config.topics.use_topic_list:
-            continue
+    length_list = [len(seq) for seq in seqs]
+    all_same_length = set(length_list) == 1
+    assert all_same_length
 
-        elem_type = config.topics.get_by_topic_name(seq.topic_name).mohou_type
-        elem_list = []
-        for obj in seq.object_list:
-            # TODO: to support mutli message to mohou type conversion
-            # we must slice the time sequence
-            assert isinstance(obj, genpy.Message)
-            elem_list.append(conv.apply((obj,), elem_type))
-        elem_seq = ElementSequence(elem_list)
-        mohou_elem_seqs.append(elem_seq)
+    edict_list = []
+    for i in range(len(seqs[0])):
+        msg_table = slice_synced_seqs(seqs, i)
+        edict = conv.apply_to_msg_table(msg_table)
+        edict_list.append(edict)
 
     time_stamps = TimeStampSequence(seqs[0].time_list)
     metadata = MetaData()
     metadata["rosbag"] = bagname
-    return EpisodeData.from_seq_list(mohou_elem_seqs, timestamp_seq=time_stamps, metadata=metadata)
+    episode = EpisodeData.from_edict_list(edict, time_stamps, metadata)
+    return episode
 
 
 class RemoveInitPolicy(Enum):

@@ -29,7 +29,7 @@ if __name__ == "__main__":
     def callback(msg):
         data["msg"] = msg
 
-    av_topic_name = config.topics.get_by_mohou_type(AngleVector).name
+    av_topic_name = config.topics.get_by_mohou_type(AngleVector).topic_name_list
     rospy.Subscriber(av_topic_name, JointState, callback=callback)
     time.sleep(2.0)
 
