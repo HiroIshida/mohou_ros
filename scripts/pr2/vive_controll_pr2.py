@@ -34,8 +34,7 @@ from mohou_ros_utils.vive_controller.robot_interface import (
 from mohou_ros_utils.vive_controller.vive_base import JoyDataManager, ViveController
 
 
-class PR2ViveController:
-    vive_con: ViveController
+class PR2ViveController(ViveController):
     robot_con: SkrobotPR2Controller
     config: Config
     gripper_close: bool
@@ -43,23 +42,26 @@ class PR2ViveController:
     tf_handref2camera: Optional[CoordinateTransform] = None
     tf_gripperref2base: Optional[CoordinateTransform] = None
 
-    def _post_init(self):
-        self.gripper_close = False
-        self.vive_con.joy_manager.register_processor(
-            JoyDataManager.Button.BOTTOM, self.switch_grasp_state
-        )
-        self.vive_con.joy_manager.register_processor(
-            JoyDataManager.Button.SIDE, self.reset_to_home_position
-        )
-        self.vive_con.joy_manager.register_processor(
-            JoyDataManager.Button.TOP, self.on_and_off_tracker
-        )
-        self.vive_con.pose_manager.register_processor(self.track_arm)
+    def __init__(
+        self,
+        joy_topic_name: str,
+        pose_topic_name: str,
+        robot_con: SkrobotPR2Controller,
+        config: Config,
+        scale: float,
+    ):
 
+        super().__init__(joy_topic_name, pose_topic_name)
+        self.robot_con = robot_con
+        self.config = config
+        self.scale = scale
+        self.gripper_close = False
         self.config = config
 
-        self.vive_con.is_initialized = True
-        self.vive_con.is_tracking = False
+        self.joy_manager.register_processor(JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
+        self.joy_manager.register_processor(JoyDataManager.Button.SIDE, self.reset_to_home_position)
+        self.joy_manager.register_processor(JoyDataManager.Button.TOP, self.on_and_off_tracker)
+        self.pose_manager.register_processor(self.track_arm)
         self.loginfo("controller is initialized")
 
     @property
@@ -89,7 +91,7 @@ class PR2ViveController:
         rospy.logwarn("{} => ".format(self.log_prefix) + message)
 
     def track_arm(self) -> None:
-        pose_msg = self.vive_con.pose_manager.msg
+        pose_msg = self.pose_manager.msg
 
         is_ready = True
         if pose_msg is None:
@@ -101,9 +103,9 @@ class PR2ViveController:
             is_ready = False
 
         if not is_ready:
-            self.vive_con.is_tracking = False
+            self.is_tracking = False
             self.logwarn("not ready for tracking.")
-            self.vive_con.is_tracking = False
+            self.is_tracking = False
             self.loginfo("turn off tracker")
             return
 
@@ -141,17 +143,17 @@ class PR2ViveController:
             self.gripper_close = True
 
     def on_and_off_tracker(self) -> None:
-        if self.vive_con.is_tracking:
-            self.vive_con.is_tracking = False
+        if self.is_tracking:
+            self.is_tracking = False
             self.loginfo("turn off tracker")
         else:
             self.calibrate_controller()
-            self.vive_con.is_tracking = True
+            self.is_tracking = True
             self.loginfo("turn on tracker")
 
     def calibrate_controller(self) -> None:
         self.loginfo("calibrating controller")
-        pose_msg = self.vive_con.pose_manager.msg
+        pose_msg = self.pose_manager.msg
 
         if pose_msg is None:
             rospy.logerr("no pose subscribed")
@@ -167,7 +169,7 @@ class PR2ViveController:
         )
 
     def reset_to_home_position(self, reset_grasp: bool = True) -> None:
-        self.vive_con.is_tracking = False
+        self.is_tracking = False
         self.loginfo("turn off tracker")
         self.loginfo("resetting to home position")
         assert self.config.home_position is not None
@@ -248,23 +250,19 @@ class PR2RightArmViveController(PR2ViveController):
 
     def __init__(self, config: Config, scale: float):
         controller_id = "LHR_F7AFBF47"
-        vive_con = ViveController(
-            config,
-            "/controller_{}/joy".format(controller_id),
-            "/controller_{}_as_posestamped".format(controller_id),
-        )
-        self.scale = scale
-        self.sound_client = SoundClient(blocking=False)
-        rosbag_manager = RosbagManager(config, self.sound_client)
-        vive_con.joy_manager.register_processor(
+        joy_topic = "/controller_{}/joy".format(controller_id)
+        pose_topic = "/controller_{}_as_posestamped".format(controller_id)
+
+        robot_con = SkrobotPR2RarmController(PR2())
+        super().__init__(joy_topic, pose_topic, robot_con, config, scale)
+
+        sound_client = SoundClient(blocking=False)
+        rosbag_manager = RosbagManager(config, sound_client)
+        self.sound_client = sound_client
+        self.rosbag_manager = rosbag_manager
+        self.joy_manager.register_processor(
             JoyDataManager.Button.FRONT, rosbag_manager.switch_state
         )
-        robot_model = PR2()
-        self.robot_con = SkrobotPR2RarmController(robot_model)
-        self.rosbag_manager = rosbag_manager
-        self.vive_con = vive_con
-
-        self._post_init()
 
 
 class PR2LeftArmViveController(PR2ViveController):
@@ -277,20 +275,13 @@ class PR2LeftArmViveController(PR2ViveController):
 
     def __init__(self, config: Config, scale: float):
         controller_id = "LHR_FD35BD42"
-        vive_con = ViveController(
-            config,
-            "/controller_{}/joy".format(controller_id),
-            "/controller_{}_as_posestamped".format(controller_id),
-        )
+        joy_topic = "/controller_{}/joy".format(controller_id)
+        pose_topic = "/controller_{}_as_posestamped".format(controller_id)
+        robot_con = SkrobotPR2LarmController(PR2())
+        super().__init__(joy_topic, pose_topic, robot_con, config, scale)
 
-        vive_con.joy_manager.register_processor(
-            JoyDataManager.Button.FRONT, self.delete_latest_rosbag
-        )
-        self.vive_con = vive_con
-        self.scale = scale
-        self.robot_con = SkrobotPR2LarmController(PR2())
+        self.joy_manager.register_processor(JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
         self.sound_client = SoundClient(blocking=False)
-        self._post_init()
 
     def delete_latest_rosbag(self) -> None:
         latest_rosbag = get_latest_rosbag_filename(self.config.project_path)
@@ -317,6 +308,8 @@ if __name__ == "__main__":
     config = Config.from_project_path(project_path)
 
     rospy.init_node("pr2_vive_mohou")
-    PR2RightArmViveController(config, scale)
-    PR2LeftArmViveController(config, scale)
+    rarm_con = PR2RightArmViveController(config, scale)
+    larm_con = PR2LeftArmViveController(config, scale)
+    rarm_con.start()
+    larm_con.start()
     rospy.spin()

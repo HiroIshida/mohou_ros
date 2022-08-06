@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
 from typing import Callable, Generic, List, Optional, Type, TypeVar
 
@@ -8,8 +8,6 @@ import genpy
 import rospy
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
-
-from mohou_ros_utils.config import Config
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -107,7 +105,7 @@ class ViveController:
     is_initialized: bool
     is_tracking: bool
 
-    def __init__(self, config: Config, joy_topic_name: str, pose_topic_name: str):
+    def __init__(self, joy_topic_name: str, pose_topic_name: str):
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
         self.timer_interval = 0.05
@@ -115,6 +113,10 @@ class ViveController:
         rospy.Timer(rospy.Duration(self.timer_interval), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
+
+    def start(self) -> None:
+        self.is_initialized = True
+        rospy.loginfo("starting controller")
 
     def on_timer(self, event):
         t_start = time.time()
