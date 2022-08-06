@@ -1,0 +1,8 @@
+<launch>
+  <arg name="pn" default="your_project_name"/>
+  <node pkg="mohou_ros" type="execute_pr2.py" name="pr2_commander_pyside"
+        args="-pn $(arg pn) --force --roseus"
+        output="screen">
+  </node>
+  <node pkg="mohou_ros" type="pr2_commander.l" name="pr2_commander_eusside"/>
+</launch>

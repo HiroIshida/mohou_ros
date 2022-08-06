@@ -34,14 +34,15 @@ jobs:
 
     - name: install package
       run: |
+        sudo apt-get install python3-wstool
         source /opt/ros/noetic/setup.bash
-        cd ${CATKIN_WS}/src && rosdep update
-        rosdep install --from-paths . -i -r -y
+        cd ${CATKIN_WS}/src && wstool init && wstool merge mohou_ros/rosinstall.noetic && wstool update
+        cd ${CATKIN_WS}/src && rosdep update && rosdep install --from-paths . -i -r -y
         cd ${CATKIN_WS} && catkin init
-        catkin build
+        cd ${CATKIN_WS} && catkin build
         source ${CATKIN_WS}/devel/setup.bash
         pip3 install scikit-build
-        roscd mohou_ros && pip3 install . --user
+        cd ${GITHUB_WORKSPACE} && pip3 install  . --user
 
     - name: Show installed package (for debugging)
       run: |
@@ -53,6 +54,11 @@ jobs:
         source ${CATKIN_WS}/devel/setup.bash
         env
         python3 -c "import sys; print(sys.path)"
+
+    - name: rostest pr2eus commander
+      run: |
+        source ${CATKIN_WS}/devel/setup.bash
+        rostest mohou_ros test_pr2eus_commander.test
 
     - name: rostest data_collection
       run: |

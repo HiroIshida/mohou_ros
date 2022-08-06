@@ -13,12 +13,22 @@ Future direction would be using catkin virtual env.
 If you get stuck at installing opencv-python because of skbuild, please refere to
 https://stackoverflow.com/questions/63448467/installing-opencv-fails-because-it-cannot-find-skbuild
 
-### Catkin build (Noetic)
+### Workspace build (Noetic)
 Currently, there is no ros pacakge dependency which must be installed from source.
 So, no need to create new workspace and you can install this package by
 ```
-rosdep install --from-paths . -i -r -y
-catkin bt
+sudo apt-get install python3-wstool
+source /opt/ros/noetic/setup.bash
+mkdir -p ~/mohou_ws/src
+cd ~/mohou_ws/src
+git clone https://github.com/HiroIshida/mohou_ros.git
+wstool init
+wstool merge mohou_ros/rosinstall.noetic
+wstool update
+rosdep install --from-paths . --ignore-src -y -r
+cd ~/mohou_ws
+catkin init
+catkin build
 ```
 
 ### Workspace build (Melodic + Python3)
