@@ -162,6 +162,24 @@ class GripperStateConverter(MessageConverter[GripperState]):
 
 
 @dataclass
+class DualCaseGripperStateConverter(MessageConverter[GripperState]):
+    @classmethod
+    def from_config(cls, config: Config):
+        return cls.from_config_topic_name_only(config)
+
+    @classmethod
+    def inp_message_types(cls) -> Tuple[Type[JointControllerState], Type[JointControllerState]]:
+        return (JointControllerState, JointControllerState)
+
+    @classmethod
+    def out_element_type(cls) -> Type[GripperState]:
+        return GripperState
+
+    def apply(self, msg_tuple: Tuple[JointControllerState, JointControllerState]) -> GripperState:  # type: ignore[override]
+        return GripperState(np.array([msg_tuple[0].set_point, msg_tuple[1].set_point]))
+
+
+@dataclass
 class RGBImageConverter(MessageConverter[RGBImage]):
     image_filter: Optional[CompositeFilter] = None
 
@@ -263,16 +281,25 @@ class MessageConverterCollection:
     @classmethod
     def from_config(cls, config: Config):
         required_output_types = list(config.topics.type_config_table.keys())
-        converter_types: List[Type[MessageConverter]] = get_all_concrete_leaftypes(MessageConverter)  # type: ignore
+        all_converter_types: List[Type[MessageConverter]] = get_all_concrete_leaftypes(MessageConverter)  # type: ignore
 
         type_to_converter_table = {}
-        for converter_type in converter_types:
-            is_required_converter = converter_type.out_element_type() in required_output_types
-            if is_required_converter:
-                key = converter_type.out_element_type()
-                assert key not in type_to_converter_table, "only single converter per output type"
-                converter = converter_type.from_config(config)
-                type_to_converter_table[key] = converter
+        for converter_type in all_converter_types:
+            is_required_converter_cand = converter_type.out_element_type() in required_output_types
+
+            if is_required_converter_cand:
+                elem_config = config.topics.get_by_mohou_type(converter_type.out_element_type())
+                n_topic_requried = len(elem_config.topic_name_list)
+                is_topic_number_match = len(converter_type.inp_message_types()) == n_topic_requried
+
+                if is_topic_number_match:
+                    key = converter_type.out_element_type()
+
+                    assert key not in type_to_converter_table, "only single converter per output type"
+
+                    converter = converter_type.from_config(config)
+                    type_to_converter_table[key] = converter
+
         return cls(type_to_converter_table)
 
     def apply_to_msg_table(self, msg_table: Dict[str, genpy.Message]) -> ElementDict:

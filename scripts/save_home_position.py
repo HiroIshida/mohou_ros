@@ -29,8 +29,12 @@ if __name__ == "__main__":
     def callback(msg):
         data["msg"] = msg
 
-    av_topic_name = config.topics.get_by_mohou_type(AngleVector).topic_name_list
-    rospy.Subscriber(av_topic_name, JointState, callback=callback)
+    av_config = config.topics.get_by_mohou_type(AngleVector)
+    av_topic_name_list = av_config.topic_name_list
+    assert (
+        len(av_topic_name_list) == 1
+    ), "this impl assumes that AngleVector is extracted only from JointState"
+    rospy.Subscriber(av_topic_name_list[0], JointState, callback=callback)
     time.sleep(2.0)
 
     assert data["msg"] is not None
