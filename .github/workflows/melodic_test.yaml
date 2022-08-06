@@ -72,6 +72,15 @@ jobs:
         export PYTHONPATH=$PYTHONPATH:/opt/ros/melodic/lib/python2.7/dist-packages  # a workaround (somehow /opt/ros/melodic/python2.7 disappeared in github action, and rostest module cannot be found)
         rostest mohou_ros test_pr2eus_commander.test
 
+    - name: kill zombie gazebo process # fxxk. somehow gazebo process is not completely killed
+      run: |
+        echo "ps aux"
+        ps -aux
+        echo "kill"
+        ps -aux|grep -e gazebo -e ros|grep -v grep|awk '{print $2}'|xargs kill -9
+        echo "ps aux again"
+        ps -aux
+
     - name: rostest data_collection
       run: |
         source ${CATKIN_WS}/devel/setup.bash
