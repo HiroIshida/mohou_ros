@@ -17,7 +17,7 @@ https://stackoverflow.com/questions/63448467/installing-opencv-fails-because-it-
 Currently, there is no ros pacakge dependency which must be installed from source.
 So, no need to create new workspace and you can install this package by
 ```
-sudo apt-get install python3-wstool
+sudo apt-get install python3-wstool python3-catkin-tools
 source /opt/ros/noetic/setup.bash
 mkdir -p ~/mohou_ws/src
 cd ~/mohou_ws/src
