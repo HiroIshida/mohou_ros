@@ -94,8 +94,22 @@ class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
         topic_name_list = cls.config_to_topic_name_list(config)
         return cls(topic_name_list)
 
-    def is_compatible(self, topicname_to_msg_map_all: Dict[str, genpy.Message]) -> bool:
-        topic_name_set = set(topicname_to_msg_map_all.keys())
+    @classmethod
+    def is_compatible(cls, config: Config) -> bool:
+        # out elem_type
+        required_output_types = list(config.topics.type_config_table.keys())
+        is_out_elem_type_match = cls.out_element_type() in required_output_types
+
+        # check number of topic
+        elem_config = config.topics.get_by_mohou_type(cls.out_element_type())
+        n_topic_requried = len(elem_config.topic_name_list)
+        is_topic_number_match = len(cls.inp_message_types()) == n_topic_requried
+
+        return is_out_elem_type_match and is_topic_number_match
+
+    def is_applicable(self, msg_table: Dict[str, genpy.Message]) -> bool:
+        """check if msg_table can be processed by this converter"""
+        topic_name_set = set(msg_table.keys())
 
         # check topic_name
         required_topic_included = set(self.topic_name_list).issubset(topic_name_set)
@@ -103,7 +117,7 @@ class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
             return False
 
         # check topic_type
-        msg_list = [topicname_to_msg_map_all[name] for name in self.topic_name_list]
+        msg_list = [msg_table[name] for name in self.topic_name_list]
         msg_type_tuple = tuple([type(msg) for msg in msg_list])
         is_type_match = tuple(self.inp_message_types()) == msg_type_tuple
         if not is_type_match:
@@ -114,7 +128,7 @@ class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
     def apply_to_msg_table(
         self, msg_table: Dict[str, genpy.Message]
     ) -> Optional[PrimitiveElementT]:
-        if not self.is_compatible(msg_table):
+        if not self.is_applicable(msg_table):
             return None
 
         for topic_name in self.topic_name_list:
@@ -146,10 +160,11 @@ class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
 class GripperStateConverter(MessageConverter[GripperState]):
     @classmethod
     def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
         return cls.from_config_topic_name_only(config)
 
     @classmethod
-    def inp_message_types(cls) -> Tuple[Type[JointControllerState]]:
+    def inp_message_types(cls) -> Tuple[Type[JointControllerState], ...]:  # type: ignore[override]
         return (JointControllerState,)
 
     @classmethod
@@ -165,10 +180,11 @@ class GripperStateConverter(MessageConverter[GripperState]):
 class DualCaseGripperStateConverter(MessageConverter[GripperState]):
     @classmethod
     def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
         return cls.from_config_topic_name_only(config)
 
     @classmethod
-    def inp_message_types(cls) -> Tuple[Type[JointControllerState], Type[JointControllerState]]:
+    def inp_message_types(cls) -> Tuple[Type[JointControllerState], Type[JointControllerState]]:  # type: ignore[override]
         return (JointControllerState, JointControllerState)
 
     @classmethod
@@ -185,6 +201,7 @@ class RGBImageConverter(MessageConverter[RGBImage]):
 
     @classmethod
     def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
         topic_name_list = cls.config_to_topic_name_list(config)
         return cls(topic_name_list, config.image_filter)
 
@@ -210,6 +227,7 @@ class DepthImageConverter(MessageConverter[DepthImage]):
 
     @classmethod
     def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
         if config.image_filter is None:
             image_filter = None
         else:
@@ -253,6 +271,7 @@ class AngleVectorConverter(MessageConverter[AngleVector]):
 
     @classmethod
     def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
         topic_name_list = cls.config_to_topic_name_list(config)
         return cls(topic_name_list, config.control_joints)
 
@@ -280,26 +299,19 @@ class MessageConverterCollection:
 
     @classmethod
     def from_config(cls, config: Config):
-        required_output_types = list(config.topics.type_config_table.keys())
         all_converter_types: List[Type[MessageConverter]] = get_all_concrete_leaftypes(MessageConverter)  # type: ignore
-
         type_to_converter_table = {}
         for converter_type in all_converter_types:
-            is_required_converter_cand = converter_type.out_element_type() in required_output_types
+            if converter_type.is_compatible(config):
+                key = converter_type.out_element_type()
+                assert key not in type_to_converter_table, "only single converter per output type"
+                converter = converter_type.from_config(config)
+                type_to_converter_table[key] = converter
 
-            if is_required_converter_cand:
-                elem_config = config.topics.get_by_mohou_type(converter_type.out_element_type())
-                n_topic_requried = len(elem_config.topic_name_list)
-                is_topic_number_match = len(converter_type.inp_message_types()) == n_topic_requried
-
-                if is_topic_number_match:
-                    key = converter_type.out_element_type()
-
-                    assert key not in type_to_converter_table, "only single converter per output type"
-
-                    converter = converter_type.from_config(config)
-                    type_to_converter_table[key] = converter
-
+        # check
+        required_output_types = set(config.topics.type_config_table.keys())
+        is_requried_output_type_match = required_output_types == set(type_to_converter_table.keys())
+        assert is_requried_output_type_match
         return cls(type_to_converter_table)
 
     def apply_to_msg_table(self, msg_table: Dict[str, genpy.Message]) -> ElementDict:

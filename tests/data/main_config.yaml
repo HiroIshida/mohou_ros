@@ -12,7 +12,9 @@ topic:
         rosbag: True
         use: False
     GripperState:
-        name: /r_gripper_controller/state
+        name:
+            - /r_gripper_controller/state
+            - /l_gripper_controller/state
         rosbag: True
         use: True
 

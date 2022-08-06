@@ -42,7 +42,10 @@ def test_config(example_config):  # type: ignore # noqa
     assert rgb_config.topic_name_list == ["/kinect_head/rgb/image_rect_color"]
 
     gripper_config = config.topics.type_config_table[GripperState]
-    assert gripper_config.topic_name_list == ["/r_gripper_controller/state"]
+    assert gripper_config.topic_name_list == [
+        "/r_gripper_controller/state",
+        "/l_gripper_controller/state",
+    ]
 
     av_config = config.topics.type_config_table[AngleVector]
     assert av_config.topic_name_list == ["/joint_states"]

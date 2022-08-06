@@ -50,14 +50,16 @@ jobs:
             - name: pip install pytest mypy
               run: |
                   pip3 install pytest
-                  pip3 install mypy==0.910
+                  pip3 install mypy
 
             - name: Run Pytest
               run: |
+                  echo "pytest-version => $(pytest --version)"
                   source /opt/ros/noetic/setup.bash
                   pytest -v tests
 
             - name: Run mypy
               run: |
+                  echo "mypy-version => $(mypy --version)"
                   source /opt/ros/noetic/setup.bash
                   mypy . --exclude setup.py

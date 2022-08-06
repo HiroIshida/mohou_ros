@@ -7,11 +7,11 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
+import genpy
 import matplotlib.pyplot as plt
 import numpy as np
-import genpy
 import rosbag
 import rospy
 import torch
@@ -23,7 +23,7 @@ from mohou.types import AngleVector, ElementDict, GripperState, RGBImage, Termin
 from mohou.utils import canvas_to_ndarray
 from moviepy.editor import ImageSequenceClip
 from pr2_controllers_msgs.msg import JointControllerState
-from sensor_msgs.msg import CompressedImage, Image, JointState
+from sensor_msgs.msg import CompressedImage, JointState
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import MessageConverterCollection
@@ -90,10 +90,9 @@ class ExecutorBase(ABC):
     msg_table: Dict[str, Optional[genpy.Message]]
 
     rosbag_cmd_popen: Optional[subprocess.Popen] = None
-    #rgb_msg: Optional[CompressedImage] = None
-    #joint_state_msg: Optional[JointState] = None
+    # rgb_msg: Optional[CompressedImage] = None
+    # joint_state_msg: Optional[JointState] = None
     joint_cont_state_msg: Optional[JointControllerState] = None
-
 
     current_av: Optional[AngleVector] = None
 
@@ -145,14 +144,15 @@ class ExecutorBase(ABC):
             each_topic_config = config.topics.type_config_table[elem_type]
             for topic_name in each_topic_config.topic_name_list:
                 self.msg_table[topic_name] = None
+
                 def f(msg):
                     self.msg_table[topic_name] = msg
+
                 rospy.Subscriber(topic_name, msg_type, f)
 
         create_subscriber(RGBImage, CompressedImage)
         create_subscriber(GripperState, JointControllerState)
         create_subscriber(AngleVector, JointState)
-
 
     def run(self):
         self.running = True
@@ -165,7 +165,7 @@ class ExecutorBase(ABC):
             if msg is None:
                 rospy.loginfo("cannot start because topics are not subscribed yet.")
                 rospy.loginfo("{} is not subscribed yet".format(key))
-                return 
+                return
 
         rospy.loginfo("on timer..")
 
