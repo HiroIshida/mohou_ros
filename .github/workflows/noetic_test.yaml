@@ -34,6 +34,7 @@ jobs:
 
     - name: install package
       run: |
+        sudo apt-get install python3-wstool
         source /opt/ros/noetic/setup.bash
         cd ${CATKIN_WS}/src && wstool init && wstool merge mohou_ros/rosinstall.noetic && wstool update
         cd ${CATKIN_WS}/src && rosdep update && rosdep install --from-paths . -i -r -y
