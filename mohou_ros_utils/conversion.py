@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Generic, List, Optional, Type, TypeVar
+from typing import Dict, Generic, List, Optional, Tuple, Type, TypeVar
 
 import genpy
 import numpy as np
@@ -8,11 +8,13 @@ from cv_bridge import CvBridge
 from mohou.types import (
     AngleVector,
     DepthImage,
-    ElementBase,
-    ElementT,
+    ElementDict,
     GripperState,
+    PrimitiveElementBase,
+    PrimitiveElementT,
     RGBImage,
 )
+from mohou.utils import get_all_concrete_leaftypes
 
 # Only pr2 user
 from pr2_controllers_msgs.msg import JointControllerState
@@ -54,39 +56,142 @@ def numpy_to_imgmsg(data: np.ndarray, encoding) -> Image:
     return img_msg
 
 
-class TypeConverter(ABC, Generic[MessageT, ElementT]):
-    type_in: Type[MessageT]
-    type_out: Type[ElementT]
+@dataclass
+class AbstractDataclass(ABC):
+    # https://stackoverflow.com/a/60669138/7624196
+    def __new__(cls, *args, **kwargs):
+        if cls == AbstractDataclass or cls.__bases__[0] == AbstractDataclass:
+            raise TypeError("Cannot instantiate abstract class.")
+        return super().__new__(cls)
+
+
+MessageConverterT = TypeVar("MessageConverterT", bound="MessageConverter")
+
+
+@dataclass  # type: ignore
+class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
+    topic_name_list: List[str]
+
+    def __post_init__(self):
+        if self.__class__ == MessageConverter:
+            raise TypeError("Cannot instantiate abstract class.")
+
+    @classmethod
+    def config_to_topic_name_list(cls, config: Config) -> List[str]:
+        output_type = cls.out_element_type()
+        topic_config = config.topics.type_config_table[output_type]
+        topic_name = topic_config.name
+        topic_name_list = [topic_name]  # TODO: extend to multiple message
+        return topic_name_list
+
+    @classmethod
+    @abstractmethod
+    def from_config(cls: Type[MessageConverterT], config: Config) -> MessageConverterT:
+        pass
+
+    @classmethod
+    def from_config_topic_name_only(
+        cls: Type[MessageConverterT], config: Config
+    ) -> MessageConverterT:
+        topic_name_list = cls.config_to_topic_name_list(config)
+        return cls(topic_name_list)
+
+    @classmethod
+    def is_compatible(cls, config: Config) -> bool:
+        # out elem_type
+        required_output_types = list(config.topics.type_config_table.keys())
+        is_out_elem_type_match = cls.out_element_type() in required_output_types
+        return is_out_elem_type_match
+
+    def is_applicable(self, msg_table: Dict[str, genpy.Message]) -> bool:
+        """check if msg_table can be processed by this converter"""
+        topic_name_set = set(msg_table.keys())
+
+        # check topic_name
+        required_topic_included = set(self.topic_name_list).issubset(topic_name_set)
+        if not required_topic_included:
+            return False
+
+        # check topic_type
+        msg_list = [msg_table[name] for name in self.topic_name_list]
+        msg_type_tuple = tuple([type(msg) for msg in msg_list])
+        is_type_match = tuple(self.inp_message_types()) == msg_type_tuple
+        if not is_type_match:
+            return False
+
+        return True  # otherwise
+
+    def apply_to_msg_table(
+        self, msg_table: Dict[str, genpy.Message]
+    ) -> Optional[PrimitiveElementT]:
+        if not self.is_applicable(msg_table):
+            return None
+
+        for topic_name in self.topic_name_list:
+            assert topic_name in msg_table, "{} is not given..".format(topic_name)
+        # extract relevant msges
+        msg_tuple = tuple([msg_table[name] for name in self.topic_name_list])
+        msg_type_tuple = tuple([type(msg) for msg in msg_tuple])
+        assert self.inp_message_types() == msg_type_tuple
+        return self.apply(msg_tuple)  # type: ignore
+
+    @classmethod
+    @abstractmethod
+    def inp_message_types(cls) -> Tuple[Type[genpy.Message]]:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def out_element_type(cls) -> Type[PrimitiveElementT]:
+        pass
 
     @abstractmethod
-    def __call__(self, msg: MessageT) -> ElementT:
+    def apply(self, msg_tuple: Tuple[genpy.Message, ...]) -> PrimitiveElementT:
+        # see:
+        # https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
         pass
 
 
 @dataclass
-class GripperStateConverter(TypeConverter[JointControllerState, GripperState]):
-    type_in = JointControllerState
-    type_out = GripperState
-
+class GripperStateConverter(MessageConverter[GripperState]):
     @classmethod
     def from_config(cls, config: Config):
-        return cls()
+        assert cls.is_compatible(config)
+        return cls.from_config_topic_name_only(config)
 
-    def __call__(self, msg: JointControllerState) -> GripperState:
+    @classmethod
+    def inp_message_types(cls) -> Tuple[Type[JointControllerState], ...]:  # type: ignore[override]
+        return (JointControllerState,)
+
+    @classmethod
+    def out_element_type(cls) -> Type[GripperState]:
+        return GripperState
+
+    def apply(self, msg_tuple: Tuple[JointControllerState]) -> GripperState:  # type: ignore[override]
+        msg = msg_tuple[0]
         return GripperState(np.array([msg.set_point]))
 
 
 @dataclass
-class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
+class RGBImageConverter(MessageConverter[RGBImage]):
     image_filter: Optional[CompositeFilter] = None
-    type_in = CompressedImage
-    type_out = RGBImage
 
     @classmethod
-    def from_config(cls, config: Config) -> "RGBImageConverter":
-        return cls(config.image_filter)
+    def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
+        topic_name_list = cls.config_to_topic_name_list(config)
+        return cls(topic_name_list, config.image_filter)
 
-    def __call__(self, msg: CompressedImage) -> RGBImage:
+    @classmethod
+    def inp_message_types(cls) -> Tuple[Type[CompressedImage]]:
+        return (CompressedImage,)
+
+    @classmethod
+    def out_element_type(cls) -> Type[RGBImage]:
+        return RGBImage
+
+    def apply(self, msg_tuple: Tuple[CompressedImage]) -> RGBImage:  # type: ignore[override]
+        msg = msg_tuple[0]
         image = CvBridge().compressed_imgmsg_to_cv2(msg)
         if self.image_filter is not None:
             image = self.image_filter(image)
@@ -94,19 +199,33 @@ class RGBImageConverter(TypeConverter[CompressedImage, RGBImage]):
 
 
 @dataclass
-class DepthImageConverter(TypeConverter[Image, DepthImage]):
+class DepthImageConverter(MessageConverter[DepthImage]):
     image_filter: Optional[CompositeFilter] = None
-    type_in = Image
-    type_out = DepthImage
 
     @classmethod
-    def from_config(cls, config: Config) -> "DepthImageConverter":
-        assert config.image_filter is not None
-        rgb_full_filter = config.image_filter
-        depth_filter = rgb_full_filter.extract_subfilter([CropResizer, ResolutionChangeResizer])
-        return cls(depth_filter)
+    def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
+        if config.image_filter is None:
+            image_filter = None
+        else:
+            rgb_full_filter = config.image_filter
+            rgb_full_filter.extract_subfilter([CropResizer, ResolutionChangeResizer])
+            image_filter = config.image_filter
+        topic_name_list = cls.config_to_topic_name_list(config)
+        return cls(topic_name_list, image_filter)
 
-    def __call__(self, msg: Image) -> DepthImage:
+    @classmethod
+    def inp_message_types(cls) -> Tuple[Type[CompressedImage]]:
+        return (CompressedImage,)
+
+    @classmethod
+    def out_element_type(cls) -> Type[DepthImage]:
+        return DepthImage
+
+    def apply(self, msg_tuple: Tuple[CompressedImage]) -> DepthImage:  # type: ignore[override]
+        raise NotImplementedError("please make a PR.")
+        """
+        msg = msg_tuple[0]
         assert msg.encoding in ["32FC1"]
 
         size = [msg.height, msg.width]
@@ -119,21 +238,30 @@ class DepthImageConverter(TypeConverter[Image, DepthImage]):
             image = self.image_filter(image, True)
         image = np.expand_dims(image, axis=2)
         return DepthImage(image)
+        """
 
 
 @dataclass
-class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
+class AngleVectorConverter(MessageConverter[AngleVector]):
     control_joints: List[str]
-    type_in = JointState
-    type_out = AngleVector
     joint_indices: Optional[List[int]] = None
 
     @classmethod
-    def from_config(cls, config: Config) -> "AngleVectorConverter":
-        return cls(config.control_joints)
+    def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
+        topic_name_list = cls.config_to_topic_name_list(config)
+        return cls(topic_name_list, config.control_joints)
 
-    def __call__(self, msg: JointState) -> AngleVector:
+    @classmethod
+    def inp_message_types(cls) -> Tuple[Type[JointState]]:
+        return (JointState,)
 
+    @classmethod
+    def out_element_type(cls) -> Type[AngleVector]:
+        return AngleVector
+
+    def apply(self, msg_tuple: Tuple[JointState]) -> AngleVector:  # type: ignore[override]
+        msg = msg_tuple[0]
         if self.joint_indices is None:
             name_idx_map = {name: i for (i, name) in enumerate(msg.name)}
             self.joint_indices = [name_idx_map[name] for name in self.control_joints]
@@ -143,21 +271,36 @@ class AngleVectorConverter(TypeConverter[JointState, AngleVector]):
 
 
 @dataclass
-class VersatileConverter:
-    converters: Dict[Type[ElementBase], TypeConverter]
-
-    def __call__(self, msg: genpy.Message) -> ElementBase:
-
-        for converter in self.converters.values():
-            # image is exceptional
-            if converter.type_in == type(msg):
-                return converter(msg)
-        assert False, "no converter compatible with {}".format(type(msg))
+class MessageConverterCollection:
+    type_to_converter_table: Dict[Type[PrimitiveElementBase], MessageConverter]
 
     @classmethod
     def from_config(cls, config: Config):
-        converters: Dict[Type[ElementBase], TypeConverter] = {}
-        converters[RGBImage] = RGBImageConverter.from_config(config)
-        converters[AngleVector] = AngleVectorConverter.from_config(config)
-        converters[GripperState] = GripperStateConverter.from_config(config)
-        return cls(converters)
+        all_converter_types: List[Type[MessageConverter]] = get_all_concrete_leaftypes(MessageConverter)  # type: ignore
+        type_to_converter_table = {}
+        for converter_type in all_converter_types:
+            if converter_type.is_compatible(config):
+                key = converter_type.out_element_type()
+                assert key not in type_to_converter_table, "only single converter per output type"
+                converter = converter_type.from_config(config)
+                type_to_converter_table[key] = converter
+
+        # check
+        required_output_types = set(config.topics.type_config_table.keys())
+        is_requried_output_type_match = required_output_types == set(type_to_converter_table.keys())
+        assert is_requried_output_type_match
+        return cls(type_to_converter_table)
+
+    def apply_to_msg_table(self, msg_table: Dict[str, genpy.Message]) -> ElementDict:
+        elem_list = []
+        for converter in self.type_to_converter_table.values():
+            out = converter.apply_to_msg_table(msg_table)
+            if out is not None:
+                elem_list.append(out)
+        return ElementDict(elem_list)
+
+    def apply(
+        self, msg_tuple: Tuple[genpy.Message], output_elme_type: Type[PrimitiveElementT]
+    ) -> PrimitiveElementT:
+        conv = self.type_to_converter_table[output_elme_type]
+        return conv.apply(msg_tuple)

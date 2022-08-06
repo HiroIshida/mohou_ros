@@ -25,7 +25,7 @@ from pr2_controllers_msgs.msg import JointControllerState
 from sensor_msgs.msg import CompressedImage, Image, JointState
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.conversion import VersatileConverter
+from mohou_ros_utils.conversion import MessageConverterCollection
 from mohou_ros_utils.file import RelativeName, get_subpath
 from mohou_ros_utils.script_utils import bag2clip, create_rosbag_command
 
@@ -72,7 +72,7 @@ class ExecutorBase(ABC):
     config: Config
     propagator: Propagator
     autoencoder: AutoEncoderBase
-    vconv: VersatileConverter
+    conv: MessageConverterCollection
     control_joint_names: List[str]
     running: bool
     dryrun: bool
@@ -81,6 +81,10 @@ class ExecutorBase(ABC):
     edict_seq: List[ElementDict]
     is_terminatable: bool
     str_time_postfix: str
+
+    rgb_topic_name: str
+    gripper_topic_name: str
+    av_topic_name: str
 
     rosbag_cmd_popen: Optional[subprocess.Popen] = None
     rgb_msg: Optional[CompressedImage] = None
@@ -97,26 +101,19 @@ class ExecutorBase(ABC):
         self.autoencoder = tcache_autoencoder.best_model
 
         config = Config.from_project_path(project_path)
-        vconv = VersatileConverter.from_config(config)
+        conv = MessageConverterCollection.from_config(config)
 
         self.config = config
         self.propagator = propagator
-        self.vconv = vconv
+        self.conv = conv
         self.control_joint_names = config.control_joints
+        self.rgb_topic_name = config.topics.get_by_mohou_type(RGBImage).name
+        self.av_topic_name = config.topics.get_by_mohou_type(AngleVector).name
+        self.gripper_topic_name = config.topics.get_by_mohou_type(GripperState).name
 
-        rospy.Subscriber(
-            config.topics.get_by_mohou_type(AngleVector).name,
-            JointState,
-            self.on_joint_state,
-        )
-        rospy.Subscriber(
-            config.topics.get_by_mohou_type(RGBImage).name, CompressedImage, self.on_rgb
-        )
-        rospy.Subscriber(
-            config.topics.get_by_mohou_type(GripperState).name,
-            JointControllerState,
-            self.on_joint_cont_state,
-        )
+        rospy.Subscriber(self.av_topic_name, JointState, self.on_joint_state)
+        rospy.Subscriber(self.rgb_topic_name, CompressedImage, self.on_rgb)
+        rospy.Subscriber(self.gripper_topic_name, JointControllerState, self.on_joint_cont_state)
 
         self._post_init()
         self.dryrun = dryrun
@@ -172,11 +169,13 @@ class ExecutorBase(ABC):
             return
         rospy.loginfo("on timer..")
 
-        elems = [
-            self.vconv(msg)
-            for msg in [self.joint_state_msg, self.rgb_msg, self.joint_cont_state_msg]
-        ]
-        edict_current = ElementDict(elems)
+        msg_table = {
+            self.av_topic_name: self.joint_state_msg,
+            self.rgb_topic_name: self.rgb_msg,
+            self.gripper_topic_name: self.joint_cont_state_msg,
+        }
+
+        edict_current = self.conv.apply_to_msg_table(msg_table)
 
         self.propagator.feed(edict_current)
 

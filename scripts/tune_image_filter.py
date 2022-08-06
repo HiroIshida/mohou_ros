@@ -15,7 +15,7 @@ from mohou_ros_utils.file import RelativeName, get_subpath
 
 
 def get_first_rgb(config: Config) -> RGBImage:
-    rgb_conv = RGBImageConverter()
+    rgb_conv = RGBImageConverter.from_config(config)
     rosbag_path = get_subpath(project_path, RelativeName.rosbag)
 
     for filepath in rosbag_path.iterdir():
@@ -28,7 +28,7 @@ def get_first_rgb(config: Config) -> RGBImage:
         for topic, msg, _ in bag.read_messages():
             if topic == config.topics.get_by_mohou_type(RGBImage).name:
                 bag.close()
-                return rgb_conv(msg)
+                return rgb_conv.apply((msg,))
         bag.close()
     assert False
 
