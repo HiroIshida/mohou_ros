@@ -1,4 +1,3 @@
-(load "package://pr2eus/pr2-interface.l")
 (ros::load-ros-manifest "roseus")
 (ros::roseus-add-msgs "mohou_ros")
 

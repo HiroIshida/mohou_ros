@@ -1,5 +1,6 @@
 #!/usr/bin/env roseus
 (load "package://mohou_ros/euslisp/commander_base.l")
+(load "package://pr2eus/pr2-interface.l")
 
 (pr2-init)
 (ros::subscribe "/mohou_control_command"
