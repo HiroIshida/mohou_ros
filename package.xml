@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>mohou_ros</name>
-  <version>0.0.2</version>
+  <version>0.0.3</version>
   <description>mohou_ros package</description>
+  <author email="h-ishida@jsk.imi.i.u-tokyo.ac.jp">Hirokazu Ishdia</author>
   <maintainer email="h-ishida@jsk.imi.i.u-tokyo.ac.jp">Hirokazu Ishdia</maintainer>
-
   <license>MIT</license>
+
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>python3-catkin-pkg-modules</buildtool_depend>
   <!-- for melodic -->
