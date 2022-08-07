@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 import time
-from abc import ABC
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, Generic, List, Optional, Type, TypeVar
+from sound_play.libsoundplay import SoundClient
 
 import genpy
 import rospy
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
+
+from mohou_ros_utils.utils import CoordinateTransform, chain_transform
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -101,18 +104,28 @@ class JoyDataManager(TopicDataManager[Joy]):
 class ViveController:
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
+    scale: float
     timer_interval: float
     is_initialized: bool
     is_tracking: bool
+    sound_client: SoundClient
+    tf_handref2camera: Optional[CoordinateTransform] = None
+    tf_gripperref2base: Optional[CoordinateTransform] = None
 
-    def __init__(self, joy_topic_name: str, pose_topic_name: str):
+    def __init__(self, joy_topic_name: str, pose_topic_name: str, scale: float):
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
+        self.scale = scale
         self.timer_interval = 0.05
-
-        rospy.Timer(rospy.Duration(self.timer_interval), self.on_timer)
         self.is_initialized = False
         self.is_tracking = False
+        self.sound_client = SoundClient(blocking=False)
+
+        rospy.Timer(rospy.Duration(self.timer_interval), self.on_timer)
+
+        # register
+        self.pose_manager.register_processor(self.track_arm)
+        self.joy_manager.register_processor(JoyDataManager.Button.TOP, self.on_and_off_tracker)
 
     def start(self) -> None:
         self.is_initialized = True
@@ -136,3 +149,77 @@ class ViveController:
                     t_elapsed_in_cb, process_time_rate * 100, self.timer_interval
                 )
             )
+
+    def track_arm(self) -> None:
+        pose_msg = self.pose_manager.msg
+
+        is_ready = True
+        if pose_msg is None:
+            self.logwarn("no pose subscribed. stop tracking")
+            is_ready = False
+
+        if self.tf_handref2camera is None:
+            self.logwarn("calibration is not done yet")
+            is_ready = False
+
+        if not is_ready:
+            self.is_tracking = False
+            self.logwarn("not ready for tracking.")
+            self.is_tracking = False
+            self.loginfo("turn off tracker")
+            return
+
+        assert pose_msg is not None
+        assert self.tf_handref2camera is not None
+        assert self.tf_gripperref2base is not None
+        tf_hand2camera = CoordinateTransform.from_ros_pose(pose_msg.pose, "hand", "camera")
+        tf_camera2handref = self.tf_handref2camera.inverse()
+        tf_hand2handref = chain_transform(tf_hand2camera, tf_camera2handref)
+
+        trans_scaled = tf_hand2handref.trans * self.scale
+        tf_gripper2gripperref = CoordinateTransform(
+            trans_scaled, tf_hand2handref.rot, "gripper", "gripper-ref"
+        )
+        tf_gripper2base_target = chain_transform(tf_gripper2gripperref, self.tf_gripperref2base)
+        self.send_tracking_command(tf_gripper2base_target)
+
+    def calibrate_controller(self) -> None:
+        self.loginfo("calibrating controller")
+        pose_msg = self.pose_manager.msg
+
+        if pose_msg is None:
+            rospy.logerr("no pose subscribed")
+            return
+        tf_handref2camera = CoordinateTransform.from_ros_pose(pose_msg.pose, "hand-ref", "camera")
+        self.tf_handref2camera = tf_handref2camera
+        self.tf_gripperref2base = self.get_robot_end_coords()
+        assert self.tf_gripperref2base.src == "gripper-ref"
+        assert self.tf_gripperref2base.dest == "base"
+
+    def on_and_off_tracker(self) -> None:
+        if self.is_tracking:
+            self.is_tracking = False
+            self.loginfo("turn off tracker")
+        else:
+            self.calibrate_controller()
+            self.is_tracking = True
+            self.loginfo("turn on tracker")
+
+    def loginfo(self, message):
+        rospy.loginfo("{} => ".format(self.log_prefix) + message)
+
+    def logwarn(self, message):
+        rospy.logwarn("{} => ".format(self.log_prefix) + message)
+
+    @property
+    @abstractmethod
+    def log_prefix(self) -> str:
+        pass
+
+    @abstractmethod
+    def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
+        pass
+
+    @abstractmethod
+    def get_robot_end_coords(self) -> CoordinateTransform:
+        pass

@@ -12,7 +12,6 @@ from typing import Callable, ClassVar, List, Optional
 import numpy as np
 import rospy
 from mohou.file import get_project_path
-from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Link
 from skrobot.models import PR2
 from sound_play.libsoundplay import SoundClient
@@ -25,7 +24,7 @@ from mohou_ros_utils.script_utils import (
     get_latest_rosbag_filename,
     get_rosbag_filepath,
 )
-from mohou_ros_utils.utils import CoordinateTransform, chain_transform
+from mohou_ros_utils.utils import CoordinateTransform
 from mohou_ros_utils.vive_controller.robot_interface import (
     SkrobotPR2Controller,
     SkrobotPR2LarmController,
@@ -38,7 +37,6 @@ class PR2ViveController(ViveController):
     robot_con: SkrobotPR2Controller
     config: Config
     gripper_close: bool
-    scale: float
     tf_handref2camera: Optional[CoordinateTransform] = None
     tf_gripperref2base: Optional[CoordinateTransform] = None
 
@@ -51,17 +49,14 @@ class PR2ViveController(ViveController):
         scale: float,
     ):
 
-        super().__init__(joy_topic_name, pose_topic_name)
+        super().__init__(joy_topic_name, pose_topic_name, scale)
         self.robot_con = robot_con
         self.config = config
-        self.scale = scale
         self.gripper_close = False
         self.config = config
 
         self.joy_manager.register_processor(JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
         self.joy_manager.register_processor(JoyDataManager.Button.SIDE, self.reset_to_home_position)
-        self.joy_manager.register_processor(JoyDataManager.Button.TOP, self.on_and_off_tracker)
-        self.pose_manager.register_processor(self.track_arm)
         self.loginfo("controller is initialized")
 
     @property
@@ -76,52 +71,10 @@ class PR2ViveController(ViveController):
 
     @property
     @abstractmethod
-    def log_prefix(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
     def gripper_joint_name(self) -> str:
         pass
 
-    def loginfo(self, message):
-        rospy.loginfo("{} => ".format(self.log_prefix) + message)
-
-    def logwarn(self, message):
-        rospy.logwarn("{} => ".format(self.log_prefix) + message)
-
-    def track_arm(self) -> None:
-        pose_msg = self.pose_manager.msg
-
-        is_ready = True
-        if pose_msg is None:
-            self.logwarn("no pose subscribed. stop tracking")
-            is_ready = False
-
-        if self.tf_handref2camera is None:
-            self.logwarn("calibration is not done yet")
-            is_ready = False
-
-        if not is_ready:
-            self.is_tracking = False
-            self.logwarn("not ready for tracking.")
-            self.is_tracking = False
-            self.loginfo("turn off tracker")
-            return
-
-        assert pose_msg is not None
-        assert self.tf_handref2camera is not None
-        assert self.tf_gripperref2base is not None
-        tf_hand2camera = CoordinateTransform.from_ros_pose(pose_msg.pose, "hand", "camera")
-        tf_camera2handref = self.tf_handref2camera.inverse()
-        tf_hand2handref = chain_transform(tf_hand2camera, tf_camera2handref)
-
-        trans_scaled = tf_hand2handref.trans * self.scale
-        tf_gripper2gripperref = CoordinateTransform(
-            trans_scaled, tf_hand2handref.rot, "gripper", "gripper-ref"
-        )
-        tf_gripper2base_target = chain_transform(tf_gripper2gripperref, self.tf_gripperref2base)
-
+    def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
         joints = [self.robot_con.robot_model.__dict__[jname] for jname in self.arm_joint_names]
         link_list = [joint.child_link for joint in joints]
         end_effector = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
@@ -134,6 +87,15 @@ class PR2ViveController(ViveController):
         else:
             self.logwarn("solving inverse kinematics failed")
 
+    def get_robot_end_coords(self) -> CoordinateTransform:
+        self.robot_con.robot_model.angle_vector(self.robot_con.get_real_robot_joint_angles())
+        end_effector: Link = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
+        coords = end_effector.copy_worldcoords()
+        tf_gripperref2base = CoordinateTransform.from_skrobot_coords(
+            coords, "gripper-ref", "base"
+        )
+        return tf_gripperref2base
+
     def switch_grasp_state(self) -> None:
         if self.gripper_close:
             self.robot_con.move_gripper(0.06)
@@ -141,32 +103,6 @@ class PR2ViveController(ViveController):
         else:
             self.robot_con.move_gripper(0.0)
             self.gripper_close = True
-
-    def on_and_off_tracker(self) -> None:
-        if self.is_tracking:
-            self.is_tracking = False
-            self.loginfo("turn off tracker")
-        else:
-            self.calibrate_controller()
-            self.is_tracking = True
-            self.loginfo("turn on tracker")
-
-    def calibrate_controller(self) -> None:
-        self.loginfo("calibrating controller")
-        pose_msg = self.pose_manager.msg
-
-        if pose_msg is None:
-            rospy.logerr("no pose subscribed")
-            return
-        tf_handref2camera = CoordinateTransform.from_ros_pose(pose_msg.pose, "hand-ref", "camera")
-        self.tf_handref2camera = tf_handref2camera
-
-        self.robot_con.robot_model.angle_vector(self.robot_con.get_real_robot_joint_angles())
-        end_effector: Link = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
-        coords = end_effector.copy_worldcoords()
-        self.tf_gripperref2base = CoordinateTransform.from_skrobot_coords(
-            coords, "gripper-ref", "base"
-        )
 
     def reset_to_home_position(self, reset_grasp: bool = True) -> None:
         self.is_tracking = False
@@ -241,8 +177,6 @@ class RosbagManager:
 
 class PR2RightArmViveController(PR2ViveController):
     rosbag_manager: RosbagManager
-    sound_client: SoundClient
-
     arm_joint_names: ClassVar[List[str]] = rarm_joint_names
     arm_end_effector_name: ClassVar[str] = "r_gripper_tool_frame"
     gripper_joint_name: ClassVar[str] = "r_gripper_joint"
@@ -256,9 +190,7 @@ class PR2RightArmViveController(PR2ViveController):
         robot_con = SkrobotPR2RarmController(PR2())
         super().__init__(joy_topic, pose_topic, robot_con, config, scale)
 
-        sound_client = SoundClient(blocking=False)
-        rosbag_manager = RosbagManager(config, sound_client)
-        self.sound_client = sound_client
+        rosbag_manager = RosbagManager(config, self.sound_client)
         self.rosbag_manager = rosbag_manager
         self.joy_manager.register_processor(
             JoyDataManager.Button.FRONT, rosbag_manager.switch_state
@@ -266,8 +198,6 @@ class PR2RightArmViveController(PR2ViveController):
 
 
 class PR2LeftArmViveController(PR2ViveController):
-    sound_client: SoundClient
-
     arm_joint_names: ClassVar[List[str]] = larm_joint_names
     arm_end_effector_name: ClassVar[str] = "l_gripper_tool_frame"
     gripper_joint_name: ClassVar[str] = "l_gripper_joint"
@@ -281,7 +211,6 @@ class PR2LeftArmViveController(PR2ViveController):
         super().__init__(joy_topic, pose_topic, robot_con, config, scale)
 
         self.joy_manager.register_processor(JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
-        self.sound_client = SoundClient(blocking=False)
 
     def delete_latest_rosbag(self) -> None:
         latest_rosbag = get_latest_rosbag_filename(self.config.project_path)
