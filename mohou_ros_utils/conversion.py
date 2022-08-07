@@ -7,12 +7,14 @@ import numpy as np
 from cv_bridge import CvBridge
 from mohou.types import (
     AngleVector,
+    AnotherGripperState,
     DepthImage,
     ElementDict,
     GripperState,
     PrimitiveElementBase,
     PrimitiveElementT,
     RGBImage,
+    VectorT,
 )
 from mohou.utils import get_all_concrete_leaftypes
 
@@ -68,7 +70,7 @@ class AbstractDataclass(ABC):
 MessageConverterT = TypeVar("MessageConverterT", bound="MessageConverter")
 
 
-@dataclass  # type: ignore
+@dataclass  # type: ignore[misc]
 class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
     topic_name_list: List[str]
 
@@ -152,8 +154,8 @@ class MessageConverter(AbstractDataclass, Generic[PrimitiveElementT]):
         pass
 
 
-@dataclass
-class GripperStateConverter(MessageConverter[GripperState]):
+@dataclass  # type: ignore[misc]
+class GripperStateConverterBase(MessageConverter[VectorT]):
     @classmethod
     def from_config(cls, config: Config):
         assert cls.is_compatible(config)
@@ -163,6 +165,9 @@ class GripperStateConverter(MessageConverter[GripperState]):
     def inp_message_types(cls) -> Tuple[Type[JointControllerState], ...]:  # type: ignore[override]
         return (JointControllerState,)
 
+
+@dataclass
+class GripperStateConverter(GripperStateConverterBase[GripperState]):
     @classmethod
     def out_element_type(cls) -> Type[GripperState]:
         return GripperState
@@ -170,6 +175,17 @@ class GripperStateConverter(MessageConverter[GripperState]):
     def apply(self, msg_tuple: Tuple[JointControllerState]) -> GripperState:  # type: ignore[override]
         msg = msg_tuple[0]
         return GripperState(np.array([msg.set_point]))
+
+
+@dataclass
+class AnotherGripperStateConverter(GripperStateConverterBase[AnotherGripperState]):
+    @classmethod
+    def out_element_type(cls) -> Type[AnotherGripperState]:
+        return AnotherGripperState
+
+    def apply(self, msg_tuple: Tuple[JointControllerState]) -> AnotherGripperState:  # type: ignore[override]
+        msg = msg_tuple[0]
+        return AnotherGripperState(np.array([msg.set_point]))
 
 
 @dataclass
