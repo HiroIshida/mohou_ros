@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
+import genpy
 import numpy as np
 import rosbag
 import rospkg
@@ -21,7 +22,7 @@ from mohou.types import (
 from moviepy.editor import ImageSequenceClip
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.conversion import VersatileConverter
+from mohou_ros_utils.conversion import MessageConverterCollection
 from mohou_ros_utils.interpolator import (
     AllSameInterpolationRule,
     NearestNeighbourMessageInterpolator,
@@ -34,7 +35,7 @@ from mohou_ros_utils.types import TimeStampedSequence
 def seqs_to_episodedata(
     seqs: List[TimeStampedSequence], config: Config, bagname: str
 ) -> EpisodeData:
-    vconv = VersatileConverter.from_config(config)
+    conv = MessageConverterCollection.from_config(config)
 
     mohou_elem_seqs = []
     for seq in seqs:
@@ -43,7 +44,13 @@ def seqs_to_episodedata(
             continue
 
         elem_type = config.topics.get_by_topic_name(seq.topic_name).mohou_type
-        elem_seq = ElementSequence([vconv.converters[elem_type](e) for e in seq.object_list])
+        elem_list = []
+        for obj in seq.object_list:
+            # TODO: to support mutli message to mohou type conversion
+            # we must slice the time sequence
+            assert isinstance(obj, genpy.Message)
+            elem_list.append(conv.apply(obj, elem_type))
+        elem_seq = ElementSequence(elem_list)
         mohou_elem_seqs.append(elem_seq)
 
     time_stamps = TimeStampSequence(seqs[0].time_list)

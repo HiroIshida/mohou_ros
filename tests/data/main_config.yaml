@@ -15,6 +15,10 @@ topic:
         name: /r_gripper_controller/state
         rosbag: True
         use: True
+    AnotherGripperState:
+        name: /l_gripper_controller/state
+        rosbag: True
+        use: True
 
 control_joints:
     - r_shoulder_pan_joint 

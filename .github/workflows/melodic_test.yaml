@@ -73,6 +73,7 @@ jobs:
         rostest mohou_ros test_pr2eus_commander.test
 
     - name: kill zombie gazebo process # fxxk. somehow gazebo process is not completely killed
+      continue-on-error: true
       run: |
         echo "ps aux"
         ps -aux
