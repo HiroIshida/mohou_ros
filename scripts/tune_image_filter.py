@@ -28,7 +28,7 @@ def get_first_rgb(config: Config) -> RGBImage:
         for topic, msg, _ in bag.read_messages():
             if topic == config.topics.get_by_mohou_type(RGBImage).name:
                 bag.close()
-                return rgb_conv.apply((msg,))
+                return rgb_conv.apply(msg)
         bag.close()
     assert False
 

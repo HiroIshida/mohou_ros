@@ -2,6 +2,7 @@ import os
 import pickle
 
 import numpy as np
+import pytest
 from mohou.types import AngleVector, GripperState, RGBImage
 from pr2_controllers_msgs.msg import JointControllerState
 from sensor_msgs.msg import CompressedImage, JointState
@@ -69,8 +70,8 @@ def test_rgb_image_converter(example_config):  # type: ignore # noqa
     # incompatible case, topic_type
     incompat_msg = JointState()
     msg_table = {"/kinect_head/rgb/image_rect_color": incompat_msg}
-    image = rgb_converter.apply_to_msg_table(msg_table)  # type: ignore
-    assert image is None
+    with pytest.raises(AssertionError):
+        image = rgb_converter.apply_to_msg_table(msg_table)  # type: ignore
 
 
 def test_depth_image_converter(example_config):  # type: ignore # noqa
@@ -113,6 +114,7 @@ def test_overall_message_converter(example_config):  # type: ignore # noqa
         "/kinect_head/rgb/image_rect_color": rgb_image_msg,
         "/joint_states": joint_state_msg,
         "/r_gripper_controller/state": gripper_state_msg,
+        "/hogehoge": gripper_state_msg,  # this will just ignored
     }
     conv = MessageConverterCollection.from_config(config)
     out = conv.apply_to_msg_table(msg_table)

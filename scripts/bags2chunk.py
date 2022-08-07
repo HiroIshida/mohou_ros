@@ -49,7 +49,7 @@ def seqs_to_episodedata(
             # TODO: to support mutli message to mohou type conversion
             # we must slice the time sequence
             assert isinstance(obj, genpy.Message)
-            elem_list.append(conv.apply((obj,), elem_type))
+            elem_list.append(conv.apply(obj, elem_type))
         elem_seq = ElementSequence(elem_list)
         mohou_elem_seqs.append(elem_seq)
 
