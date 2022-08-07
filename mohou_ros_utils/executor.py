@@ -7,8 +7,9 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
+import genpy
 import matplotlib.pyplot as plt
 import numpy as np
 import rosbag
@@ -18,11 +19,18 @@ from mohou.default import auto_detect_autoencoder_type, create_default_propagato
 from mohou.model.autoencoder import AutoEncoderBase
 from mohou.propagator import Propagator
 from mohou.trainer import TrainCache
-from mohou.types import AngleVector, ElementDict, GripperState, RGBImage, TerminateFlag
+from mohou.types import (
+    AngleVector,
+    AnotherGripperState,
+    ElementDict,
+    GripperState,
+    RGBImage,
+    TerminateFlag,
+)
 from mohou.utils import canvas_to_ndarray
 from moviepy.editor import ImageSequenceClip
 from pr2_controllers_msgs.msg import JointControllerState
-from sensor_msgs.msg import CompressedImage, Image, JointState
+from sensor_msgs.msg import CompressedImage, JointState
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import MessageConverterCollection
@@ -86,10 +94,13 @@ class ExecutorBase(ABC):
     gripper_topic_name: str
     av_topic_name: str
 
+    msg_table: Dict[str, Optional[genpy.Message]]
+
     rosbag_cmd_popen: Optional[subprocess.Popen] = None
-    rgb_msg: Optional[CompressedImage] = None
-    joint_state_msg: Optional[JointState] = None
+    # rgb_msg: Optional[CompressedImage] = None
+    # joint_state_msg: Optional[JointState] = None
     joint_cont_state_msg: Optional[JointControllerState] = None
+
     current_av: Optional[AngleVector] = None
 
     def __init__(self, project_path: Path, dryrun=True, save_rosbag=True) -> None:
@@ -107,13 +118,7 @@ class ExecutorBase(ABC):
         self.propagator = propagator
         self.conv = conv
         self.control_joint_names = config.control_joints
-        self.rgb_topic_name = config.topics.get_by_mohou_type(RGBImage).name
-        self.av_topic_name = config.topics.get_by_mohou_type(AngleVector).name
-        self.gripper_topic_name = config.topics.get_by_mohou_type(GripperState).name
-
-        rospy.Subscriber(self.av_topic_name, JointState, self.on_joint_state)
-        rospy.Subscriber(self.rgb_topic_name, CompressedImage, self.on_rgb)
-        rospy.Subscriber(self.gripper_topic_name, JointControllerState, self.on_joint_cont_state)
+        self.create_subscribers(config)
 
         self._post_init()
         self.dryrun = dryrun
@@ -136,47 +141,43 @@ class ExecutorBase(ABC):
         else:
             self.rosbag_cmd_popen = None
 
+    def create_subscribers(self, config: Config):
+        self.msg_table = {}
+
+        def _create_subscriber_if_necessary(elem_type, msg_type):
+            if elem_type not in config.topics.type_config_table.keys():
+                return
+
+            each_topic_config = config.topics.type_config_table[elem_type]
+            topic_name = each_topic_config.name
+            self.msg_table[topic_name] = None
+
+            def f(msg):
+                self.msg_table[topic_name] = msg
+
+            rospy.Subscriber(topic_name, msg_type, f)
+
+        _create_subscriber_if_necessary(RGBImage, CompressedImage)
+        _create_subscriber_if_necessary(GripperState, JointControllerState)
+        _create_subscriber_if_necessary(AnotherGripperState, JointControllerState)
+        _create_subscriber_if_necessary(AngleVector, JointState)
+
     def run(self):
         self.running = True
-
-    def on_rgb(self, msg: CompressedImage):
-        self.rgb_msg = msg
-
-    def on_depth(self, msg: Image):
-        self.depth_msg = msg
-
-    def on_joint_state(self, msg: JointState):
-        self.joint_state_msg = msg
-
-    def on_joint_cont_state(self, msg: JointControllerState):
-        self.joint_cont_state_msg = msg
 
     def on_timer(self, event):
         if not self.running:
             return
 
-        if (
-            (self.joint_state_msg is None)
-            or (self.joint_cont_state_msg is None)
-            or (self.rgb_msg is None)
-        ):
-            rospy.loginfo("cannot start because topics are not subscribed yet.")
-            rospy.loginfo("joint state subscribed? : {}".format(self.joint_state_msg is not None))
-            rospy.loginfo(
-                "joint cont state subscribed? : {}".format(self.joint_cont_state_msg is not None)
-            )
-            rospy.loginfo("rgb msg subscribed? : {}".format(self.rgb_msg is not None))
-            return
+        for key, msg in self.msg_table.items():
+            if msg is None:
+                rospy.loginfo("cannot start because topics are not subscribed yet.")
+                rospy.loginfo("{} is not subscribed yet".format(key))
+                return
+
         rospy.loginfo("on timer..")
 
-        msg_table = {
-            self.av_topic_name: self.joint_state_msg,
-            self.rgb_topic_name: self.rgb_msg,
-            self.gripper_topic_name: self.joint_cont_state_msg,
-        }
-
-        edict_current = self.conv.apply_to_msg_table(msg_table)
-
+        edict_current = self.conv.apply_to_msg_table(self.msg_table)
         self.propagator.feed(edict_current)
 
         edict_next = self.propagator.predict(1)[0]

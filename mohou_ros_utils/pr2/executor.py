@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import rospy
-from mohou.types import AngleVector, ElementDict, GripperState
+from mohou.types import AngleVector, AnotherGripperState, ElementDict, GripperState
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Joint
 from skrobot.models import PR2
@@ -29,6 +29,13 @@ class SkrobotPR2Executor(ExecutorBase):
             gs_next = edict_next[GripperState]
             rospy.loginfo("current_gs {}, next_gs {}".format(gs_current.numpy(), gs_next.numpy()))
 
+        if AnotherGripperState in edict_next:
+            ags_current = edict_current[AnotherGripperState]
+            ags_next = edict_next[AnotherGripperState]
+            rospy.loginfo(
+                "current_ags {}, next_ags {}".format(ags_current.numpy(), ags_next.numpy())
+            )
+
         av_current = edict_current[AngleVector]
         av_next = edict_next[AngleVector]
         rospy.loginfo("current_av {}, next_av {}".format(av_current.numpy(), av_next.numpy()))
@@ -42,8 +49,10 @@ class SkrobotPR2Executor(ExecutorBase):
             )
 
             if GripperState in edict_next:
-                # TOOD(HiroIshdia): handle gs is multi
                 self.robot_interface.move_gripper("rarm", gs_next.numpy().item())  # type: ignore
+
+            if AnotherGripperState in edict_next:
+                self.robot_interface.move_gripper("larm", ags_next.numpy().item())  # type: ignore
 
     def get_angle_vector(self) -> AngleVector:
         angles = []
@@ -80,6 +89,8 @@ class EusPR2Executor(ExecutorBase):
 
         if GripperState in edict_next:
             rospy.logwarn("if you want to send gripper state, please make a PR.")
+        if AnotherGripperState in edict_next:
+            rospy.logwarn("if you want to send another gripper state, please make a PR.")
 
         if not self.dryrun:
             self.pub_command.publish(control_cmd)
