@@ -10,6 +10,7 @@ from test_config import example_config  # noqa
 
 from mohou_ros_utils.conversion import (
     AngleVectorConverter,
+    AnotherGripperState,
     DepthImageConverter,
     GripperStateConverter,
     MessageConverterCollection,
@@ -108,17 +109,20 @@ def test_overall_message_converter(example_config):  # type: ignore # noqa
     config = example_config
     rgb_image_msg: CompressedImage = get_pickle_data_path("rgb_image.pkl")
     joint_state_msg: JointState = get_pickle_data_path("joint_states.pkl")
-    gripper_state_msg = JointControllerState()
-    gripper_state_msg.set_point = 1.0  # whatever
+    gripper_state_msg = JointControllerState(set_point=1.0)
+    gripper_state_msg2 = JointControllerState(set_point=1.0)
     msg_table = {
         "/kinect_head/rgb/image_rect_color": rgb_image_msg,
         "/joint_states": joint_state_msg,
         "/r_gripper_controller/state": gripper_state_msg,
+        "/l_gripper_controller/state": gripper_state_msg2,
         "/hogehoge": gripper_state_msg,  # this will just ignored
     }
     conv = MessageConverterCollection.from_config(config)
     out = conv.apply_to_msg_table(msg_table)
-    assert set(out.keys()) == {RGBImage, AngleVector, GripperState}
+
+    assert set(out.keys()) == {RGBImage, AngleVector, GripperState, AnotherGripperState}
     assert out[RGBImage].shape == (112, 112, 3)
     assert out[AngleVector].shape == (7,)
     assert out[GripperState].shape == (1,)
+    assert out[AnotherGripperState].shape == (1,)
