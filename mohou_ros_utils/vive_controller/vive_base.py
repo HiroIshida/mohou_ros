@@ -5,12 +5,16 @@ from enum import Enum
 from typing import Callable, Generic, List, Optional, Type, TypeVar
 
 import genpy
+import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
+from skrobot.model import Link
 from sound_play.libsoundplay import SoundClient
 
+from mohou_ros_utils.config import Config
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
+from mohou_ros_utils.vive_controller.robot_interface import RobotControllerBase
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -222,4 +226,71 @@ class ViveController:
 
     @abstractmethod
     def get_robot_end_coords(self) -> CoordinateTransform:
+        pass
+
+
+class ViveRobotController(ViveController):
+    robot_con: RobotControllerBase
+    config: Config
+    gripper_close: bool
+
+    def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
+        joints = [self.robot_con.robot_model.__dict__[jname] for jname in self.arm_joint_names]
+        link_list = [joint.child_link for joint in joints]
+        end_effector = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
+        av_next = self.robot_con.robot_model.inverse_kinematics(
+            tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list, stop=5
+        )
+
+        if isinstance(av_next, np.ndarray):
+            self.robot_con.update_real_robot(av_next, time=0.8)
+        else:
+            self.logwarn("solving inverse kinematics failed")
+
+    def get_robot_end_coords(self) -> CoordinateTransform:
+        self.robot_con.robot_model.angle_vector(self.robot_con.get_real_robot_joint_angles())
+        end_effector: Link = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
+        coords = end_effector.copy_worldcoords()
+        tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, "gripper-ref", "base")
+        return tf_gripperref2base
+
+    def switch_grasp_state(self) -> None:
+        if self.gripper_close:
+            self.robot_con.move_gripper(0.06)
+            self.gripper_close = False
+        else:
+            self.robot_con.move_gripper(0.0)
+            self.gripper_close = True
+
+    def reset_to_home_position(self, reset_grasp: bool = True) -> None:
+        self.is_tracking = False
+        self.loginfo("turn off tracker")
+        self.loginfo("resetting to home position")
+        assert self.config.home_position is not None
+
+        for joint_name in self.config.home_position.keys():
+            angle = self.config.home_position[joint_name]
+            self.robot_con.robot_model.__dict__[joint_name].joint_angle(angle)
+
+        ref_joint_angle = self.robot_con.robot_model.angle_vector()
+        self.robot_con.update_real_robot(ref_joint_angle, 3.0)
+
+        self.config.home_position[self.gripper_joint_name]
+        if reset_grasp:
+            self.robot_con.move_gripper(self.config.home_position[self.gripper_joint_name])
+        self.robot_con.wait_interpolation()
+
+    @property
+    @abstractmethod
+    def arm_joint_names(self) -> List[str]:
+        pass
+
+    @property
+    @abstractmethod
+    def arm_end_effector_name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def gripper_joint_name(self) -> str:
         pass

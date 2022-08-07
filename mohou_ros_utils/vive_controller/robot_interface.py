@@ -21,6 +21,10 @@ class RobotControllerBase(ABC):
     def move_gripper(self, pos: float):
         pass
 
+    @abstractmethod
+    def wait_interpolation(self) -> None:
+        pass
+
 
 PR2InterfaceT = TypeVar("PR2InterfaceT", bound=PR2ROSRobotInterface)
 
@@ -40,6 +44,9 @@ class SkrobotPR2Controller(RobotControllerBase):
 
     def get_real_robot_joint_angles(self) -> np.ndarray:
         return self.robot_interface.angle_vector()  # type: ignore
+
+    def wait_interpolation(self) -> None:
+        self.robot_interface.wait_interpolation()
 
 
 class RarmInterface(PR2ROSRobotInterface):

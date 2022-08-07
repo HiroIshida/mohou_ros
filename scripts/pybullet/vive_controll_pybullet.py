@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import time
-from abc import abstractmethod
 
 import numpy as np
 import pybullet as pb
@@ -33,18 +32,18 @@ class BulletViveController(ViveController):
         pb.configureDebugVisualizer(pb.COV_ENABLE_SHADOWS, 0)
         pb.setGravity(0, 0, -10)
         pb.loadURDF("plane.urdf")
-        self.robot = pb.loadURDF("pr2_gripper.urdf")
-        # self.panda = pb.loadURDF("./franka_panda/panda.urdf")
+        # self.robot = pb.loadURDF("pr2_gripper.urdf")
+        self.robot = pb.loadURDF("./franka_panda/panda.urdf")
 
     @property
     def log_prefix(self) -> str:
         return "pybullet"
 
     def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
-        pos = tf_gripper2base_target.trans
+        tf_gripper2base_target.trans
         mat = tf_gripper2base_target.rot
-        quat = wxyz2xyzw(matrix2quaternion(mat))
-        pb.resetBasePositionAndOrientation(self.robot, pos, quat)
+        wxyz2xyzw(matrix2quaternion(mat))
+        # pb.resetBasePositionAndOrientation(self.robot, pos, quat)
 
     def get_robot_end_coords(self) -> CoordinateTransform:
         pos, quat = pb.getBasePositionAndOrientation(self.robot)

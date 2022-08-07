@@ -5,14 +5,11 @@ import signal
 import subprocess
 import threading
 import time
-from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Callable, ClassVar, List, Optional
 
-import numpy as np
 import rospy
 from mohou.file import get_project_path
-from skrobot.model import Link
 from skrobot.models import PR2
 from sound_play.libsoundplay import SoundClient
 
@@ -24,22 +21,18 @@ from mohou_ros_utils.script_utils import (
     get_latest_rosbag_filename,
     get_rosbag_filepath,
 )
-from mohou_ros_utils.utils import CoordinateTransform
 from mohou_ros_utils.vive_controller.robot_interface import (
     SkrobotPR2Controller,
     SkrobotPR2LarmController,
     SkrobotPR2RarmController,
 )
-from mohou_ros_utils.vive_controller.vive_base import JoyDataManager, ViveController
+from mohou_ros_utils.vive_controller.vive_base import (
+    JoyDataManager,
+    ViveRobotController,
+)
 
 
-class PR2ViveController(ViveController):
-    robot_con: SkrobotPR2Controller
-    config: Config
-    gripper_close: bool
-    tf_handref2camera: Optional[CoordinateTransform] = None
-    tf_gripperref2base: Optional[CoordinateTransform] = None
-
+class PR2ViveController(ViveRobotController):
     def __init__(
         self,
         joy_topic_name: str,
@@ -58,66 +51,6 @@ class PR2ViveController(ViveController):
         self.joy_manager.register_processor(JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
         self.joy_manager.register_processor(JoyDataManager.Button.SIDE, self.reset_to_home_position)
         self.loginfo("controller is initialized")
-
-    @property
-    @abstractmethod
-    def arm_joint_names(self) -> List[str]:
-        pass
-
-    @property
-    @abstractmethod
-    def arm_end_effector_name(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def gripper_joint_name(self) -> str:
-        pass
-
-    def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
-        joints = [self.robot_con.robot_model.__dict__[jname] for jname in self.arm_joint_names]
-        link_list = [joint.child_link for joint in joints]
-        end_effector = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
-        av_next = self.robot_con.robot_model.inverse_kinematics(
-            tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list, stop=5
-        )
-
-        if isinstance(av_next, np.ndarray):
-            self.robot_con.update_real_robot(av_next, time=0.8)
-        else:
-            self.logwarn("solving inverse kinematics failed")
-
-    def get_robot_end_coords(self) -> CoordinateTransform:
-        self.robot_con.robot_model.angle_vector(self.robot_con.get_real_robot_joint_angles())
-        end_effector: Link = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
-        coords = end_effector.copy_worldcoords()
-        tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, "gripper-ref", "base")
-        return tf_gripperref2base
-
-    def switch_grasp_state(self) -> None:
-        if self.gripper_close:
-            self.robot_con.move_gripper(0.06)
-            self.gripper_close = False
-        else:
-            self.robot_con.move_gripper(0.0)
-            self.gripper_close = True
-
-    def reset_to_home_position(self, reset_grasp: bool = True) -> None:
-        self.is_tracking = False
-        self.loginfo("turn off tracker")
-        self.loginfo("resetting to home position")
-        assert self.config.home_position is not None
-
-        for joint_name in self.config.home_position.keys():
-            angle = self.config.home_position[joint_name]
-            self.robot_con.robot_model.__dict__[joint_name].joint_angle(angle)
-        self.robot_con.robot_interface.angle_vector(
-            self.robot_con.robot_model.angle_vector(), time=3.0, time_scale=1.0
-        )
-        self.config.home_position[self.gripper_joint_name]
-        if reset_grasp:
-            self.robot_con.move_gripper(self.config.home_position[self.gripper_joint_name])
-        self.robot_con.robot_interface.wait_interpolation()
 
 
 @dataclass
