@@ -249,7 +249,8 @@ class ViveRobotController(ViveController, Generic[RobotControllerT]):
         )
 
         if isinstance(av_next, np.ndarray):
-            self.robot_con.update_real_robot(av_next, time=0.8)
+            self.robot_con.robot_model.angle_vector(av_next)
+            self.robot_con.update_real_robot(time=0.8)
         else:
             self.logwarn("solving inverse kinematics failed")
 
@@ -278,8 +279,7 @@ class ViveRobotController(ViveController, Generic[RobotControllerT]):
             angle = self.config.home_position[joint_name]
             self.robot_con.robot_model.__dict__[joint_name].joint_angle(angle)
 
-        ref_joint_angle = self.robot_con.robot_model.angle_vector()
-        self.robot_con.update_real_robot(ref_joint_angle, 3.0)
+        self.robot_con.update_real_robot(3.0)
 
         self.config.home_position[self.gripper_joint_name]
         if reset_grasp:

@@ -11,7 +11,7 @@ class RobotControllerBase(ABC):
     robot_model: RobotModel
 
     @abstractmethod
-    def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
+    def update_real_robot(self, time: float) -> None:
         pass
 
     @abstractmethod
@@ -60,12 +60,11 @@ class SkrobotPybulletController(RobotControllerBase):
             joint_table_all[joint_name] = joint_id
         self.joint_name_to_id_table = joint_table_all
 
-    def update_real_robot(self, joint_angles: np.ndarray, time: float, real_time=False) -> None:
-        """
-        joint_angles: all joint angles
-        """
+    def update_real_robot(self, time: float, real_time=False) -> None:
         for joint_name in self.get_control_joint_names():
-            assert joint_name in self.robot_model.__dict__, "{} is not in __dict__".format(joint_name)
+            assert joint_name in self.robot_model.__dict__, "{} is not in __dict__".format(
+                joint_name
+            )
             joint = self.robot_model.__dict__[joint_name]
             joint_id = self.joint_name_to_id_table[joint_name]
             angle = joint.joint_angle()
@@ -111,9 +110,10 @@ class SkrobotPR2Controller(RobotControllerBase):
         robot_model.angle_vector(self.robot_interface.angle_vector())
         self.robot_model = robot_model
 
-    def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
-        assert joint_angles.ndim == 1
-        self.robot_interface.angle_vector(joint_angles, time=time, time_scale=1.0)
+    def update_real_robot(self, time: float) -> None:
+        self.robot_interface.angle_vector(
+            self.robot_model.angle_vector(), time=time, time_scale=1.0
+        )
 
     def get_real_robot_joint_angles(self) -> np.ndarray:
         return self.robot_interface.angle_vector()  # type: ignore
@@ -147,5 +147,5 @@ class SkrobotPR2LarmController(SkrobotPR2Controller):
 
 
 class RoseusRobotInterface(RobotControllerBase):
-    def update_real_robot(self, joint_angles: np.ndarray, time: float) -> None:
+    def update_real_robot(self, time: float) -> None:
         pass

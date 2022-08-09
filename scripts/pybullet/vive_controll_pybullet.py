@@ -33,7 +33,7 @@ class BulletViveController(ViveRobotController[SkrobotPybulletControllerPR2Rarm]
         robot_id = pb.loadURDF("/home/h-ishida/.skrobot/pr2_description/pr2.urdf")
         robot_con = SkrobotPybulletControllerPR2Rarm(robot_id, pb.GUI)
         self.robot_con = robot_con
-        self.robot_con.update_real_robot(self.robot_con.robot_model.angle_vector(), 1, real_time=False)
+        self.robot_con.update_real_robot(1, real_time=False)
 
         pb.setAdditionalSearchPath(pybullet_data.getDataPath())  # used by loadURDF
         pb.configureDebugVisualizer(pb.COV_ENABLE_GUI, 0)
