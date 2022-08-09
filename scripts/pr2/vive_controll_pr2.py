@@ -26,6 +26,7 @@ from mohou_ros_utils.vive_controller.robot_interface import (
     SkrobotPR2LarmController,
     SkrobotPR2RarmController,
 )
+from mohou_ros_utils.vive_controller.utils import detect_controller_ids
 from mohou_ros_utils.vive_controller.vive_base import (
     JoyDataManager,
     ViveRobotController,
@@ -35,14 +36,13 @@ from mohou_ros_utils.vive_controller.vive_base import (
 class PR2ViveController(ViveRobotController[SkrobotPR2Controller]):
     def __init__(
         self,
-        joy_topic_name: str,
-        pose_topic_name: str,
+        controller_id: str,
         robot_con: SkrobotPR2Controller,
         config: Config,
         scale: float,
     ):
 
-        super().__init__(joy_topic_name, pose_topic_name, scale)
+        super().__init__(controller_id, scale)
         self.robot_con = robot_con
         self.config = config
         self.gripper_close = False
@@ -113,13 +113,9 @@ class PR2RightArmViveController(PR2ViveController):
     gripper_joint_name: ClassVar[str] = "r_gripper_joint"
     log_prefix: ClassVar[str] = "Right"
 
-    def __init__(self, config: Config, scale: float):
-        controller_id = "LHR_F7AFBF47"
-        joy_topic = "/controller_{}/joy".format(controller_id)
-        pose_topic = "/controller_{}_as_posestamped".format(controller_id)
-
+    def __init__(self, config: Config, scale: float, controller_id: str):
         robot_con = SkrobotPR2RarmController(PR2())
-        super().__init__(joy_topic, pose_topic, robot_con, config, scale)
+        super().__init__(controller_id, robot_con, config, scale)
 
         rosbag_manager = RosbagManager(config, self.sound_client)
         self.rosbag_manager = rosbag_manager
@@ -134,12 +130,9 @@ class PR2LeftArmViveController(PR2ViveController):
     gripper_joint_name: ClassVar[str] = "l_gripper_joint"
     log_prefix: ClassVar[str] = "Left"
 
-    def __init__(self, config: Config, scale: float):
-        controller_id = "LHR_FD35BD42"
-        joy_topic = "/controller_{}/joy".format(controller_id)
-        pose_topic = "/controller_{}_as_posestamped".format(controller_id)
+    def __init__(self, config: Config, scale: float, controller_id: str):
         robot_con = SkrobotPR2LarmController(PR2())
-        super().__init__(joy_topic, pose_topic, robot_con, config, scale)
+        super().__init__(controller_id, robot_con, config, scale)
 
         self.joy_manager.register_processor(JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
 
@@ -167,9 +160,16 @@ if __name__ == "__main__":
     project_path = get_project_path(project_name)
     config = Config.from_project_path(project_path)
 
+    while True:
+        controller_ids = detect_controller_ids()
+        print("waiting for vive controllers detected")
+        if len(controller_ids) == 2:
+            print("controllers: {} are detected".format(controller_ids))
+            break
+
     rospy.init_node("pr2_vive_mohou")
-    rarm_con = PR2RightArmViveController(config, scale)
-    larm_con = PR2LeftArmViveController(config, scale)
+    rarm_con = PR2RightArmViveController(config, scale, controller_ids[0])
+    larm_con = PR2LeftArmViveController(config, scale, controller_ids[1])
     rarm_con.start()
     larm_con.start()
     rospy.spin()

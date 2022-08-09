@@ -116,7 +116,13 @@ class ViveController(ABC):
     tf_handref2camera: Optional[CoordinateTransform] = None
     tf_gripperref2base: Optional[CoordinateTransform] = None
 
-    def __init__(self, joy_topic_name: str, pose_topic_name: str, scale: float):
+    def __init__(self, controller_id: str, scale: float):
+        joy_topic_name = "/controller_{}/joy".format(controller_id)
+        pose_topic_name = "/controller_{}_as_posestamped".format(controller_id)
+        rospy.loginfo(
+            "htc controller {} is assinged to {}".format(controller_id, self.__class__.__name__)
+        )
+
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
         self.scale = scale

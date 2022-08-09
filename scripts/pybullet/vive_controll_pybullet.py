@@ -26,9 +26,7 @@ class SkrobotPybulletControllerPR2Rarm(SkrobotPybulletController):
 class BulletViveController(ViveRobotController[SkrobotPybulletControllerPR2Rarm]):
     def __init__(self, scale: float = 1.5):
         controller_id = "LHR_FFC55FC2"
-        joy_topic = "/controller_{}/joy".format(controller_id)
-        pose_topic = "/controller_{}_as_posestamped".format(controller_id)
-        super().__init__(joy_topic, pose_topic, scale)
+        super().__init__(controller_id, scale)
 
         # initialize pybullet world
         pb.connect(pb.GUI)  # or pybullet.DIRECT for non-graphical version
