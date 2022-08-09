@@ -32,7 +32,7 @@ from mohou_ros_utils.vive_controller.vive_base import (
 )
 
 
-class PR2ViveController(ViveRobotController):
+class PR2ViveController(ViveRobotController[SkrobotPR2Controller]):
     def __init__(
         self,
         joy_topic_name: str,

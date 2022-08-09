@@ -14,7 +14,7 @@ from sound_play.libsoundplay import SoundClient
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
-from mohou_ros_utils.vive_controller.robot_interface import RobotControllerBase
+from mohou_ros_utils.vive_controller.robot_interface import RobotControllerT
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -105,7 +105,7 @@ class JoyDataManager(TopicDataManager[Joy]):
             self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
-class ViveController:
+class ViveController(ABC):
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
     scale: float
@@ -229,8 +229,8 @@ class ViveController:
         pass
 
 
-class ViveRobotController(ViveController):
-    robot_con: RobotControllerBase
+class ViveRobotController(ViveController, Generic[RobotControllerT]):
+    robot_con: RobotControllerT
     config: Config
     gripper_close: bool
 
