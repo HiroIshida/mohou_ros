@@ -64,18 +64,23 @@ class SkrobotPybulletController(RobotControllerBase):
     pb_interface_id: int
     robot_id: int
     joint_name_to_id_table: Dict[str, int]
+    is_realtime_joint: bool
     force: float = 200
-    position_gain: float = 0.1
-    velocity_gain: float = 0.0
+    position_gain: float = 0.03
+    velocity_gain: float = 1.0
     max_velocity: float = 1.0
 
-    def __init__(self, robot_model: RobotModel, pb_robot_id: int, pb_interface_id: int):
+    def __init__(
+        self,
+        robot_model: RobotModel,
+        pb_robot_id: int,
+        pb_interface_id: int,
+        is_realtime_joint: bool,
+    ):
+
+        self.robot_model = robot_model
         self.pb_interface_id = pb_interface_id
         self.robot_id = pb_robot_id
-        self.robot_model = robot_model
-
-        # resolve joint_name => joint_id
-        set([j.name for j in robot_model.joint_list])
 
         joint_table_all = {}
         for idx in range(pb.getNumJoints(self.robot_id)):
@@ -85,16 +90,19 @@ class SkrobotPybulletController(RobotControllerBase):
             joint_table_all[joint_name] = joint_id
         self.joint_name_to_id_table = joint_table_all
 
-    def update_real_robot(self, time: float, real_time=False) -> None:
+        self.is_realtime_joint = is_realtime_joint
+
+    def update_real_robot(self, time: float) -> None:
+        # time is ignored here
         for joint_name in self.control_joint_names:
             assert joint_name in self.robot_model.__dict__, "{} is not in __dict__".format(
                 joint_name
             )
             joint = self.robot_model.__dict__[joint_name]
             angle = joint.joint_angle()
-            self._set_joint_angle(joint_name, angle, real_time)
+            self._set_joint_angle(joint_name, angle, self.is_realtime_joint)
 
-    def _set_joint_angle(self, joint_name: str, angle: float, real_time=False):
+    def _set_joint_angle(self, joint_name: str, angle: float, real_time):
         joint_id = self.joint_name_to_id_table[joint_name]
         if real_time:
             pb.setJointMotorControl2(
