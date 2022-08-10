@@ -1,3 +1,5 @@
+from typing import List
+
 larm_joint_names = [
     "l_shoulder_pan_joint",
     "l_shoulder_lift_joint",
@@ -23,3 +25,23 @@ larm_controller_name = "l_arm_controller"
 rarm_controller_name = "r_arm_controller"
 
 all_controller_names = [larm_controller_name, rarm_controller_name]
+
+
+class PR2RarmProperty:
+    @property
+    def control_joint_names(self) -> List[str]:
+        return rarm_joint_names
+
+    @property
+    def end_effector_name(self) -> str:
+        return "r_gripper_tool_frame"
+
+
+class PR2LarmProperty:
+    @property
+    def control_joint_names(self) -> List[str]:
+        return larm_joint_names
+
+    @property
+    def end_effector_name(self) -> str:
+        return "l_gripper_tool_frame"
