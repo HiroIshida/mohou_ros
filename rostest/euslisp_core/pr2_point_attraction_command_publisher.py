@@ -23,8 +23,8 @@ def create_dummy_command() -> ControlCommand:
     cmd.header.stamp = rospy.Time.now()
     cmd.joint_names = joint_names
     cmd.angles = joint_angles
-    cmd.rarm_gripper_angle = 0.045 # m
-    cmd.larm_gripper_angle = 0.045 # m
+    cmd.rarm_gripper_angle = 0.045  # m
+    cmd.larm_gripper_angle = 0.045  # m
     return cmd
 
 

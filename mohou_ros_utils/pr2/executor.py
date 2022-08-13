@@ -79,12 +79,14 @@ class EusPR2Executor(ExecutorBase):
         if AnotherGripperState in edict_next:
             ags_current = edict_current[AnotherGripperState]
             ags_next = edict_next[AnotherGripperState]
-            rospy.loginfo("current_ags {}, next_ags {}".format(ags_current.numpy(), ags_next.numpy()))
+            rospy.loginfo(
+                "current_ags {}, next_ags {}".format(ags_current.numpy(), ags_next.numpy())
+            )
 
         av_current = edict_current[AngleVector]
         av_next = edict_next[AngleVector]
         rospy.loginfo("current_av {}, next_av {}".format(av_current.numpy(), av_next.numpy()))
-        
+
         control_cmd = ControlCommand()
         control_cmd.header.stamp = rospy.Time.now()
 
