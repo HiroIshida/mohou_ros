@@ -76,10 +76,15 @@ class EusPR2Executor(ExecutorBase):
             gs_next = edict_next[GripperState]
             rospy.loginfo("current_gs {}, next_gs {}".format(gs_current.numpy(), gs_next.numpy()))
 
+        if AnotherGripperState in edict_next:
+            ags_current = edict_current[AnotherGripperState]
+            ags_next = edict_next[AnotherGripperState]
+            rospy.loginfo("current_ags {}, next_ags {}".format(ags_current.numpy(), ags_next.numpy()))
+
         av_current = edict_current[AngleVector]
         av_next = edict_next[AngleVector]
         rospy.loginfo("current_av {}, next_av {}".format(av_current.numpy(), av_next.numpy()))
-
+        
         control_cmd = ControlCommand()
         control_cmd.header.stamp = rospy.Time.now()
 
@@ -88,9 +93,9 @@ class EusPR2Executor(ExecutorBase):
         control_cmd.angles = list(av_next.numpy())
 
         if GripperState in edict_next:
-            rospy.logwarn("if you want to send gripper state, please make a PR.")
+            control_cmd.rarm_gripper_angle = gs_next.numpy()
         if AnotherGripperState in edict_next:
-            rospy.logwarn("if you want to send another gripper state, please make a PR.")
+            control_cmd.larm_gripper_angle = ags_next.numpy()
 
         if not self.dryrun:
             self.pub_command.publish(control_cmd)
