@@ -7,7 +7,10 @@ from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
 from skrobot.interfaces.ros.pr2 import PR2ROSRobotInterface
 from skrobot.model import Link, RobotModel
 
-from mohou_ros_utils.baxter.baxter_interface import BaxterRarmInterface
+from mohou_ros_utils.baxter.baxter_interface import (
+    BaxterLarmInterface,
+    BaxterRarmInterface,
+)
 from mohou_ros_utils.baxter.params import BaxterLarmProperty, BaxterRarmProperty
 from mohou_ros_utils.pr2.params import PR2LarmProperty, PR2RarmProperty
 from mohou_ros_utils.pr2.pr2_interface import PR2LarmInterface, PR2RarmInterface
@@ -172,7 +175,7 @@ class SkrobotPR2LarmController(PR2LarmProperty, SkrobotRobotInterface):
 
 class SkrobotBaxterLarmController(BaxterLarmProperty, SkrobotRobotInterface):
 
-    ri_type: ClassVar[Type[BaxterLarmProperty]] = BaxterLarmProperty
+    ri_type: ClassVar[Type[BaxterLarmProperty]] = BaxterLarmInterface
 
     def move_gripper(self, pos: float) -> None:
         pass
