@@ -3,10 +3,17 @@ from typing import ClassVar, Dict, List, Type, TypeVar
 
 import numpy as np
 import pybullet as pb
-from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
+from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
+from skrobot.interfaces.ros.pr2 import PR2ROSRobotInterface
 from skrobot.model import Link, RobotModel
 
+from mohou_ros_utils.baxter.baxter_interface import (
+    BaxterLarmInterface,
+    BaxterRarmInterface,
+)
+from mohou_ros_utils.baxter.params import BaxterLarmProperty, BaxterRarmProperty
 from mohou_ros_utils.pr2.params import PR2LarmProperty, PR2RarmProperty
+from mohou_ros_utils.pr2.pr2_interface import PR2LarmInterface, PR2RarmInterface
 from mohou_ros_utils.utils import CoordinateTransform
 
 
@@ -42,7 +49,8 @@ class RobotControllerBase(ABC):
     def solve_inverse_kinematics(self, tf_gripper2base_target: CoordinateTransform) -> bool:
         joints = [self.robot_model.__dict__[jname] for jname in self.control_joint_names]
         link_list = [joint.child_link for joint in joints]
-        end_effector = self.robot_model.__dict__[self.end_effector_name]
+        end_effector = [ln for ln in link_list if ln.name == self.end_effector_name].pop()
+        assert isinstance(end_effector, Link)
         av_next = self.robot_model.inverse_kinematics(
             tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list, stop=5
         )
@@ -51,7 +59,10 @@ class RobotControllerBase(ABC):
 
     def get_end_coords(self) -> CoordinateTransform:
         self.robot_model.angle_vector(self.get_real_robot_joint_angles())
-        end_effector: Link = self.robot_model.__dict__[self.end_effector_name]
+        end_effector = [
+            ln for ln in self.robot_model.link_list if ln.name == self.end_effector_name
+        ].pop()
+        assert isinstance(end_effector, Link)
         coords = end_effector.copy_worldcoords()
         tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, "gripper-ref", "base")
         return tf_gripperref2base
@@ -131,12 +142,9 @@ class SkrobotPybulletController(RobotControllerBase):
         pass
 
 
-PR2InterfaceT = TypeVar("PR2InterfaceT", bound=PR2ROSRobotInterface)
-
-
-class SkrobotPR2Controller(RobotControllerBase):
-    ri_type: ClassVar[Type[PR2ROSRobotInterface]]
-    robot_interface: PR2ROSRobotInterface
+class SkrobotRobotInterface(RobotControllerBase):
+    ri_type: ClassVar[Type[ROSRobotInterfaceBase]]
+    robot_interface: ROSRobotInterfaceBase
 
     def __init__(self, robot_model: RobotModel):
         self.robot_interface = self.ri_type(robot_model)
@@ -155,30 +163,31 @@ class SkrobotPR2Controller(RobotControllerBase):
         self.robot_interface.wait_interpolation()
 
 
-class RarmInterface(PR2ROSRobotInterface):
-    def default_controller(self):
-        return [self.rarm_controller, self.torso_controller, self.head_controller]
-
-
-class LarmInterface(PR2ROSRobotInterface):
-    def default_controller(self):
-        return [self.larm_controller, self.torso_controller, self.head_controller]
-
-
-class SkrobotPR2RarmController(PR2RarmProperty, SkrobotPR2Controller):
-    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = RarmInterface
+class SkrobotPR2RarmController(PR2RarmProperty, SkrobotRobotInterface):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = PR2RarmInterface
 
     def move_gripper(self, pos: float) -> None:
         self.robot_interface.move_gripper("rarm", pos, effort=100)  # type: ignore
 
 
-class SkrobotPR2LarmController(PR2LarmProperty, SkrobotPR2Controller):
-    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = LarmInterface
+class SkrobotPR2LarmController(PR2LarmProperty, SkrobotRobotInterface):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = PR2LarmInterface
 
     def move_gripper(self, pos: float) -> None:
         self.robot_interface.move_gripper("larm", pos, effort=100)  # type: ignore
 
 
-class RoseusRobotInterface(RobotControllerBase):
-    def update_real_robot(self, time: float) -> None:
+class SkrobotBaxterLarmController(BaxterLarmProperty, SkrobotRobotInterface):
+
+    ri_type: ClassVar[Type[BaxterLarmProperty]] = BaxterLarmInterface
+
+    def move_gripper(self, pos: float) -> None:
+        pass
+
+
+class SkrobotBaxteRarmController(BaxterRarmProperty, SkrobotRobotInterface):
+
+    ri_type: ClassVar[Type[BaxterRarmInterface]] = BaxterRarmInterface
+
+    def move_gripper(self, pos: float) -> None:
         pass

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 import argparse
+from pathlib import Path
 from typing import Optional
 
+import rospkg
 import rospy
 from mohou.file import get_project_path
-from skrobot.models import PR2
+from skrobot.models.urdf import RobotModelFromURDF
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.vive_controller.robot_interface import (
-    SkrobotPR2LarmController,
-    SkrobotPR2RarmController,
+    SkrobotBaxteRarmController,
+    SkrobotBaxterLarmController,
 )
 from mohou_ros_utils.vive_controller.utils import detect_controller_ids
 from mohou_ros_utils.vive_controller.vive_base import (
@@ -37,8 +39,14 @@ if __name__ == "__main__":
             break
 
     rospy.init_node("pr2_vive_mohou")
-    rarm_con = SkrobotPR2RarmController(PR2())
-    larm_con = SkrobotPR2LarmController(PR2())
+
+    rospack = rospkg.RosPack()
+    model_urdf_path = Path(rospack.get_path("baxter_description"))
+    baxter_urdf_path = model_urdf_path / "urdf" / "baxter.urdf"
+    robot_model = RobotModelFromURDF(urdf_file=str(baxter_urdf_path))
+
+    rarm_con = SkrobotBaxteRarmController(robot_model)
+    larm_con = SkrobotBaxterLarmController(robot_model)
 
     rarm_vive_con = RarmViveController(rarm_con, controller_ids[0], scale, config)
     larm_vive_con = LarmViveController(larm_con, controller_ids[1], scale, config)
