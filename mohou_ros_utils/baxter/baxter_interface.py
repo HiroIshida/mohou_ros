@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 
-import control_msgs.msg
+from control_msgs.msg import FollowJointTrajectoryAction
 import rospkg
 from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
 from skrobot.model import RobotModel
@@ -23,7 +23,7 @@ class BaxterROSRobotInterface(ROSRobotInterfaceBase):
             controller_type="rarm_controller",
             controller_action="/robot/limb/right/follow_joint_trajectory",
             controller_state="/robot/limb/right/state",
-            action_type=control_msgs.msg.FollowJointTrajectoryAction,
+            action_type=FollowJointTrajectoryAction,
             joint_names=joint_names,
         )
 
@@ -34,7 +34,7 @@ class BaxterROSRobotInterface(ROSRobotInterfaceBase):
             controller_type="larm_controller",
             controller_action="/robot/limb/left/follow_joint_trajectory",
             controller_state="/robot/limb/left/state",
-            action_type=control_msgs.msg.FollowJointTrajectoryAction,
+            action_type=FollowJointTrajectoryAction,
             joint_names=joint_names,
         )
 
