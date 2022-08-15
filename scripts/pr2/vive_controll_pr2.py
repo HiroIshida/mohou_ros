@@ -1,68 +1,21 @@
 #!/usr/bin/env python3
 import argparse
-import os
-from pathlib import Path
-from typing import ClassVar, Optional
+from typing import Optional
 
 import rospy
 from mohou.file import get_project_path
 from skrobot.models import PR2
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.script_utils import get_latest_rosbag_filename
 from mohou_ros_utils.vive_controller.robot_interface import (
     SkrobotPR2LarmController,
     SkrobotPR2RarmController,
 )
 from mohou_ros_utils.vive_controller.utils import detect_controller_ids
 from mohou_ros_utils.vive_controller.vive_base import (
-    JoyDataManager,
-    RosbagManager,
-    ViveRobotController,
+    LarmViveController,
+    RarmViveController,
 )
-
-
-class PR2RightArmViveController(ViveRobotController[SkrobotPR2RarmController]):
-    rosbag_manager: RosbagManager
-    log_prefix: ClassVar[str] = "Right"
-
-    def __init__(self, controller_id: str, scale: float, config: Config):
-        robot_con = SkrobotPR2RarmController(PR2())
-        assert config.home_position is not None
-        home_gripper_pos = config.home_position["r_gripper_joint"]
-        super().__init__(controller_id, robot_con, scale, config.home_position, home_gripper_pos)
-
-        rosbag_manager = RosbagManager(config, self.sound_client)
-        self.rosbag_manager = rosbag_manager
-        self.joy_manager.register_processor(
-            JoyDataManager.Button.FRONT, rosbag_manager.switch_state
-        )
-
-
-class PR2LeftArmViveController(ViveRobotController[SkrobotPR2LarmController]):
-    project_path: Path
-    log_prefix: ClassVar[str] = "Left"
-
-    def __init__(self, controller_id: str, scale: float, config: Config):
-        robot_con = SkrobotPR2LarmController(PR2())
-        assert config.home_position is not None
-        home_gripper_pos = config.home_position["l_gripper_joint"]
-        super().__init__(controller_id, robot_con, scale, config.home_position, home_gripper_pos)
-
-        self.project_path = config.project_path
-        self.joy_manager.register_processor(JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
-
-    def delete_latest_rosbag(self) -> None:
-        latest_rosbag = get_latest_rosbag_filename(self.project_path)
-        if latest_rosbag is None:
-            message = "deleting rosbag failed because there is no rosbag"
-            rospy.logwarn(message)
-            self.sound_client.say(message)
-        else:
-            rospy.logwarn("delete rosbag file named {}".format(latest_rosbag))
-            self.sound_client.say("delete latest rosbag")
-            os.remove(latest_rosbag)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -84,8 +37,11 @@ if __name__ == "__main__":
             break
 
     rospy.init_node("pr2_vive_mohou")
-    rarm_con = PR2RightArmViveController(controller_ids[0], scale, config)
-    larm_con = PR2LeftArmViveController(controller_ids[1], scale, config)
-    rarm_con.start()
-    larm_con.start()
+    rarm_con = SkrobotPR2RarmController(PR2())
+    larm_con = SkrobotPR2LarmController(PR2())
+
+    rarm_vive_con = RarmViveController(rarm_con, controller_ids[0], scale, config)
+    larm_vive_con = LarmViveController(larm_con, controller_ids[1], scale, config)
+    rarm_vive_con.start()
+    larm_vive_con.start()
     rospy.spin()

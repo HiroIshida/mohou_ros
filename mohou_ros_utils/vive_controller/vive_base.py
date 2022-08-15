@@ -7,7 +7,8 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Generic, List, Optional, Type, TypeVar
+from pathlib import Path
+from typing import Callable, ClassVar, Dict, Generic, List, Optional, Type, TypeVar
 
 import genpy
 import rospy
@@ -19,6 +20,7 @@ from mohou_ros_utils.config import Config
 from mohou_ros_utils.script_utils import (
     count_rosbag_file,
     create_rosbag_command,
+    get_latest_rosbag_filename,
     get_rosbag_filepath,
 )
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
@@ -354,3 +356,57 @@ class RosbagManager:
             self.stop()
         else:
             self.start()
+
+
+class RarmViveController(ViveRobotController[RobotControllerT]):
+    rosbag_manager: RosbagManager
+    log_prefix: ClassVar[str] = "Right"
+
+    def __init__(
+        self,
+        robot_con: RobotControllerT,
+        controller_id: str,
+        scale: float,
+        config: Config,
+        gripper_joint_name: str = "r_gripper_joint",
+    ):
+        assert config.home_position is not None
+        home_gripper_pos = config.home_position[gripper_joint_name]
+        super().__init__(controller_id, robot_con, scale, config.home_position, home_gripper_pos)
+
+        rosbag_manager = RosbagManager(config, self.sound_client)
+        self.rosbag_manager = rosbag_manager
+        self.joy_manager.register_processor(
+            JoyDataManager.Button.FRONT, rosbag_manager.switch_state
+        )
+
+
+class LarmViveController(ViveRobotController[RobotControllerT]):
+    project_path: Path
+    log_prefix: ClassVar[str] = "Left"
+
+    def __init__(
+        self,
+        robot_con: RobotControllerT,
+        controller_id: str,
+        scale: float,
+        config: Config,
+        gripper_joint_name: str = "l_gripper_joint",
+    ):
+        assert config.home_position is not None
+        home_gripper_pos = config.home_position[gripper_joint_name]
+        super().__init__(controller_id, robot_con, scale, config.home_position, home_gripper_pos)
+
+        self.project_path = config.project_path
+        self.joy_manager.register_processor(JoyDataManager.Button.FRONT, self.delete_latest_rosbag)
+
+    def delete_latest_rosbag(self) -> None:
+        latest_rosbag = get_latest_rosbag_filename(self.project_path)
+        if latest_rosbag is None:
+            message = "deleting rosbag failed because there is no rosbag"
+            rospy.logwarn(message)
+            self.sound_client.say(message)
+        else:
+            rospy.logwarn("delete rosbag file named {}".format(latest_rosbag))
+            self.sound_client.say("delete latest rosbag")
+            os.remove(latest_rosbag)

@@ -5,8 +5,9 @@ import control_msgs.msg
 import rospkg
 from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
 from skrobot.model import RobotModel
-from skrobot.model.robot_model import RobotModel
 from skrobot.models.urdf import RobotModelFromURDF
+
+from mohou_ros_utils.baxter.params import larm_joint_names, rarm_joint_names
 
 
 class BaxterROSRobotInterface(ROSRobotInterfaceBase):
@@ -17,15 +18,7 @@ class BaxterROSRobotInterface(ROSRobotInterfaceBase):
 
     @property
     def rarm_controller(self):
-        joint_names = [
-            "right_s0",
-            "right_s1",
-            "right_e0",
-            "right_e1",
-            "right_w0",
-            "right_w1",
-            "right_w2",
-        ]
+        joint_names = larm_joint_names
         return dict(
             controller_type="rarm_controller",
             controller_action="/robot/limb/right/follow_joint_trajectory",
@@ -36,7 +29,7 @@ class BaxterROSRobotInterface(ROSRobotInterfaceBase):
 
     @property
     def larm_controller(self):
-        joint_names = ["left_s0", "left_s1", "left_e0", "left_e1", "left_w0", "left_w1", "left_w2"]
+        joint_names = rarm_joint_names
         return dict(
             controller_type="larm_controller",
             controller_action="/robot/limb/left/follow_joint_trajectory",
@@ -47,6 +40,16 @@ class BaxterROSRobotInterface(ROSRobotInterfaceBase):
 
     def default_controller(self):
         return [self.rarm_controller, self.larm_controller]
+
+
+class BaxterRarmInterface(BaxterROSRobotInterface):
+    def default_controller(self):
+        return [self.rarm_controller]
+
+
+class BaxterLarmInterface(BaxterROSRobotInterface):
+    def default_controller(self):
+        return [self.larm_controller]
 
 
 def baxter_init() -> Tuple[RobotModel, ROSRobotInterfaceBase]:

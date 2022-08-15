@@ -3,10 +3,14 @@ from typing import ClassVar, Dict, List, Type, TypeVar
 
 import numpy as np
 import pybullet as pb
-from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
+from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
+from skrobot.interfaces.ros.pr2 import PR2ROSRobotInterface
 from skrobot.model import Link, RobotModel
 
+from mohou_ros_utils.baxter.baxter_interface import BaxterRarmInterface
+from mohou_ros_utils.baxter.params import BaxterLarmProperty, BaxterRarmProperty
 from mohou_ros_utils.pr2.params import PR2LarmProperty, PR2RarmProperty
+from mohou_ros_utils.pr2.pr2_interface import PR2LarmInterface, PR2RarmInterface
 from mohou_ros_utils.utils import CoordinateTransform
 
 
@@ -131,12 +135,9 @@ class SkrobotPybulletController(RobotControllerBase):
         pass
 
 
-PR2InterfaceT = TypeVar("PR2InterfaceT", bound=PR2ROSRobotInterface)
-
-
-class SkrobotPR2Controller(RobotControllerBase):
-    ri_type: ClassVar[Type[PR2ROSRobotInterface]]
-    robot_interface: PR2ROSRobotInterface
+class SkrobotRobotInterface(RobotControllerBase):
+    ri_type: ClassVar[Type[ROSRobotInterfaceBase]]
+    robot_interface: ROSRobotInterfaceBase
 
     def __init__(self, robot_model: RobotModel):
         self.robot_interface = self.ri_type(robot_model)
@@ -155,30 +156,31 @@ class SkrobotPR2Controller(RobotControllerBase):
         self.robot_interface.wait_interpolation()
 
 
-class RarmInterface(PR2ROSRobotInterface):
-    def default_controller(self):
-        return [self.rarm_controller, self.torso_controller, self.head_controller]
-
-
-class LarmInterface(PR2ROSRobotInterface):
-    def default_controller(self):
-        return [self.larm_controller, self.torso_controller, self.head_controller]
-
-
-class SkrobotPR2RarmController(PR2RarmProperty, SkrobotPR2Controller):
-    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = RarmInterface
+class SkrobotPR2RarmController(PR2RarmProperty, SkrobotRobotInterface):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = PR2RarmInterface
 
     def move_gripper(self, pos: float) -> None:
         self.robot_interface.move_gripper("rarm", pos, effort=100)  # type: ignore
 
 
-class SkrobotPR2LarmController(PR2LarmProperty, SkrobotPR2Controller):
-    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = LarmInterface
+class SkrobotPR2LarmController(PR2LarmProperty, SkrobotRobotInterface):
+    ri_type: ClassVar[Type[PR2ROSRobotInterface]] = PR2LarmInterface
 
     def move_gripper(self, pos: float) -> None:
         self.robot_interface.move_gripper("larm", pos, effort=100)  # type: ignore
 
 
-class RoseusRobotInterface(RobotControllerBase):
-    def update_real_robot(self, time: float) -> None:
+class SkrobotBaxterLarmController(BaxterLarmProperty, SkrobotRobotInterface):
+
+    ri_type: ClassVar[Type[BaxterLarmProperty]] = BaxterLarmProperty
+
+    def move_gripper(self, pos: float) -> None:
+        pass
+
+
+class SkrobotBaxteRarmController(BaxterRarmProperty, SkrobotRobotInterface):
+
+    ri_type: ClassVar[Type[BaxterRarmInterface]] = BaxterRarmInterface
+
+    def move_gripper(self, pos: float) -> None:
         pass
