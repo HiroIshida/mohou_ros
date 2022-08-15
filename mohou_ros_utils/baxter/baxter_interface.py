@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Tuple
 
-from control_msgs.msg import FollowJointTrajectoryAction
 import rospkg
+from control_msgs.msg import FollowJointTrajectoryAction
 from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
 from skrobot.model import RobotModel
 from skrobot.models.urdf import RobotModelFromURDF

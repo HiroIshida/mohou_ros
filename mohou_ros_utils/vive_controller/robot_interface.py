@@ -49,7 +49,8 @@ class RobotControllerBase(ABC):
     def solve_inverse_kinematics(self, tf_gripper2base_target: CoordinateTransform) -> bool:
         joints = [self.robot_model.__dict__[jname] for jname in self.control_joint_names]
         link_list = [joint.child_link for joint in joints]
-        end_effector = self.robot_model.__dict__[self.end_effector_name]
+        end_effector = [ln for ln in link_list if ln.name == self.end_effector_name].pop()
+        assert isinstance(end_effector, Link)
         av_next = self.robot_model.inverse_kinematics(
             tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list, stop=5
         )
@@ -58,7 +59,10 @@ class RobotControllerBase(ABC):
 
     def get_end_coords(self) -> CoordinateTransform:
         self.robot_model.angle_vector(self.get_real_robot_joint_angles())
-        end_effector: Link = self.robot_model.__dict__[self.end_effector_name]
+        end_effector = [
+            ln for ln in self.robot_model.link_list if ln.name == self.end_effector_name
+        ].pop()
+        assert isinstance(end_effector, Link)
         coords = end_effector.copy_worldcoords()
         tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, "gripper-ref", "base")
         return tf_gripperref2base
