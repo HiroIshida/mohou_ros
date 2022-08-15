@@ -1,33 +1,52 @@
-from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
-import control_msgs.msg
 from pathlib import Path
+from typing import Tuple
+
+import control_msgs.msg
+import rospkg
+from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
 from skrobot.model import RobotModel
 from skrobot.model.robot_model import RobotModel
 from skrobot.models.urdf import RobotModelFromURDF
-from typing import Tuple
-import rospkg
 
 
 class BaxterROSRobotInterface(ROSRobotInterfaceBase):
-
     def __init__(self, robot: RobotModel):
         super(BaxterROSRobotInterface, self).__init__(
-            robot,
-            default_controller="default_controller",
-            joint_states_topic="/robot/joint_states")
+            robot, default_controller="default_controller", joint_states_topic="/robot/joint_states"
+        )
 
     @property
     def rarm_controller(self):
+        joint_names = [
+            "right_s0",
+            "right_s1",
+            "right_e0",
+            "right_e1",
+            "right_w0",
+            "right_w1",
+            "right_w2",
+        ]
         return dict(
-            controller_type='rarm_controller',
-            controller_action='/robot/limb/right/follow_joint_trajectory',
-            controller_state='/robot/limb/left/state',
+            controller_type="rarm_controller",
+            controller_action="/robot/limb/right/follow_joint_trajectory",
+            controller_state="/robot/limb/right/state",
             action_type=control_msgs.msg.FollowJointTrajectoryAction,
-            joint_names=[j.name for j in self.robot.rarm.joint_list],
+            joint_names=joint_names,
+        )
+
+    @property
+    def larm_controller(self):
+        joint_names = ["left_s0", "left_s1", "left_e0", "left_e1", "left_w0", "left_w1", "left_w2"]
+        return dict(
+            controller_type="larm_controller",
+            controller_action="/robot/limb/left/follow_joint_trajectory",
+            controller_state="/robot/limb/left/state",
+            action_type=control_msgs.msg.FollowJointTrajectoryAction,
+            joint_names=joint_names,
         )
 
     def default_controller(self):
-        return [self.rarm_controller]
+        return [self.rarm_controller, self.larm_controller]
 
 
 def baxter_init() -> Tuple[RobotModel, ROSRobotInterfaceBase]:
