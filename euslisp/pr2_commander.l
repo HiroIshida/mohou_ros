@@ -4,6 +4,6 @@
 
 (pr2-init)
 (ros::subscribe "/mohou_control_command"
-  mohou_ros::ControlCommand 
+  mohou_ros::ControlCommand
   #'(lambda (msg) (send-command *pr2* *ri* msg)))
 (ros::spin)
