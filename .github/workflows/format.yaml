@@ -21,7 +21,7 @@ jobs:
               pip3 install black
               pip3 install isort
               pip3 install flake8
-              git clone https://github.com/knorth55/euslint.git && cd euslint && pip3 install -e .
+              cd /tmp && git clone https://github.com/knorth55/euslint.git && cd euslint && pip3 install -e .
 
         - name: check by euslint
           run: |
