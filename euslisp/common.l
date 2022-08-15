@@ -15,7 +15,7 @@
 
 (defun joint-name-to-symbol (joint-name)
   (read-from-string (concatenate string ":" joint-name)))
-  
+
 (defun standard-to-eus-unut-conversion (joint-object angle)
   ;; precondition validation
   (assert-isinstance joint-object joint)
@@ -26,7 +26,7 @@
   (when (derivedp joint-object linear-joint)
     (return-from standard-to-eus-unut-conversion (* 1000 angle)))
   (assert nil "the joint type is not supported")
-)
+  )
 
 (defun convert-joint-angle-list (robot joint-name-list stdunit-angle-list)
   ;; precondition validation
@@ -46,10 +46,10 @@
              (joint-object (send robot joint-symbol))
              )
         (push (standard-to-eus-unut-conversion joint-object angle-stdunit) ret-angle-list))
-    )
+      )
     (reverse ret-angle-list)
+    )
   )
-)
 
 (defun send-command (robot ri cmd-msg)
   ;; precondition validation
@@ -62,22 +62,22 @@
          (joint-name-list (send cmd-msg :joint_names))
          (angle-list-stdunit (vec-to-list (send cmd-msg :angles)))
          (angle-list-eusunit (convert-joint-angle-list robot joint-name-list angle-list-stdunit))
-	 (rarm-angle-stdunit (send cmd-msg :rarm_gripper_angle))
-	 (larm-angle-stdunit (send cmd-msg :larm_gripper_angle))
-        )
+         (rarm-angle-stdunit (send cmd-msg :rarm_gripper_angle))
+         (larm-angle-stdunit (send cmd-msg :larm_gripper_angle))
+         )
     (assert-listp angle-list-eusunit)
     (dotimes (i (length joint-name-list))
       (let* (
              (angle-eusunit (nth i angle-list-eusunit))
              (joint-name (nth i joint-name-list))
              (joint-method-symbol (joint-name-to-symbol joint-name))
-            )
+             )
         (assert-isinstance robot robot-model)
         (send robot joint-method-symbol :joint-angle angle-eusunit)))
     (send ri :angle-vector (send robot :angle-vector))
-    (if (not (null rarm-angle-stdunit))
-	(send ri :move-gripper :rarm rarm-angle-stdunit))
-    (if (not (null larm-angle-stdunit))
-	(send ri :move-gripper :larm larm-angle-stdunit))
+    (unless (null rarm-angle-stdunit)
+      (send ri :move-gripper :rarm rarm-angle-stdunit))
+    (unless (null larm-angle-stdunit)
+      (send ri :move-gripper :larm larm-angle-stdunit))
+    )
   )
-)
