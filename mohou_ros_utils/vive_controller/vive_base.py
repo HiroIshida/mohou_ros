@@ -2,19 +2,16 @@
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, Generic, List, Optional, Type, TypeVar
+from typing import Callable, Dict, Generic, List, Optional, Type, TypeVar
 
 import genpy
-import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
-from skrobot.model import Link
 from sound_play.libsoundplay import SoundClient
 
-from mohou_ros_utils.config import Config
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
-from mohou_ros_utils.vive_controller.robot_interface import RobotControllerBase
+from mohou_ros_utils.vive_controller.robot_interface import RobotControllerT
 
 MessageT = TypeVar("MessageT", bound=genpy.Message)
 
@@ -105,7 +102,7 @@ class JoyDataManager(TopicDataManager[Joy]):
             self.latest_process_times[button.value] = rospy.Time.now().to_sec()
 
 
-class ViveController:
+class ViveController(ABC):
     joy_manager: JoyDataManager
     pose_manager: PoseDataManager
     scale: float
@@ -116,7 +113,13 @@ class ViveController:
     tf_handref2camera: Optional[CoordinateTransform] = None
     tf_gripperref2base: Optional[CoordinateTransform] = None
 
-    def __init__(self, joy_topic_name: str, pose_topic_name: str, scale: float):
+    def __init__(self, controller_id: str, scale: float):
+        joy_topic_name = "/controller_{}/joy".format(controller_id)
+        pose_topic_name = "/controller_{}_as_posestamped".format(controller_id)
+        self.loginfo(
+            "htc controller {} is assinged to {}".format(controller_id, self.__class__.__name__)
+        )
+
         self.joy_manager = JoyDataManager(joy_topic_name)
         self.pose_manager = PoseDataManager(pose_topic_name)
         self.scale = scale
@@ -229,36 +232,48 @@ class ViveController:
         pass
 
 
-class ViveRobotController(ViveController):
-    robot_con: RobotControllerBase
-    config: Config
+class ViveRobotController(ViveController, Generic[RobotControllerT]):
+    robot_con: RobotControllerT
+    home_position_table: Dict[str, float]
+    home_gripper_pos: float
     gripper_close: bool
 
-    def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
-        joints = [self.robot_con.robot_model.__dict__[jname] for jname in self.arm_joint_names]
-        link_list = [joint.child_link for joint in joints]
-        end_effector = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
-        av_next = self.robot_con.robot_model.inverse_kinematics(
-            tf_gripper2base_target.to_skrobot_coords(), end_effector, link_list, stop=5
-        )
+    def __init__(
+        self,
+        controller_id: str,
+        robot_con: RobotControllerT,
+        scale: float,
+        home_postion_table: Dict[str, float],
+        home_gripper_pos: float,
+    ):
 
-        if isinstance(av_next, np.ndarray):
-            self.robot_con.update_real_robot(av_next, time=0.8)
+        super().__init__(controller_id, scale)
+        self.robot_con = robot_con
+        self.gripper_close = False
+        self.home_position_table = home_postion_table
+        self.home_gripper_pos = home_gripper_pos
+
+        self.joy_manager.register_processor(JoyDataManager.Button.BOTTOM, self.switch_grasp_state)
+        self.joy_manager.register_processor(JoyDataManager.Button.SIDE, self.reset_to_home_position)
+        self.loginfo("controller is initialized")
+
+    def send_tracking_command(self, tf_gripper2base_target: CoordinateTransform) -> None:
+        is_solved = self.robot_con.solve_inverse_kinematics(tf_gripper2base_target)
+        if is_solved:
+            self.robot_con.update_real_robot(time=0.8)
         else:
             self.logwarn("solving inverse kinematics failed")
 
     def get_robot_end_coords(self) -> CoordinateTransform:
-        self.robot_con.robot_model.angle_vector(self.robot_con.get_real_robot_joint_angles())
-        end_effector: Link = self.robot_con.robot_model.__dict__[self.arm_end_effector_name]
-        coords = end_effector.copy_worldcoords()
-        tf_gripperref2base = CoordinateTransform.from_skrobot_coords(coords, "gripper-ref", "base")
-        return tf_gripperref2base
+        return self.robot_con.get_end_coords()
 
     def switch_grasp_state(self) -> None:
         if self.gripper_close:
+            self.loginfo("gripper state CLOSE => OPEN")
             self.robot_con.move_gripper(0.06)
             self.gripper_close = False
         else:
+            self.loginfo("gripper state OPEN => CLOSE")
             self.robot_con.move_gripper(0.0)
             self.gripper_close = True
 
@@ -266,31 +281,12 @@ class ViveRobotController(ViveController):
         self.is_tracking = False
         self.loginfo("turn off tracker")
         self.loginfo("resetting to home position")
-        assert self.config.home_position is not None
 
-        for joint_name in self.config.home_position.keys():
-            angle = self.config.home_position[joint_name]
+        for joint_name, angle in self.home_position_table.items():
             self.robot_con.robot_model.__dict__[joint_name].joint_angle(angle)
 
-        ref_joint_angle = self.robot_con.robot_model.angle_vector()
-        self.robot_con.update_real_robot(ref_joint_angle, 3.0)
+        self.robot_con.update_real_robot(3.0)
 
-        self.config.home_position[self.gripper_joint_name]
         if reset_grasp:
-            self.robot_con.move_gripper(self.config.home_position[self.gripper_joint_name])
+            self.robot_con.move_gripper(self.home_gripper_pos)
         self.robot_con.wait_interpolation()
-
-    @property
-    @abstractmethod
-    def arm_joint_names(self) -> List[str]:
-        pass
-
-    @property
-    @abstractmethod
-    def arm_end_effector_name(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def gripper_joint_name(self) -> str:
-        pass
