@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
+import os
+import signal
+import subprocess
+import threading
 import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, Generic, List, Optional, Type, TypeVar
 
@@ -10,6 +15,12 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Joy
 from sound_play.libsoundplay import SoundClient
 
+from mohou_ros_utils.config import Config
+from mohou_ros_utils.script_utils import (
+    count_rosbag_file,
+    create_rosbag_command,
+    get_rosbag_filepath,
+)
 from mohou_ros_utils.utils import CoordinateTransform, chain_transform
 from mohou_ros_utils.vive_controller.robot_interface import RobotControllerT
 
@@ -290,3 +301,56 @@ class ViveRobotController(ViveController, Generic[RobotControllerT]):
         if reset_grasp:
             self.robot_con.move_gripper(self.home_gripper_pos)
         self.robot_con.wait_interpolation()
+
+
+@dataclass
+class RosbagManager:
+    config: Config
+    sound_client: SoundClient
+    closure_stop: Optional[Callable] = None
+
+    @property
+    def is_running(self) -> bool:
+        return self.closure_stop is not None
+
+    def start(self) -> None:
+        assert not self.is_running
+        path = get_rosbag_filepath(self.config.project_path, time.strftime("%Y%m%d%H%M%S"))
+        cmd = create_rosbag_command(path, self.config)
+        p = subprocess.Popen(cmd)
+        rospy.loginfo(p)
+        share = {"is_running": True}
+
+        def closure_stop():
+            share["is_running"] = False
+
+        self.closure_stop = closure_stop
+
+        class Observer(threading.Thread):
+            def run(self):
+                while True:
+                    time.sleep(0.5)
+                    if not share["is_running"]:
+                        rospy.loginfo("kill rosbag process")
+                        os.kill(p.pid, signal.SIGTERM)
+                        break
+
+        self.sound_client.say("Start saving rosbag")
+        thread = Observer()
+        thread.start()
+
+    def stop(self) -> None:
+        assert self.is_running
+        assert self.closure_stop is not None
+        n_count = count_rosbag_file(self.config.project_path) + 1  # because we are gonna add one
+        self.sound_client.say("Finish saving rosbag. Total number is {}".format(n_count))
+
+        self.closure_stop()
+        self.closure_stop = None
+
+    def switch_state(self) -> None:
+        rospy.loginfo("switch rosbag state")
+        if self.is_running:
+            self.stop()
+        else:
+            self.start()

@@ -1,26 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import signal
-import subprocess
-import threading
-import time
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, ClassVar, Optional
+from typing import ClassVar, Optional
 
 import rospy
 from mohou.file import get_project_path
 from skrobot.models import PR2
-from sound_play.libsoundplay import SoundClient
 
 from mohou_ros_utils.config import Config
-from mohou_ros_utils.script_utils import (
-    count_rosbag_file,
-    create_rosbag_command,
-    get_latest_rosbag_filename,
-    get_rosbag_filepath,
-)
+from mohou_ros_utils.script_utils import get_latest_rosbag_filename
 from mohou_ros_utils.vive_controller.robot_interface import (
     SkrobotPR2LarmController,
     SkrobotPR2RarmController,
@@ -28,61 +17,9 @@ from mohou_ros_utils.vive_controller.robot_interface import (
 from mohou_ros_utils.vive_controller.utils import detect_controller_ids
 from mohou_ros_utils.vive_controller.vive_base import (
     JoyDataManager,
+    RosbagManager,
     ViveRobotController,
 )
-
-
-@dataclass
-class RosbagManager:
-    config: Config
-    sound_client: SoundClient
-    closure_stop: Optional[Callable] = None
-
-    @property
-    def is_running(self) -> bool:
-        return self.closure_stop is not None
-
-    def start(self) -> None:
-        assert not self.is_running
-        path = get_rosbag_filepath(self.config.project_path, time.strftime("%Y%m%d%H%M%S"))
-        cmd = create_rosbag_command(path, config)
-        p = subprocess.Popen(cmd)
-        rospy.loginfo(p)
-        share = {"is_running": True}
-
-        def closure_stop():
-            share["is_running"] = False
-
-        self.closure_stop = closure_stop
-
-        class Observer(threading.Thread):
-            def run(self):
-                while True:
-                    time.sleep(0.5)
-                    if not share["is_running"]:
-                        rospy.loginfo("kill rosbag process")
-                        os.kill(p.pid, signal.SIGTERM)
-                        break
-
-        self.sound_client.say("Start saving rosbag")
-        thread = Observer()
-        thread.start()
-
-    def stop(self) -> None:
-        assert self.is_running
-        assert self.closure_stop is not None
-        n_count = count_rosbag_file(self.config.project_path) + 1  # because we are gonna add one
-        self.sound_client.say("Finish saving rosbag. Total number is {}".format(n_count))
-
-        self.closure_stop()
-        self.closure_stop = None
-
-    def switch_state(self) -> None:
-        rospy.loginfo("switch rosbag state")
-        if self.is_running:
-            self.stop()
-        else:
-            self.start()
 
 
 class PR2RightArmViveController(ViveRobotController[SkrobotPR2RarmController]):
