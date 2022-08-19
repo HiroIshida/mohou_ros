@@ -99,7 +99,7 @@ NOTE: when you delete that latest rosbag after stop saving rosbag, please wait f
 
 ### save home position
 ```
-rosrun mohou_ros save_home_position.py 
+rosrun mohou_ros save_home_position.py -pn {your_project_name}
 ```
 
 
