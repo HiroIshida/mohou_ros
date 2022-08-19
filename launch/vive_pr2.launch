@@ -1,7 +1,7 @@
 <launch>
   <arg name="pn" default="vive"/>
 
-  <node pkg="mohou_ros" type="vive_controll_pr2.py" name="vive_pr2_controll"
+  <node pkg="mohou_ros" type="vive_controller_pr2.py" name="vive_pr2_controller"
         args="-pn $(arg pn)"
         output="screen">
   </node>
