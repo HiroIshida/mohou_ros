@@ -1,13 +1,23 @@
+import subprocess
+import uuid
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import ClassVar, Dict, List, Type, TypeVar
 
 import numpy as np
 import pybullet as pb
+import rospy
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Link, RobotModel
+from skrobot.models.pr2 import PR2
 
+from mohou_ros.srv import EuslispDirectCommand, EuslispDirectCommandResponse
 from mohou_ros_utils.pr2.params import PR2LarmProperty, PR2RarmProperty
-from mohou_ros_utils.utils import CoordinateTransform
+from mohou_ros_utils.utils import (
+    CoordinateTransform,
+    euslisp_unit_to_standard_unit,
+    standard_unit_to_euslisp_unit,
+)
 
 
 class RobotControllerBase(ABC):
@@ -58,6 +68,188 @@ class RobotControllerBase(ABC):
 
 
 RobotControllerT = TypeVar("RobotControllerT", bound="RobotControllerBase")
+
+
+class EuslispRobotController(RobotControllerBase):
+    service_name: str
+    proxy: rospy.ServiceProxy
+
+    def eusserver_common_script(self, node_name: str, service_name: str) -> str:
+        script = """
+        (ros::load-ros-manifest "roseus")
+        (ros::roseus-add-srvs "euslisp_command_srvs")
+        (ros::roseus "{node_name}")
+        {script_hook}
+        (defun handle (req)
+          (let* ((resp (send req :response))
+                 (command-string (send req :command))
+                 (command-expr (read-from-string command-string)))
+            (print command-string)
+            (eval command-expr)
+            resp))
+        (ros::advertise-service "{service_name}" euslisp_command_srvs::EuslispDirectCommand #'handle)
+        (do-until-key
+        (ros::spin-once)) """.format(
+            script_hook=self.eus_script_hook(), node_name=node_name, service_name=service_name
+        )
+        return script
+
+    def __init__(self):
+        script_path = Path("/tmp/euslisp-{}.l".format(str(uuid.uuid4())))
+        node_name = "roseus_command_server_{}".format(str(uuid.uuid4()).replace("-", ""))
+        service_name = "roseus_command_{}".format(str(uuid.uuid4()).replace("-", ""))
+        script = self.eusserver_common_script(node_name, service_name)
+        with script_path.open(mode="w") as f:
+            f.write(script)
+
+        subprocess.Popen("roseus {}".format(str(script_path)), shell=True)
+        assert script_path.exists()
+        print("started eus server")
+
+        rospy.wait_for_service(service_name)
+        proxy = rospy.ServiceProxy(service_name, EuslispDirectCommand)
+
+        self.service_name = service_name
+        self.proxy = proxy
+
+    def update_real_robot(self, time: float) -> None:
+        angle_list_stdunit = []
+        for joint_name in self.eus_joint_name_list():
+            angle = self.robot_model.__dict__[joint_name].joint_angle()
+            angle_list_stdunit.append(angle)
+        angle_vector_stdunit = np.array(angle_list_stdunit)
+        angle_vector_eusunit = standard_unit_to_euslisp_unit(
+            self.robot_model, self.eus_joint_name_list(), angle_vector_stdunit
+        )
+
+        float_vector_expr = "#f("
+        for angle in angle_vector_eusunit:
+            float_vector_expr += str(angle) + " "
+        float_vector_expr += ")"
+
+        time_ms = time * 1000.0
+        script = """
+        (send *ri* :angle-vector {} {})
+        """.format(
+            float_vector_expr, time_ms
+        )
+        self.proxy(script)
+
+    def get_real_robot_joint_angles(self) -> np.ndarray:
+        script = """
+        (progn
+          (let* (
+                 (vec (send *ri* :state :potentio-vector))
+                 (len (length vec))
+                 (ret-string-list nil)
+                 (ret-string nil)
+                )
+            (dotimes (i len)
+              (push (string (aref vec i)) ret-string-list)
+              (unless (eq i (- len 1))
+                (push ", " ret-string-list))
+            )
+            (setq ret-string
+              (reduce #'(lambda (a b) (concatenate string a b)) (nreverse ret-string-list)))
+            (send resp :message ret-string)
+            ))
+        """
+        ret: EuslispDirectCommandResponse = self.proxy(script)
+        angle_vector_eusunit = np.array([float(e) for e in ret.message.split(",")])
+        angle_vector_stdunit = euslisp_unit_to_standard_unit(
+            self.robot_model, self.eus_joint_name_list(), angle_vector_eusunit
+        )
+
+        for joint_name, angle in zip(self.eus_joint_name_list(), angle_vector_stdunit):
+            self.robot_model.__dict__[joint_name].joint_angle(angle)
+        return self.robot_model.angle_vector()
+
+    def wait_interpolation(self) -> None:
+        cmd = """(send *ri* :wait-interpolation)"""
+        self.proxy(cmd)
+
+    @abstractmethod
+    def eus_script_hook(self) -> str:
+        pass
+
+    @abstractmethod
+    def eus_joint_name_list(self) -> List[str]:
+        pass
+
+
+class EuslispPR2Controller(EuslispRobotController):
+    def __init__(self):
+        super().__init__()
+        self.robot_model = PR2()
+
+    def eus_script_hook(self) -> str:
+        script = """
+        (load "package://pr2eus/pr2-interface.l")
+
+        (defclass pr2-{arm_name}-interface
+          :super pr2-interface
+        )
+        (defmethod pr2-{arm_name}-interface
+          (:default-controller
+           ()
+           (append
+            (send self :{arm_name}-controller)
+            (send self :torso-controller)
+            (send self :head-controller)
+           )))
+
+        ;; the following script copied from pr2-init
+        (unless (boundp '*pr2*) (pr2))
+        (unless (boundp '*ri*) (setq *ri* (instance pr2-{arm_name}-interface :init)))
+        (ros::spin-once)
+        (send *ri* :spin-once)
+        (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+        (setq *robot* *pr2*)
+        """.format(
+            arm_name=self.arm_name()
+        )
+        return script
+
+    def eus_joint_name_list(self) -> List[str]:
+        return [
+            "torso_lift_joint",
+            "l_shoulder_pan_joint",
+            "l_shoulder_lift_joint",
+            "l_upper_arm_roll_joint",
+            "l_elbow_flex_joint",
+            "l_forearm_roll_joint",
+            "l_wrist_flex_joint",
+            "l_wrist_roll_joint",
+            "r_shoulder_pan_joint",
+            "r_shoulder_lift_joint",
+            "r_upper_arm_roll_joint",
+            "r_elbow_flex_joint",
+            "r_forearm_roll_joint",
+            "r_wrist_flex_joint",
+            "r_wrist_roll_joint",
+            "head_pan_joint",
+            "head_tilt_joint",
+        ]
+
+    @abstractmethod
+    def arm_name(self) -> str:
+        pass
+
+
+class EuslispPR2RarmController(PR2RarmProperty, EuslispPR2Controller):
+    def move_gripper(self, pos: float) -> None:
+        self.proxy("""(send *ri* :move-gripper :rarm {})""".format(pos))
+
+    def arm_name(self) -> str:
+        return "rarm"
+
+
+class EuslispPR2LarmController(PR2LarmProperty, EuslispPR2Controller):
+    def move_gripper(self, pos: float) -> None:
+        self.proxy("""(send *ri* :move-gripper :larm {})""".format(pos))
+
+    def arm_name(self) -> str:
+        return "larm"
 
 
 class SkrobotPybulletController(RobotControllerBase):

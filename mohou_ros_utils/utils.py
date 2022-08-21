@@ -76,7 +76,6 @@ def standard_unit_to_euslisp_unit(
     robot: RobotModel, joint_names: List[str], joint_angles: np.ndarray
 ) -> np.ndarray:
     assert len(joint_names) == len(joint_angles)
-    len(joint_names)
 
     joint_angles_new = []
     for name, angle in zip(joint_names, joint_angles):
@@ -86,6 +85,24 @@ def standard_unit_to_euslisp_unit(
             joint_angles_new.append(np.rad2deg(angle))
         elif isinstance(joint, LinearJoint):
             joint_angles_new.append(angle * 1000.0)
+        else:
+            assert False, "{} is not compatible joint type".format(joint.__class__.__name__)
+    return np.array(joint_angles_new)
+
+
+def euslisp_unit_to_standard_unit(
+    robot: RobotModel, joint_names: List[str], joint_angles_eus_unit: np.ndarray
+) -> np.ndarray:
+    assert len(joint_names) == len(joint_angles_eus_unit)
+
+    joint_angles_new = []
+    for name, angle in zip(joint_names, joint_angles_eus_unit):
+        joint = robot.__dict__[name]
+        assert isinstance(joint, Joint)
+        if isinstance(joint, RotationalJoint):
+            joint_angles_new.append(np.deg2rad(angle))
+        elif isinstance(joint, LinearJoint):
+            joint_angles_new.append(angle * 0.001)
         else:
             assert False, "{} is not compatible joint type".format(joint.__class__.__name__)
     return np.array(joint_angles_new)

@@ -12,6 +12,11 @@ add_message_files(
     ControlCommand.msg
 )
 
+add_service_files(
+  FILES
+  EuslispDirectCommand.srv
+)
+
 generate_messages(
     DEPENDENCIES
     std_msgs

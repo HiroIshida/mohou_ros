@@ -7,6 +7,7 @@ from skrobot.models import PR2
 from mohou_ros_utils.utils import (
     CoordinateTransform,
     chain_transform,
+    euslisp_unit_to_standard_unit,
     standard_unit_to_euslisp_unit,
 )
 
@@ -27,7 +28,9 @@ def test_transform():
     np.testing.assert_almost_equal(tf_identical.rot, np.eye(3), decimal=8)
 
 
-def test_standard_unit_to_euslisp_unit():
+def test_unit_conversion():
+    # standard_unit_to_euslisp_unit
+
     robot_model = PR2()
     robot_model.reset_manip_pose()
     joint_name_list = [
@@ -75,3 +78,8 @@ def test_standard_unit_to_euslisp_unit():
         ]
     )
     np.testing.assert_almost_equal(euslisp_angles, euslisp_angles_ref)
+
+    standard_angles = euslisp_unit_to_standard_unit(
+        robot_model, joint_name_list, euslisp_angles_ref
+    )
+    np.testing.assert_almost_equal(standard_angles, angles)
