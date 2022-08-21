@@ -6,12 +6,15 @@ from typing import ClassVar, Dict, List, Type, TypeVar
 
 import numpy as np
 import pybullet as pb
+import rospkg
 import rospy
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.model import Link, RobotModel
 from skrobot.models.pr2 import PR2
+from skrobot.models.urdf import RobotModelFromURDF
 
 from mohou_ros.srv import EuslispDirectCommand, EuslispDirectCommandResponse
+from mohou_ros_utils.baxter.params import BaxterLarmProperty, BaxterRarmProperty
 from mohou_ros_utils.pr2.params import PR2LarmProperty, PR2RarmProperty
 from mohou_ros_utils.utils import (
     CoordinateTransform,
@@ -250,6 +253,67 @@ class EuslispPR2LarmController(PR2LarmProperty, EuslispPR2Controller):
 
     def arm_name(self) -> str:
         return "larm"
+
+
+# (defun baxter-init (&key (safe t) (type :default-controller) (moveit t))
+#   (let (mvit-env mvit-rb)
+#     (when moveit
+#       (setq mvit-env (instance baxter-moveit-environment))
+#       (setq mvit-rb (instance baxter-robot :init)))
+#     (if (not (boundp '*ri*))
+#         (setq *ri* (instance baxter-interface :init :type type
+#                              :moveit-environment mvit-env
+#                              :moveit-robot mvit-rb)))
+#     (if (not (boundp '*baxter*))
+#         (if safe
+#         (setq *baxter* (instance baxter-robot-safe :init))
+#       (setq *baxter* (instance baxter-robot :init))))
+#     (send *ri* :calib-grasp :arms)))
+
+
+class EuslispBaxterController(EuslispRobotController):
+    def __init__(self):
+        super().__init__()
+        rospack = rospkg.RosPack()
+        model_urdf_path = Path(rospack.get_path("baxter_description"))
+        baxter_urdf_path = model_urdf_path / "urdf" / "baxter.urdf"
+        self.robot_model = RobotModelFromURDF(urdf_file=str(baxter_urdf_path))
+
+    def eus_script_hook(self) -> str:
+        script = """
+        (load "package://eus_vive/euslisp/lib/baxter-interface.l")
+        (baxter-init)
+        """.format()
+        return script
+
+    def eus_joint_name_list(self) -> List[str]:
+        return [
+            "head_pan",
+            "left_s0",
+            "left_s1",
+            "left_e0",
+            "left_e1",
+            "left_w0",
+            "left_w1",
+            "left_w2",
+            "right_s0",
+            "right_s1",
+            "right_e0",
+            "right_e1",
+            "right_w0",
+            "right_w1",
+            "right_w2",
+        ]
+
+
+class EuslispBaxterRarmController(BaxterRarmProperty, EuslispBaxterController):
+    def move_gripper(self, pos: float) -> None:
+        pass
+
+
+class EuslispBaxterLarmController(BaxterLarmProperty, EuslispBaxterController):
+    def move_gripper(self, pos: float) -> None:
+        pass
 
 
 class SkrobotPybulletController(RobotControllerBase):
