@@ -255,22 +255,6 @@ class EuslispPR2LarmController(PR2LarmProperty, EuslispPR2Controller):
         return "larm"
 
 
-# (defun baxter-init (&key (safe t) (type :default-controller) (moveit t))
-#   (let (mvit-env mvit-rb)
-#     (when moveit
-#       (setq mvit-env (instance baxter-moveit-environment))
-#       (setq mvit-rb (instance baxter-robot :init)))
-#     (if (not (boundp '*ri*))
-#         (setq *ri* (instance baxter-interface :init :type type
-#                              :moveit-environment mvit-env
-#                              :moveit-robot mvit-rb)))
-#     (if (not (boundp '*baxter*))
-#         (if safe
-#         (setq *baxter* (instance baxter-robot-safe :init))
-#       (setq *baxter* (instance baxter-robot :init))))
-#     (send *ri* :calib-grasp :arms)))
-
-
 class EuslispBaxterController(EuslispRobotController):
     def __init__(self):
         super().__init__()
@@ -282,8 +266,10 @@ class EuslispBaxterController(EuslispRobotController):
     def eus_script_hook(self) -> str:
         script = """
         (load "package://eus_vive/euslisp/lib/baxter-interface.l")
-        (baxter-init)
-        """.format()
+        (baxter-init :type :{arm_name}-controller)
+        """.format(
+            arm_name=self.arm_name()
+        )
         return script
 
     def eus_joint_name_list(self) -> List[str]:
@@ -305,6 +291,10 @@ class EuslispBaxterController(EuslispRobotController):
             "right_w2",
         ]
 
+    @abstractmethod
+    def arm_name(self) -> str:
+        pass
+
 
 class EuslispBaxterRarmController(BaxterRarmProperty, EuslispBaxterController):
     def move_gripper(self, pos: float) -> None:
@@ -314,6 +304,9 @@ class EuslispBaxterRarmController(BaxterRarmProperty, EuslispBaxterController):
         else:
             self.proxy("""(send *ri* :stop-grasp :rarm)""")
 
+    def arm_name(self) -> str:
+        return "rarm"
+
 
 class EuslispBaxterLarmController(BaxterLarmProperty, EuslispBaxterController):
     def move_gripper(self, pos: float) -> None:
@@ -322,6 +315,9 @@ class EuslispBaxterLarmController(BaxterLarmProperty, EuslispBaxterController):
             self.proxy("""(send *ri* :start-grasp :larm)""")
         else:
             self.proxy("""(send *ri* :stop-grasp :larm)""")
+
+    def arm_name(self) -> str:
+        return "larm"
 
 
 class SkrobotPybulletController(RobotControllerBase):
