@@ -164,6 +164,10 @@ class EuslispRobotController(RobotControllerBase):
             self.robot_model.__dict__[joint_name].joint_angle(angle)
         return self.robot_model.angle_vector()
 
+    def wait_interpolation(self) -> None:
+        cmd = """(send *ri* :wait-interpolation)"""
+        self.proxy(cmd)
+
     @abstractmethod
     def eus_script_hook(self) -> str:
         pass
@@ -177,10 +181,6 @@ class EuslispPR2Controller(EuslispRobotController):
     def __init__(self):
         super().__init__()
         self.robot_model = PR2()
-
-    def wait_interpolation(self) -> None:
-        cmd = """(send *ri* :wait-interpolation)"""
-        self.proxy(cmd)
 
     def eus_script_hook(self) -> str:
         script = """
