@@ -308,12 +308,20 @@ class EuslispBaxterController(EuslispRobotController):
 
 class EuslispBaxterRarmController(BaxterRarmProperty, EuslispBaxterController):
     def move_gripper(self, pos: float) -> None:
-        pass
+        assert pos in [0.0, 1.0]
+        if pos == 0.0:
+            self.proxy("""(send *ri* :start-grasp :rarm)""")
+        else:
+            self.proxy("""(send *ri* :stop-grasp :rarm)""")
 
 
 class EuslispBaxterLarmController(BaxterLarmProperty, EuslispBaxterController):
     def move_gripper(self, pos: float) -> None:
-        pass
+        assert pos in [0.0, 1.0]
+        if pos == 0.0:
+            self.proxy("""(send *ri* :start-grasp :larm)""")
+        else:
+            self.proxy("""(send *ri* :stop-grasp :larm)""")
 
 
 class SkrobotPybulletController(RobotControllerBase):
