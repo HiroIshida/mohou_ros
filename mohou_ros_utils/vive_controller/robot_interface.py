@@ -77,7 +77,7 @@ class EuslispRobotController(RobotControllerBase):
     def eusserver_common_script(self, node_name: str, service_name: str) -> str:
         script = """
         (ros::load-ros-manifest "roseus")
-        (ros::roseus-add-srvs "euslisp_command_srvs")
+        (ros::roseus-add-srvs "mohou_ros")
         (ros::roseus "{node_name}")
         {script_hook}
         (defun handle (req)
@@ -87,7 +87,7 @@ class EuslispRobotController(RobotControllerBase):
             (print command-string)
             (eval command-expr)
             resp))
-        (ros::advertise-service "{service_name}" euslisp_command_srvs::EuslispDirectCommand #'handle)
+        (ros::advertise-service "{service_name}" mohou_ros::EuslispDirectCommand #'handle)
         (do-until-key
         (ros::spin-once)) """.format(
             script_hook=self.eus_script_hook(), node_name=node_name, service_name=service_name
