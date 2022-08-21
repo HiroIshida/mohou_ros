@@ -194,6 +194,8 @@ class EuslispPR2Controller(EuslispRobotController):
            ()
            (append
             (send self :{arm_name}-controller)
+            (send self :torso-controller)
+            (send self :head-controller)
            )))
 
         ;; the following script copied from pr2-init
