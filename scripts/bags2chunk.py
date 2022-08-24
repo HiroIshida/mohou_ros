@@ -120,7 +120,8 @@ def main(
     remover: StaticInitStateRemover,
     n_untouch_episode: int,
     postfix: Optional[str] = None,
-):
+    compress: bool = False,
+) -> None:
     rosbag_paths = get_rosbag_paths(config.project_path)
     assert (
         len(rosbag_paths) > 0
@@ -155,11 +156,13 @@ def main(
                 gif_file_path = gif_dir_path / "{}-{}.gif".format(bagname, postfix)
             episode_init_removed.save_debug_gif(str(gif_file_path), fps=20)
 
-    extra_info: MetaData = MetaData({"hz": hz, "remove_init_policy": remover.policy.value})
+    extra_info: MetaData = MetaData(
+        {"hz": hz, "remove_init_policy": remover.policy.value, "compress": compress}
+    )
     bundle = EpisodeBundle.from_episodes(
         episode_data_list, meta_data=extra_info, n_untouch_episode=n_untouch_episode
     )
-    bundle.dump(config.project_path, postfix)
+    bundle.dump(config.project_path, postfix, compress=compress)
     bundle.plot_vector_histories(AngleVector, config.project_path, hz=hz, postfix=postfix)
 
 
@@ -176,6 +179,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("-postfix", type=str, default="", help="bundle postfix")
     parser.add_argument("--gif", action="store_true", help="dump gifs for debugging")
+    parser.add_argument(
+        "--compress", action="store_true", help="compress episode when dumping bundle"
+    )
     parser.add_argument("-untouch", type=int, default=5, help="num of untouch episode")
 
     args = parser.parse_args()
@@ -184,10 +190,11 @@ if __name__ == "__main__":
     hz: float = args.hz
     dump_gif: bool = args.gif
     n_untouch: int = args.untouch
+    compress: bool = args.compress
 
     project_path = get_project_path(project_name)
     config = Config.from_project_path(project_path)
 
     postfix = None if args.postfix == "" else args.postfix
     remover = StaticInitStateRemover.from_policy_name(args.remove_policy)
-    main(config, hz, dump_gif, remover, n_untouch, postfix)
+    main(config, hz, dump_gif, remover, n_untouch, postfix, compress)
