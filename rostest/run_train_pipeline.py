@@ -46,17 +46,25 @@ class TestNode(unittest.TestCase):
 
     def _test_bags2bundle(self):
 
-        cmd = "rosrun mohou_ros bags2chunk.py -hz 10 -remove_policy donothing -pn {} -untouch 1".format(
+        cmd = "rosrun mohou_ros bags2chunk.py -hz 10 -remove_policy donothing -pn {} -untouch 1 --gif".format(
             self.project_name
         )
         self._run_command(cmd)
-        EpisodeBundle.load(self.project_path)
 
-        cmd = "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {} -untouch 1".format(
+        # check
+        EpisodeBundle.load(self.project_path)
+        gif_dir_path = self.project_path / "train_data_gifs"
+        assert gif_dir_path.exists()
+        assert len([p for p in gif_dir_path.iterdir() if p.name.endswith(".gif")]) > 0
+
+        cmd = "rosrun mohou_ros bags2chunk.py -hz 20 -postfix autoencoder -remove_policy remove -pn {} -untouch 1 --gif".format(
             self.project_name
         )
         self._run_command(cmd)
+
+        # check
         EpisodeBundle.load(self.project_path, postfix="autoencoder")
+        assert len([p for p in gif_dir_path.iterdir() if p.name.endswith("autoencoder.gif")]) > 0
 
     def _test_train(self):
         cmd = "rosrun mohou_ros train.py -pn {} --test".format(self.project_name)
