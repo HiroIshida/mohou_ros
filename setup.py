@@ -6,7 +6,7 @@ install_requires = [
     "numpy",
     "scipy",
     "scikit-robot",
-    "mohou>=0.3.10",
+    "mohou>=0.3.17",
     "tunable-filter>=0.0.6",
 ]
 
