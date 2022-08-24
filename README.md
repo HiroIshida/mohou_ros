@@ -120,8 +120,14 @@ with high hz. (20 hz or higher is recommended)
 ```bash
 rosrun mohou_ros bags2chunk.py -hz 20 -remove_policy donothing -pn {your_project_name} -postfix autoencoder -untouch 5
 ```
-Here, untouch means number of episodes which will be kept untouch (will not used in the training). This is helpful when 
-you want to use it only for visualization or debugging.
+Here, `untouch` means number of episodes which will be kept untouch (will not used in the training). This is helpful when 
+you want to use it only for visualization or debugging. 
+
+Other command line options for this script is 
+| option | meaning |
+|:-:|:-:|
+| `--compress` | compress RGBImage sequence using mp4 when dumping `EpisodeBundle`. This reduce the bundle size by a factor of more than 10.|
+| `--gif` | dump gif image corresponding with each episode
 
 #### convert to the rosbag data to chunk for training the lstm
 
@@ -129,8 +135,6 @@ On the other hand, lstm training require lower frequency data (5hz ~ 8hz) is rec
 ```bash
 rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy remove -pn {your_project_name} -untouch 5
 ```
-Here, untouch means number of episodes which will be kept untouch (will not used in the training). This is helpful when 
-you want to use it only for visualization or debugging.
 
 #### remove init policy
 
