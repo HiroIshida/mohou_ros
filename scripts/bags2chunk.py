@@ -16,10 +16,8 @@ from mohou.types import (
     EpisodeBundle,
     EpisodeData,
     MetaData,
-    RGBImage,
     TimeStampSequence,
 )
-from moviepy.editor import ImageSequenceClip
 
 from mohou_ros_utils.config import Config
 from mohou_ros_utils.conversion import MessageConverterCollection
@@ -151,15 +149,11 @@ def main(
         if dump_gif:
             gif_dir_path = config.project_path / "train_data_gifs"
             gif_dir_path.mkdir(exist_ok=True)
-            fps = 20
-            images = [rgb.numpy() for rgb in episode_init_removed.get_sequence_by_type(RGBImage)]
-            clip = ImageSequenceClip(images, fps=fps)
-
             if postfix is None:
                 gif_file_path = gif_dir_path / "{}.gif".format(bagname)
             else:
                 gif_file_path = gif_dir_path / "{}-{}.gif".format(bagname, postfix)
-            clip.write_gif(str(gif_file_path), fps=fps)
+            episode_init_removed.save_debug_gif(str(gif_file_path), fps=20)
 
     extra_info: MetaData = MetaData({"hz": hz, "remove_init_policy": remover.policy.value})
     bundle = EpisodeBundle.from_episodes(
