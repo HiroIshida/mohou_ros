@@ -150,9 +150,8 @@ Currently theses remover handles only initial state.
 
 
 ### training
-first arg is `n_autoencoder_epoch` and the second is `n_lstm_epoch`
 ```
-rosrun mohou_ros train -pn {your_project_name}
+rosrun mohou_ros train.py -pn {your_project_name} -n_vae 1500 -n_lstm 20000
 ```
 
 ### execution
