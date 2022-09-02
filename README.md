@@ -154,3 +154,15 @@ first arg is `n_autoencoder_epoch` and the second is `n_lstm_epoch`
 ```
 rosrun mohou_ros train -pn {your_project_name}
 ```
+
+### execution
+#### set to home position
+```
+rosrun mohou_ros reset_to_home.py -pn {your_project_name}
+```
+
+#### execution using the trained policy
+Without the `--force` argument, the actual robot will not move, i.e., it will dryrun.
+```
+rosrun mohou_ros execute_pr2.py -pn {your_project_name} --force
+```
