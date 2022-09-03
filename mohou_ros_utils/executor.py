@@ -88,6 +88,7 @@ class ExecutorBase(ABC):
     debug_images_seq: List[DebugImages]
     edict_seq: List[ElementDict]
     is_terminatable: bool
+    terminate_threthold: float
     str_time_postfix: str
 
     rgb_topic_name: str
@@ -103,7 +104,9 @@ class ExecutorBase(ABC):
 
     current_av: Optional[AngleVector] = None
 
-    def __init__(self, project_path: Path, dryrun=True, save_rosbag=True) -> None:
+    def __init__(
+        self, project_path: Path, dryrun=True, save_rosbag=True, terminate_threthold: float = 0.98
+    ) -> None:
         propagator: Propagator = create_default_propagator(project_path, Propagator)
 
         ae_type = auto_detect_autoencoder_type(project_path)
@@ -122,6 +125,7 @@ class ExecutorBase(ABC):
 
         self._post_init()
         self.dryrun = dryrun
+        self.terminate_threthold = terminate_threthold
 
         # start!
         self.debug_images_seq = []
@@ -181,7 +185,7 @@ class ExecutorBase(ABC):
         self.propagator.feed(edict_current)
 
         edict_next = self.propagator.predict(1)[0]
-        self.is_terminatable = edict_next[TerminateFlag].numpy().item() > 0.98
+        self.is_terminatable = edict_next[TerminateFlag].numpy().item() > self.terminate_threthold
 
         # save debug infos
         robot_camera_view = edict_current[RGBImage]

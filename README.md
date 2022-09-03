@@ -161,7 +161,7 @@ rosrun mohou_ros reset_to_home.py -pn {your_project_name}
 ```
 
 #### execution using the trained policy
-Without the `--force` argument, the actual robot will not move, i.e., it will dryrun.
+Without the `--force` argument, the real robot will not move, i.e., it will dryrun. The `--terminate` argument can be used to automatically terminate the program if the value of `TerminateFlag` exceeds the threshold value. The threshold value can be set with `-tt` argument.
 ```
 rosrun mohou_ros execute_pr2.py -pn {your_project_name} --force
 ```
