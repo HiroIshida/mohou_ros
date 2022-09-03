@@ -73,7 +73,7 @@ class Mannequin(object):
         self.enable_mirror = mirror
         self.use_home_position = use_home_position
 
-        self.robot.angle_vector(ri.angle_vector())
+        self.robot.angle_vector(self.ri.angle_vector())
         time.sleep(3)
         self.reset_mannequin()
 
