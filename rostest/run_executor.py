@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -27,9 +28,19 @@ class TestNode(unittest.TestCase):
         subprocess.run(cmd, shell=True)
 
     def _test_executor(self):
+
+        # clean up execution result directory
+        exec_debug_dir_path = get_subpath(self.project_path, RelativeName.exec_debug)
+        shutil.rmtree(exec_debug_dir_path)
+        exec_debug_dir_path.mkdir(exist_ok=True)
+
+        # test start
+        cmd = "rosrun mohou_ros reset_to_home.py -pn {}".format(self.project_name)
+        self._run_command(cmd)
+
         cmd = "rosrun mohou_ros execute_pr2.py -pn {} --force -t 10".format(self.project_name)
         self._run_command(cmd)
-        exec_debug_dir_path = get_subpath(self.project_path, RelativeName.exec_debug)
+
         file_path_list = list(exec_debug_dir_path.iterdir())
 
         rosbag_path_list = [p for p in file_path_list if p.name.endswith(".bag")]
