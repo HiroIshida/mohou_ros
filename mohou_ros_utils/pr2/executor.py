@@ -83,10 +83,22 @@ class SkrobotPR2Executor(ExecutorBase):
 
         error_detail_list = []
 
+        exclude_keywords = ["gripper", "laser_tilt", "caster", "motor_screw"]
+
+        def is_skippable(joint_name: str) -> bool:
+            # TODO: this is truly adhoc approach
+            for kw in exclude_keywords:
+                if kw in joint_name:
+                    return True
+            return False
+
         for joint_name, angle_desired in home_position_dict.items():
 
             is_controlling_joint = joint_name in self.control_joint_names
             if is_controlling_joint:
+                continue
+
+            if is_skippable(joint_name):
                 continue
 
             model_of_ri = self.robot_interface.robot
