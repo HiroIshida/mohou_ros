@@ -2,29 +2,19 @@
 import argparse
 from typing import Optional
 
+import rospy
 from mohou.file import get_project_path
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
 from skrobot.models import PR2
 
 from mohou_ros_utils.config import Config
+from mohou_ros_utils.utils import check_home_position_consistensy
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-pn", type=str, help="project name")
-    parser.add_argument("--rarm", action="store_true", help="loose rarm")
-    parser.add_argument("--larm", action="store_true", help="loose larm")
-    parser.add_argument("--mirror", action="store_true", help="mirror mode")
-    parser.add_argument("--home", action="store_true", help="use home position")
-    parser.add_argument("-open", type=float, default=0.06, help="max gripper position")
-    parser.add_argument("-close", type=float, default=0.00, help="max gripper position")
 
     args = parser.parse_args()
-    loose_larm: str = args.larm
-    loose_rarm: str = args.rarm
-    pos_open: float = args.open
-    pos_close: float = args.close
-    mirror: bool = args.mirror
-    home: bool = args.home
     project_name: Optional[str] = args.pn
 
     project_path = get_project_path(project_name)
@@ -43,3 +33,7 @@ if __name__ == "__main__":
     ri.move_gripper("larm", config.home_position["l_gripper_joint"], effort=100)
     ri.move_gripper("rarm", config.home_position["r_gripper_joint"], effort=100)
     ri.wait_interpolation()
+
+    exclude_keywords = ["gripper", "laser_tilt", "caster", "motor_screw"]
+    check_home_position_consistensy(ri, config, exclude_keywords)
+    rospy.loginfo("reset to home position successful")

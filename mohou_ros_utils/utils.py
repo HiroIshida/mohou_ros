@@ -1,13 +1,22 @@
 import functools
 import warnings
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import List, Optional
 
 import numpy as np
+import rospy
 from geometry_msgs.msg import Pose
 from skrobot.coordinates import Coordinates
 from skrobot.coordinates.math import quaternion2matrix
+
+try:
+    from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
+except ModuleNotFoundError:
+    ROSRobotInterfaceBase = None
+
 from skrobot.model import Joint, LinearJoint, RobotModel, RotationalJoint
+
+from mohou_ros_utils.config import Config
 
 
 def deprecated(func):
@@ -106,3 +115,64 @@ def euslisp_unit_to_standard_unit(
         else:
             assert False, "{} is not compatible joint type".format(joint.__class__.__name__)
     return np.array(joint_angles_new)
+
+
+def check_home_position_consistensy(
+    ri: ROSRobotInterfaceBase, config: Config, exclude_keywords: List[str]
+) -> None:
+    assert config.home_position is not None
+    home_position_dict = config.home_position
+
+    @dataclass
+    class ErrorDetail:
+        joint_name: str
+        angle: float
+        angle_desired: float
+        error: float
+        threshold: float
+
+    error_detail_list = []
+
+    def is_skippable(joint_name: str) -> bool:
+        # TODO: this is truly adhoc approach
+        for kw in exclude_keywords:
+            if kw in joint_name:
+                return True
+        return False
+
+    for joint_name, angle_desired in home_position_dict.items():
+
+        is_controlling_joint = joint_name in config.control_joints
+        if is_controlling_joint:
+            continue
+
+        if is_skippable(joint_name):
+            continue
+
+        model_of_ri = ri.robot
+        joint = model_of_ri.__dict__[joint_name]
+        assert isinstance(joint, Joint)
+
+        angle = joint.joint_angle()
+        error = angle - angle_desired
+
+        if isinstance(joint, RotationalJoint):
+            threshold = np.deg2rad(2.0)  # 2.0deg
+        elif isinstance(joint, LinearJoint):
+            threshold = 0.01  # 1cm
+        else:
+            assert False
+
+        if abs(error) > threshold:
+            error_detail = ErrorDetail(joint_name, angle, angle_desired, error, threshold)
+            error_detail_list.append(error_detail)
+
+    if len(error_detail_list) > 0:
+        n_error = len(error_detail_list)
+        msg = "{} non-controlling joint angles are not consistent with home position.\n".format(
+            n_error
+        )
+        for error_detail in error_detail_list:
+            msg += str(asdict(error_detail)) + "\n"
+        rospy.logerr(msg)
+        assert False
