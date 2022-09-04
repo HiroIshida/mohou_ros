@@ -11,6 +11,7 @@ from skrobot.models import PR2
 from mohou_ros.msg import ControlCommand
 from mohou_ros_utils.executor import ExecutorBase
 from mohou_ros_utils.pr2.controller_utils import check_pr2_is_executable
+from mohou_ros_utils.utils import check_home_position_consistensy
 
 
 class SkrobotPR2Executor(ExecutorBase):
@@ -26,7 +27,8 @@ class SkrobotPR2Executor(ExecutorBase):
 
     def on_timer(self, event):
         if self.running:
-            self.check_home_position_consistensy()
+            exclude_keywords = ["gripper", "laser_tilt", "caster", "motor_screw"]
+            check_home_position_consistensy(self.robot_interface, self.config, exclude_keywords)
         super().on_timer(event)
 
     def send_command(self, edict_next: ElementDict, edict_current: ElementDict) -> None:
