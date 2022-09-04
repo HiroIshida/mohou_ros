@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+from dataclasses import asdict, dataclass
+
 import numpy as np
 import rospy
 from mohou.types import AngleVector, AnotherGripperState, ElementDict, GripperState
 from skrobot.interfaces.ros import PR2ROSRobotInterface  # type: ignore
-from skrobot.model import Joint
+from skrobot.model import Joint, LinearJoint, RotationalJoint
 from skrobot.models import PR2
 
 from mohou_ros.msg import ControlCommand
@@ -21,6 +23,11 @@ class SkrobotPR2Executor(ExecutorBase):
         self.robot_interface = PR2ROSRobotInterface(robot_model)
         self.robot_model.angle_vector(self.robot_interface.angle_vector())
         check_pr2_is_executable()
+
+    def on_timer(self, event):
+        if self.running:
+            self.check_home_position_consistensy()
+        super().on_timer(event)
 
     def send_command(self, edict_next: ElementDict, edict_current: ElementDict) -> None:
 
@@ -61,6 +68,54 @@ class SkrobotPR2Executor(ExecutorBase):
             joint: Joint = self.robot_interface.robot.__dict__[joint_name]
             angles.append(joint.joint_angle())
         return AngleVector(np.array(angles))
+
+    def check_home_position_consistensy(self) -> None:
+        assert self.config.home_position is not None
+        home_position_dict = self.config.home_position
+
+        @dataclass
+        class ErrorDetail:
+            joint_name: str
+            angle: float
+            angle_desired: float
+            error: float
+            threshold: float
+
+        error_detail_list = []
+
+        for joint_name, angle_desired in home_position_dict.items():
+
+            is_controlling_joint = joint_name in self.control_joint_names
+            if is_controlling_joint:
+                continue
+
+            model_of_ri = self.robot_interface.robot
+            joint = model_of_ri.__dict__[joint_name]
+            assert isinstance(joint, Joint)
+
+            angle = joint.joint_angle()
+            error = angle - angle_desired
+
+            if isinstance(joint, RotationalJoint):
+                threshold = np.deg2rad(2.0)  # 2.0deg
+            elif isinstance(joint, LinearJoint):
+                threshold = 0.01  # 1cm
+            else:
+                assert False
+
+            if abs(error) > threshold:
+                error_detail = ErrorDetail(joint_name, angle, angle_desired, error, threshold)
+                error_detail_list.append(error_detail)
+
+        if len(error_detail_list) > 0:
+            n_error = len(error_detail_list)
+            msg = "{} non-controlling joint angles are not consistent with home position.\n".format(
+                n_error
+            )
+            for error_detail in error_detail_list:
+                msg += str(asdict(error_detail)) + "\n"
+            rospy.logerr(msg)
+            assert False
 
 
 class EusPR2Executor(ExecutorBase):
