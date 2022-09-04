@@ -32,6 +32,7 @@ if __name__ == "__main__":
 
     robot = PR2()
     ri = PR2ROSRobotInterface(robot)
+    robot.angle_vector(ri.angle_vector())
 
     assert config.home_position is not None
 
