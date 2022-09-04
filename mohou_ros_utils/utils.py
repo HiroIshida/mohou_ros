@@ -8,7 +8,12 @@ import rospy
 from geometry_msgs.msg import Pose
 from skrobot.coordinates import Coordinates
 from skrobot.coordinates.math import quaternion2matrix
-from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
+
+try:
+    from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
+except ModuleNotFoundError:
+    ROSRobotInterfaceBase = None
+
 from skrobot.model import Joint, LinearJoint, RobotModel, RotationalJoint
 
 from mohou_ros_utils.config import Config

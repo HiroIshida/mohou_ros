@@ -37,4 +37,3 @@ if __name__ == "__main__":
     exclude_keywords = ["gripper", "laser_tilt", "caster", "motor_screw"]
     check_home_position_consistensy(ri, config, exclude_keywords)
     rospy.loginfo("reset to home position successful")
-    assert False
