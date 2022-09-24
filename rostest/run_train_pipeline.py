@@ -88,8 +88,6 @@ class TestNode(unittest.TestCase):
         vae_result_dir_path = project_path / "autoencoder_result"
         png_list = [p for p in vae_result_dir_path.iterdir() if str(p).endswith(".png")]
         assert len(png_list) > 0
-        gif_list = [p for p in vae_result_dir_path.iterdir() if str(p).endswith(".gif")]
-        assert len(gif_list) > 0
 
         lstm_result_dir_path = project_path / "lstm_result"
         png_list = [p for p in lstm_result_dir_path.iterdir() if str(p).endswith(".png")]

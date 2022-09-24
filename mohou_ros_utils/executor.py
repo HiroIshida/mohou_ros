@@ -15,10 +15,9 @@ import numpy as np
 import rosbag
 import rospy
 import torch
-from mohou.default import auto_detect_autoencoder_type, create_default_propagator
+from mohou.encoder import ImageEncoder
 from mohou.model.autoencoder import AutoEncoderBase
-from mohou.propagator import Propagator
-from mohou.trainer import TrainCache
+from mohou.propagator import LSTMPropagator
 from mohou.types import (
     AngleVector,
     AnotherGripperState,
@@ -78,7 +77,7 @@ class DebugImages:
 
 class ExecutorBase(ABC):
     config: Config
-    propagator: Propagator
+    propagator: LSTMPropagator
     autoencoder: AutoEncoderBase
     conv: MessageConverterCollection
     control_joint_names: List[str]
@@ -105,14 +104,16 @@ class ExecutorBase(ABC):
     current_av: Optional[AngleVector] = None
 
     def __init__(
-        self, project_path: Path, dryrun=True, save_rosbag=True, terminate_threthold: float = 0.98
+        self,
+        project_path: Path,
+        dryrun=True,
+        save_rosbag=True,
+        terminate_threthold: float = 0.98,
     ) -> None:
-        propagator: Propagator = create_default_propagator(project_path, Propagator)
-
-        ae_type = auto_detect_autoencoder_type(project_path)
-        tcache_autoencoder = TrainCache.load(project_path, ae_type)
-        assert tcache_autoencoder.best_model is not None
-        self.autoencoder = tcache_autoencoder.best_model
+        prop_type = LSTMPropagator  # fixed for now
+        propagator = prop_type.create_default(project_path)
+        image_encoder = ImageEncoder.create_default(project_path)
+        self.autoencoder = image_encoder.model
 
         config = Config.from_project_path(project_path)
         conv = MessageConverterCollection.from_config(config)
