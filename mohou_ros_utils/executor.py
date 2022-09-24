@@ -7,7 +7,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional
 
 import genpy
 import matplotlib.pyplot as plt
@@ -17,7 +17,7 @@ import rospy
 import torch
 from mohou.encoder import ImageEncoder
 from mohou.model.autoencoder import AutoEncoderBase
-from mohou.propagator import LSTMPropagator, PropagatorBase
+from mohou.propagator import LSTMPropagator
 from mohou.types import (
     AngleVector,
     AnotherGripperState,
@@ -77,7 +77,7 @@ class DebugImages:
 
 class ExecutorBase(ABC):
     config: Config
-    propagator: PropagatorBase
+    propagator: LSTMPropagator
     autoencoder: AutoEncoderBase
     conv: MessageConverterCollection
     control_joint_names: List[str]
@@ -109,8 +109,8 @@ class ExecutorBase(ABC):
         dryrun=True,
         save_rosbag=True,
         terminate_threthold: float = 0.98,
-        prop_type: Type[PropagatorBase] = LSTMPropagator,
     ) -> None:
+        prop_type = LSTMPropagator  # fixed for now
         propagator = prop_type.create_default(project_path)
         image_encoder = ImageEncoder.create_default(project_path)
         self.autoencoder = image_encoder.model
