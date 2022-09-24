@@ -25,6 +25,11 @@ jobs:
       with:
         required-ros-distributions: melodic
 
+    - name: upgrade pyopenssl
+      run: |
+        # https://askubuntu.com/questions/1428181/module-lib-has-no-attribute-x509-v-flag-cb-issuer-check
+        pip3 install pyOpenSSL --upgrade
+
     - name: Init workspace
       run: |
         sudo apt-get install python3-catkin-pkg-modules python3-rospkg-modules python3-empy
@@ -44,10 +49,6 @@ jobs:
         source ${CATKIN_WS}/devel/setup.bash
         pip3 install scikit-build
         cd ${GITHUB_WORKSPACE} && pip3 install  . --user
-
-    - name: temp install skrobot
-      run: |
-          git clone https://github.com/HiroIshida/scikit-robot.git --branch raise_import_error && cd scikit-robot && pip3 install . && cd .. && rm -rf scikit-robot
 
     - name: Show installed package (for debugging)
       run: |

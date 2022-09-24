@@ -25,6 +25,11 @@ jobs:
       with:
         required-ros-distributions: noetic
 
+    - name: upgrade pyopenssl
+      run: |
+        # https://askubuntu.com/questions/1428181/module-lib-has-no-attribute-x509-v-flag-cb-issuer-check
+        pip3 install pyOpenSSL --upgrade
+
     - name: Init workspace
       run: |
         sudo apt-get install python3-osrf-pycommon python3-catkin-tools
