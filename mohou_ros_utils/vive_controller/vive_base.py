@@ -249,7 +249,7 @@ class ViveRobotController(ViveController, Generic[RobotControllerT]):
 
         super().__init__(controller_id, scale)
         self.robot_con = robot_con
-        self.gripper_close = True
+        self.gripper_close = False
         self.home_position_table = home_postion_table
         self.home_gripper_pos = home_gripper_pos
 
