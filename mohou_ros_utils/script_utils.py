@@ -53,7 +53,10 @@ def get_rosbag_filepath(project_path: Path, postfix: str) -> Path:
 def create_rosbag_command(project_path: Path, config: Config):
     cmd_rosbag = ["rosbag", "record"]
     topic_list = config.topics.rosbag_topic_list
-    cmd_rosbag.extend(topic_list + ["/tf"])
+    additional_topic_list = config.additional_topics
+
+    all_topic_set = set(topic_list + additional_topic_list + ["/tf"])
+    cmd_rosbag.extend(list(all_topic_set))
     cmd_rosbag.extend(["--output-name", str(project_path)])
     print("subprocess cmd: {}".format(cmd_rosbag))
     return cmd_rosbag

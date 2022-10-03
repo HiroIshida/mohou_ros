@@ -31,4 +31,13 @@ def example_config():
     dist = get_subpath(project_path, RelativeName.image_config)
     shutil.copyfile(src, dist)
 
+    config = Config.from_project_path(project_path)
+    assert config.project_path.name == project_name
+    assert len(config.topics.topic_config_list) == 5
+    assert len(config.topics.use_topic_list) == 4
+
+    assert len(config.additional_topics) == 1
+
+    assert len(config.control_joints) == 7
+
     return Config.from_project_path(project_path)

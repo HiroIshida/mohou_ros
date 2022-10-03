@@ -75,6 +75,7 @@ class Config:
     project_path: Path
     control_joints: List[str]
     topics: TopicConfig
+    additional_topics: List[str]  # just to save in rosbag
     home_position: Optional[Dict[str, float]]
     image_filter: Optional[CompositeFilter]
 
@@ -85,6 +86,13 @@ class Config:
             main_config_dict = yaml.safe_load(f)
         control_joints = main_config_dict["control_joints"]
         topics = TopicConfig.from_yaml_dict(main_config_dict["topic"])
+
+        additional_topics_key = "additional_topics"
+        if additional_topics_key in main_config_dict:
+            additional_topics = main_config_dict[additional_topics_key]
+        else:
+            additional_topics = []
+        assert isinstance(additional_topics, list)
 
         # maybe not set
         home_position_path = get_subpath(project_path, RelativeName.home_position)
@@ -103,4 +111,6 @@ class Config:
         else:
             image_filter = None
 
-        return cls(project_path, control_joints, topics, home_position, image_filter)
+        return cls(
+            project_path, control_joints, topics, additional_topics, home_position, image_filter
+        )

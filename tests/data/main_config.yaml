@@ -20,6 +20,9 @@ topic:
         rosbag: True
         use: True
 
+additional_topics:
+    - /kinect_head/depth_registered/half/points
+
 control_joints:
     - r_shoulder_pan_joint 
     - r_shoulder_lift_joint
