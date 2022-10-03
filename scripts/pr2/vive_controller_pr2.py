@@ -15,6 +15,7 @@ from skrobot.models import PR2
 from sound_play.libsoundplay import SoundClient
 
 from mohou_ros_utils.config import Config
+from mohou_ros_utils.pr2.controller_utils import get_controller_states
 from mohou_ros_utils.script_utils import (
     count_rosbag_file,
     create_rosbag_command,
@@ -138,6 +139,10 @@ if __name__ == "__main__":
 
     project_path = get_project_path(project_name)
     config = Config.from_project_path(project_path)
+
+    is_running_dict = get_controller_states()
+    assert is_running_dict["l_arm_controller"]
+    assert is_running_dict["r_arm_controller"]
 
     while True:
         controller_ids = detect_controller_ids()
