@@ -12,6 +12,9 @@ topic:
         rosbag: True
         use: True
 
+additional_topics:
+    - /tilt_scan
+
 control_joints:
     - r_shoulder_pan_joint 
     - r_shoulder_lift_joint

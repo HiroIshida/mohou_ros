@@ -66,16 +66,27 @@ class TestNode(unittest.TestCase):
 
         config = Config.from_project_path(self.project_path)
         topic_list = config.topics.rosbag_topic_list
+        additional_topic_list = config.additional_topics
+
         rosbag_path = rosbag_paths[0]
         bag = Bag(str(rosbag_path))
         seqs = bag_to_seqs(bag, topic_list)
+        seqs_additional = bag_to_seqs(bag, additional_topic_list)
         bag.close()
 
+        # check topics
         for seq in seqs:
             assert len(seq) > 1
-
         obtained_topic_names = set([seq.topic_name for seq in seqs])
         assert_equal_with_message(obtained_topic_names, set(topic_list), "topic set in rosbag")
+
+        # check additional topics
+        obtained_additional_topic_names = set([seq.topic_name for seq in seqs_additional])
+        assert_equal_with_message(
+            obtained_additional_topic_names,
+            set(additional_topic_list),
+            "additional topic set in rosbag",
+        )
 
     def test_pipeline(self):
         self._test_save_home_position()
