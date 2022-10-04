@@ -42,7 +42,12 @@ class CoordinateTransform:
     dest: Optional[str] = None
 
     def __call__(self, vec_src: np.ndarray) -> np.ndarray:
-        return self.rot.dot(vec_src) + self.trans
+        if vec_src.ndim == 1:
+            return self.rot.dot(vec_src) + self.trans
+        elif vec_src.ndim == 2:
+            return self.rot.dot(vec_src.T).T + self.trans
+        else:
+            assert False
 
     def inverse(self) -> "CoordinateTransform":
         rot_new = self.rot.T
