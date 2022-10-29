@@ -1,25 +1,25 @@
 topic: 
-    AngleVector:
-        name: /joint_states
+    AngleVector:  # all robot (sensor_msgs/JointState)
+        name: /joint_states # I think this is the same for all robot
         rosbag: True
         use: True
-    RGBImage: 
+    RGBImage: # all robot (sensor_msgs/CompressedImage)
         name: /kinect_head/rgb/image_rect_color/compressed
         rosbag: True
         use: True
-    DepthImage: 
+    DepthImage: # all robot (sensor_msgs/CompressedImage)
         name: /kinect_head/depth_registered/image/compressedDepth
         rosbag: False
         use: False
-    GripperState:
+    GripperState: # only for pr2. (pr2_controllers_msgs/JointControllerState)
         name: /r_gripper_controller/state
         rosbag: True
         use: True
 
-additional_topics:
+additional_topics:  # some topics that will not be used in the behavior cloning, but should be collected for the later use.
     - /kinect_head/depth_registered/half/points
 
-control_joints:
+control_joints:  # joint names considering behavior cloning. The listed joints value will be extracted from /Joint_states and packed into AngleVector type
     - r_shoulder_pan_joint 
     - r_shoulder_lift_joint
     - r_upper_arm_roll_joint
