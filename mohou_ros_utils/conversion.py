@@ -14,7 +14,6 @@ from mohou.types import (
     PrimitiveElementBase,
     PrimitiveElementT,
     RGBImage,
-    VectorT,
 )
 from mohou.utils import get_all_concrete_leaftypes
 
@@ -150,8 +149,15 @@ class MessageConverter(AbstractDataclass, Generic[InputMsgT, PrimitiveElementT])
         pass
 
 
-@dataclass  # type: ignore[misc]
-class GripperStateConverterBase(MessageConverter[JointControllerState, VectorT]):
+@dataclass
+class GripperStateConverter(MessageConverter[JointControllerState, GripperState]):
+    @classmethod
+    def out_element_type(cls) -> Type[GripperState]:
+        return GripperState
+
+    def apply(self, msg: JointControllerState) -> GripperState:  # type: ignore[override]
+        return GripperState(np.array([msg.set_point]))
+
     @classmethod
     def from_config(cls, config: Config):
         assert cls.is_compatible(config)
@@ -163,23 +169,22 @@ class GripperStateConverterBase(MessageConverter[JointControllerState, VectorT])
 
 
 @dataclass
-class GripperStateConverter(GripperStateConverterBase[GripperState]):
-    @classmethod
-    def out_element_type(cls) -> Type[GripperState]:
-        return GripperState
-
-    def apply(self, msg: JointControllerState) -> GripperState:  # type: ignore[override]
-        return GripperState(np.array([msg.set_point]))
-
-
-@dataclass
-class AnotherGripperStateConverter(GripperStateConverterBase[AnotherGripperState]):
+class AnotherGripperStateConverter(MessageConverter[JointControllerState, AnotherGripperState]):
     @classmethod
     def out_element_type(cls) -> Type[AnotherGripperState]:
         return AnotherGripperState
 
     def apply(self, msg: JointControllerState) -> AnotherGripperState:  # type: ignore[override]
         return AnotherGripperState(np.array([msg.set_point]))
+
+    @classmethod
+    def from_config(cls, config: Config):
+        assert cls.is_compatible(config)
+        return cls.from_config_topic_name_only(config)
+
+    @classmethod
+    def input_message_type(cls) -> Type[JointControllerState]:
+        return JointControllerState
 
 
 @dataclass
