@@ -58,7 +58,7 @@ To do that, please hit the following command (replace `your_project_name` by you
 echo "primary_project_name: your_project_name" >> ~/.mohou/seting.yaml
 ```
 
-## prepare per-project config file
+## (1) prepare per-project config file
 `mohou` and `mohuo_ros` manage each project by a corresponding project directory under `~/mohou`. For example, if your project is named `pr2_kitchen`, all the config, rosbags must be put under `~/mohou/pr2_kitchen` directory. Also, any training results such as trained autoencoder and trained lstm is put under the project directory.
 So, the first step is creating a project directory by
 ```bash
@@ -67,7 +67,7 @@ mkdir ~/.mohou/{your_project_name}
 
 Then, create a `~/.mohou/{your_project_name}/main_config.yaml` file and edit this file while referencing an [example](https://github.com/HiroIshida/mohou_ros/tree/master/config_example). `main_config.yaml` basically configure which ros topic (e.g. `CompressedImage` and `JointStates`) is converted to which mohou primitive type (e.g. `AngleVector` and `RGBImage`).
 
-## adding custom topic conversion rule (advanced)
+## (1') adding custom topic conversion rule (advanced)
 Each conversion rule can be found in [mohou_ros_utils/conversion.py](mohou_ros_utils/conversion.py). Let us explain how to add a new custom rule. Say, you bought a new robot named `Pikachu` and add a new rule from `PikachuDualArmGripperStates`(I just made up) to `GripperState`. In that case please add the following class to `mohou_ros_utils/conversion.py`
 ```python
 @dataclass
@@ -98,7 +98,7 @@ class PikachuGripperStateConverter(MessageConverter[PikachuDualArmGripperStates,
 where the anything is ok for the class name. After adding the class, the high-level converter, seeing the `~/.mohou/{your_project_name}/main_config.yaml`, automatically select the compatible converter according to the input and output type (In this case `PikachuDualArmGripperStates` to `GripperState`).
 
 
-## save rosbag
+## (2) save rosbag
 Please save your rosbag files under `~/.mohou/{project_name}/rosbag`. Each rosbag file name must be ended with `.bag` extension.
 
 You can use whatever your favorite way to collect rosbag. To make is easier, this package provides
@@ -134,13 +134,13 @@ Left arm controller
 NOTE: when you delete that latest rosbag after stop saving rosbag, please wait few seconds.
 
 
-## save home position
+## (3) save home position
+home position is the initial robot joint configuration. By saving and applying this, you cam keep the data-collection phase and test phase condition consistent.
 ```
 rosrun mohou_ros save_home_position.py -pn {your_project_name}
 ```
 
-
-## Tuning the image config
+## (4) tuning the image config
 Interactively create image config, which include crop and gaussian blur and hsv filter.
 ```bash
 # press Ctrl-C to quit and save the configuration as `image_config.yaml` under the project folder.
@@ -149,7 +149,7 @@ rosrun mohou_ros tune_image_filter.py -pn {your_project_name}
 `GaussianBlurFilter:kernel_width = 5` is recommended. Altering HSV value is not recommended.
 ResolutionChangeResizer:resol change the image resolution. This must be 112 or 224 due to the implementation of `mohou` side.
 
-## Creating bundles
+## (5) creating bundles
 
 Bundle here means the binary dataset that will be used in the training deep network. We must create this bundle by converting the rosbag data.
 This section explains how to do this. 
@@ -190,12 +190,12 @@ Sometimes, in the initial phase of the episode, data is static, which is usually
 Currently theses remover handles only initial state.
 
 
-## training
+## (6) training
 ```
 rosrun mohou_ros train.py -pn {your_project_name} -n_vae 1500 -n_lstm 20000
 ```
 
-## execution
+## (7) execution (currently pr2 only)
 ### set to home position
 ```
 rosrun mohou_ros reset_to_home.py -pn {your_project_name}
