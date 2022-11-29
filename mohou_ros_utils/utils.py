@@ -5,9 +5,9 @@ from typing import List, Optional
 
 import numpy as np
 import rospy
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point, Pose, Quaternion
 from skrobot.coordinates import Coordinates
-from skrobot.coordinates.math import quaternion2matrix
+from skrobot.coordinates.math import matrix2quaternion, quaternion2matrix, wxyz2xyzw
 
 try:
     from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
@@ -61,6 +61,11 @@ class CoordinateTransform:
         trans = np.array([position.x, position.y, position.z])
         rot = quaternion2matrix([quat.w, quat.x, quat.y, quat.z])
         return cls(trans, rot, src, dest)
+
+    def to_ros_pose(self) -> Pose:
+        quat = wxyz2xyzw(matrix2quaternion(self.rot))
+        pose = Pose(Point(*self.trans), Quaternion(*quat))
+        return pose
 
     @classmethod
     def from_skrobot_coords(

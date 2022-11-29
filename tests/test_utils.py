@@ -28,6 +28,16 @@ def test_transform():
     np.testing.assert_almost_equal(tf_identical.rot, np.eye(3), decimal=8)
 
 
+def test_transform_coversion():
+    mat = rotation_matrix_from_rpy([math.pi * 0.25, 0.0, 0.0])
+    tf = CoordinateTransform(np.array([1, 0, 0]), mat, "b", "a")
+    tf_again = CoordinateTransform.from_skrobot_coords(tf.to_skrobot_coords())
+    np.testing.assert_almost_equal(tf.trans, tf_again.trans)
+
+    tf_again = CoordinateTransform.from_ros_pose(tf.to_ros_pose())
+    np.testing.assert_almost_equal(tf.trans, tf_again.trans)
+
+
 def test_unit_conversion():
     # standard_unit_to_euslisp_unit
 
