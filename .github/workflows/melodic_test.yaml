@@ -38,6 +38,11 @@ jobs:
         mkdir -p ${CATKIN_WS}/src
         ln -s ${GITHUB_WORKSPACE} ${CATKIN_WS}/src/
 
+    - name: install scikit robot (adhoc-workaround)
+      run: |  # see the issue https://github.com/iory/scikit-robot/issues/272
+          git clone https://github.com/iory/scikit-robot.git
+          cd scikit-robot && pip3 install -e .
+
     - name: install package
       run: |
         source /opt/ros/melodic/setup.bash
