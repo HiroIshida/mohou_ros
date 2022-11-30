@@ -37,6 +37,9 @@ def test_transform_coversion():
     tf_again = CoordinateTransform.from_ros_pose(tf.to_ros_pose())
     np.testing.assert_almost_equal(tf.trans, tf_again.trans)
 
+    tf_again = CoordinateTransform.from_ros_transform(tf.to_ros_transform())
+    np.testing.assert_almost_equal(tf.trans, tf_again.trans)
+
 
 def test_unit_conversion():
     # standard_unit_to_euslisp_unit

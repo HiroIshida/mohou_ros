@@ -1,13 +1,18 @@
 import functools
 import warnings
 from dataclasses import asdict, dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import rospy
 from geometry_msgs.msg import Point, Pose, Quaternion
 from skrobot.coordinates import Coordinates
-from skrobot.coordinates.math import matrix2quaternion, quaternion2matrix, wxyz2xyzw
+from skrobot.coordinates.math import (
+    matrix2quaternion,
+    quaternion2matrix,
+    wxyz2xyzw,
+    xyzw2wxyz,
+)
 
 try:
     from skrobot.interfaces.ros.base import ROSRobotInterfaceBase
@@ -34,6 +39,9 @@ def deprecated(func):
     return new_func
 
 
+RosTransform = Tuple[Tuple[float, float, float], Tuple[float, float, float, float]]
+
+
 @dataclass
 class CoordinateTransform:
     trans: np.ndarray
@@ -53,6 +61,23 @@ class CoordinateTransform:
         rot_new = self.rot.T
         trans_new = -rot_new.dot(self.trans)
         return CoordinateTransform(trans_new, rot_new, self.dest, self.src)
+
+    @classmethod
+    def from_ros_transform(
+        cls, ros_tf: RosTransform, src: Optional[str] = None, dest: Optional[str] = None
+    ):
+        trans_tuple, quat_xyzw_tuple = ros_tf
+        trans = np.array(trans_tuple)
+        rot = quaternion2matrix(xyzw2wxyz(quat_xyzw_tuple))
+        return cls(trans, rot, src, dest)
+
+    def to_ros_transform(
+        self, src: Optional[str] = None, dest: Optional[str] = None
+    ) -> RosTransform:
+        quat = wxyz2xyzw(matrix2quaternion(self.rot))
+        trans = tuple(self.trans.tolist())
+        quat = tuple(quat.tolist())
+        return trans, quat  # type: ignore
 
     @classmethod
     def from_ros_pose(cls, pose: Pose, src: Optional[str] = None, dest: Optional[str] = None):
