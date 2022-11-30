@@ -50,7 +50,7 @@ jobs:
             - name: pip install pytest mypy
               run: |
                   pip3 install pytest
-                  pip3 install mypy
+                  pip3 install mypy==0.982
 
             - name: Run Pytest
               run: |
