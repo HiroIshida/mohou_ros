@@ -97,8 +97,13 @@ class PikachuGripperStateConverter(MessageConverter[PikachuDualArmGripperStates,
 ```
 where the anything is ok for the class name. After adding the class, the high-level converter, seeing the `~/.mohou/{your_project_name}/main_config.yaml`, automatically select the compatible converter according to the input and output type (In this case `PikachuDualArmGripperStates` to `GripperState`).
 
+## (2) save home position
+home position is the initial robot joint configuration. By saving and applying this, you cam keep the data-collection phase and test phase condition consistent.
+```
+rosrun mohou_ros save_home_position.py -pn {your_project_name}
+```
 
-## (2) save rosbag
+## (3) save rosbag
 Please save your rosbag files under `~/.mohou/{project_name}/rosbag`. Each rosbag file name must be ended with `.bag` extension.
 
 You can use whatever your favorite way to collect rosbag. To make is easier, this package provides
@@ -133,12 +138,6 @@ Left arm controller
 
 NOTE: when you delete that latest rosbag after stop saving rosbag, please wait few seconds.
 
-
-## (3) save home position
-home position is the initial robot joint configuration. By saving and applying this, you cam keep the data-collection phase and test phase condition consistent.
-```
-rosrun mohou_ros save_home_position.py -pn {your_project_name}
-```
 
 ## (4) tuning the image config
 Interactively create image config, which include crop and gaussian blur and hsv filter.
