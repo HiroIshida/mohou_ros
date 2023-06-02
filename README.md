@@ -117,7 +117,7 @@ rosrun mohou_ros save_rosbag.py -pn {your_project_name} # with `--gif` option, g
 ```bash
 rosrun mohou_ros vive_controller_pr2.py -pn {your_project_name}
 ```
-the buhttps://github.com/knorth55/eus_vivetton to usage map of vive controllers is follows. Note that right and left arm controllers have a little bit different usage. The following image is took from https://github.com/knorth55/eus_vive
+the button to usage map of vive controllers is follows. Note that right and left arm controllers have a little bit different usage. The following image is took from https://github.com/knorth55/eus_vive
 ![Vive controller](https://www.vive.com/media/filer_public/e3/da/e3daf208-4d4e-4adf-b911-22f9458ab883/guid-2d5454b7-1225-449c-b5e5-50a5ea4184d6-web.png)
 
 Right arm controller
