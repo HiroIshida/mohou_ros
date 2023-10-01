@@ -90,10 +90,11 @@ class PR2RightArmViveController(ViveRobotController[SkrobotPR2RarmController]):
     rosbag_manager: RosbagManager
     log_prefix: ClassVar[str] = "Right"
 
-    def __init__(self, controller_id: str, scale: float, config: Config):
+    def __init__(
+        self, controller_id: str, scale: float, config: Config, home_gripper_pos: float = 0.06
+    ):
         robot_con = SkrobotPR2RarmController(PR2())
         assert config.home_position is not None
-        home_gripper_pos = config.home_position["r_gripper_joint"]
         super().__init__(controller_id, robot_con, scale, config.home_position, home_gripper_pos)
 
         rosbag_manager = RosbagManager(config, self.sound_client)
@@ -107,10 +108,11 @@ class PR2LeftArmViveController(ViveRobotController[SkrobotPR2LarmController]):
     project_path: Path
     log_prefix: ClassVar[str] = "Left"
 
-    def __init__(self, controller_id: str, scale: float, config: Config):
+    def __init__(
+        self, controller_id: str, scale: float, config: Config, home_gripper_pos: float = 0.06
+    ):
         robot_con = SkrobotPR2LarmController(PR2())
         assert config.home_position is not None
-        home_gripper_pos = config.home_position["l_gripper_joint"]
         super().__init__(controller_id, robot_con, scale, config.home_position, home_gripper_pos)
 
         self.project_path = config.project_path
@@ -132,6 +134,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-pn", type=str, help="project name")
     parser.add_argument("-scale", type=float, default=1.5, help="controller to real scaling")
+    parser.add_argument("-gpos", type=float, default=0.06, help="home/open gripper pos")
     args, unknown = parser.parse_known_args()
 
     scale: float = args.scale
@@ -152,8 +155,8 @@ if __name__ == "__main__":
             break
 
     rospy.init_node("pr2_vive_mohou")
-    rarm_con = PR2RightArmViveController(controller_ids[0], scale, config)
-    larm_con = PR2LeftArmViveController(controller_ids[1], scale, config)
+    rarm_con = PR2RightArmViveController(controller_ids[0], scale, config, args.gpos)
+    larm_con = PR2LeftArmViveController(controller_ids[1], scale, config, args.gpos)
     rarm_con.start()
     larm_con.start()
     rospy.spin()

@@ -270,7 +270,7 @@ class ViveRobotController(ViveController, Generic[RobotControllerT]):
     def switch_grasp_state(self) -> None:
         if self.gripper_close:
             self.loginfo("gripper state CLOSE => OPEN")
-            self.robot_con.move_gripper(0.06)
+            self.robot_con.move_gripper(self.home_gripper_pos)
             self.gripper_close = False
         else:
             self.loginfo("gripper state OPEN => CLOSE")
