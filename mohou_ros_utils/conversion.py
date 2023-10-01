@@ -9,11 +9,14 @@ from mohou.types import (
     AngleVector,
     AnotherGripperState,
     DepthImage,
+    EffortVector,
     ElementDict,
     GripperState,
     PrimitiveElementBase,
     PrimitiveElementT,
     RGBImage,
+    VectorBase,
+    VelocityVector,
 )
 from mohou.utils import get_all_concrete_leaftypes
 
@@ -255,8 +258,11 @@ class DepthImageConverter(MessageConverter[CompressedImage, DepthImage]):
         """
 
 
+JointStateVectorT = TypeVar("JointStateVectorT", bound=VectorBase)
+
+
 @dataclass
-class AngleVectorConverter(MessageConverter[JointState, AngleVector]):
+class JointStateVectorConverterBase(MessageConverter[JointState, JointStateVectorT]):
     control_joints: List[str]
     joint_indices: Optional[List[int]] = None
 
@@ -271,16 +277,55 @@ class AngleVectorConverter(MessageConverter[JointState, AngleVector]):
         return JointState
 
     @classmethod
-    def out_element_type(cls) -> Type[AngleVector]:
-        return AngleVector
+    @abstractmethod
+    def out_element_type(cls) -> Type[JointStateVectorT]:
+        ...
 
-    def apply(self, msg: JointState) -> AngleVector:  # type: ignore[override]
+    @classmethod
+    @abstractmethod
+    def attribute(cls) -> str:
+        ...
+
+    def apply(self, msg: JointState) -> JointStateVectorT:  # type: ignore[override]
         if self.joint_indices is None:
             name_idx_map = {name: i for (i, name) in enumerate(msg.name)}
             self.joint_indices = [name_idx_map[name] for name in self.control_joints]
 
-        angles = [msg.position[idx] for idx in self.joint_indices]
-        return AngleVector(np.array(angles))
+        values = [getattr(msg, self.attribute())[idx] for idx in self.joint_indices]
+        return self.out_element_type()(np.array(values))
+
+
+@dataclass
+class AngleVectorConverter(JointStateVectorConverterBase[AngleVector]):
+    @classmethod
+    def out_element_type(cls) -> Type[AngleVector]:
+        return AngleVector
+
+    @classmethod
+    def attribute(cls) -> str:
+        return "position"
+
+
+@dataclass
+class VelocityVectorConverter(JointStateVectorConverterBase[VelocityVector]):
+    @classmethod
+    def out_element_type(cls) -> Type[VelocityVector]:
+        return VelocityVector
+
+    @classmethod
+    def attribute(cls) -> str:
+        return "velocity"
+
+
+@dataclass
+class EffortVectorConverter(JointStateVectorConverterBase[EffortVector]):
+    @classmethod
+    def out_element_type(cls) -> Type[EffortVector]:
+        return EffortVector
+
+    @classmethod
+    def attribute(cls) -> str:
+        return "effort"
 
 
 @dataclass
