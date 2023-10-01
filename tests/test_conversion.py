@@ -3,7 +3,13 @@ import pickle
 
 import numpy as np
 import pytest
-from mohou.types import AngleVector, GripperState, RGBImage
+from mohou.types import (
+    AngleVector,
+    EffortVector,
+    GripperState,
+    RGBImage,
+    VelocityVector,
+)
 from pr2_controllers_msgs.msg import JointControllerState
 from sensor_msgs.msg import CompressedImage, JointState
 from test_config import example_config  # noqa
@@ -12,9 +18,11 @@ from mohou_ros_utils.conversion import (
     AngleVectorConverter,
     AnotherGripperState,
     DepthImageConverter,
+    EffortVectorConverter,
     GripperStateConverter,
     MessageConverterCollection,
     RGBImageConverter,
+    VelocityVectorConverter,
     imgmsg_to_numpy,
     numpy_to_imgmsg,
 )
@@ -82,16 +90,17 @@ def test_depth_image_converter(example_config):  # type: ignore # noqa
     # TODO: add test when you implement DepthImageConverter
 
 
-def test_angle_vector_converter(example_config):  # type: ignore # noqa
+def test_joint_state_vector_converter(example_config):  # type: ignore # noqa
     # joint state of pr2
     config = example_config
     joint_state: JointState = get_pickle_data_path("joint_states.pkl")
 
     msg_table = {"/joint_states": joint_state}
-    converter = AngleVectorConverter.from_config(config)
-    av = converter.apply_to_msg_table(msg_table)  # type: ignore
-    assert av is not None
-    assert av.shape == (7,)
+    for converter_type in [AngleVectorConverter, VelocityVectorConverter, EffortVectorConverter]:
+        converter = converter_type.from_config(config)
+        av = converter.apply_to_msg_table(msg_table)  # type: ignore
+        assert av is not None
+        assert av.shape == (7,)
 
 
 def test_gripper_state_converter(example_config):  # type: ignore # noqa
@@ -121,7 +130,14 @@ def test_overall_message_converter(example_config):  # type: ignore # noqa
     conv = MessageConverterCollection.from_config(config)
     out = conv.apply_to_msg_table(msg_table)
 
-    assert set(out.keys()) == {RGBImage, AngleVector, GripperState, AnotherGripperState}
+    assert set(out.keys()) == {
+        RGBImage,
+        AngleVector,
+        VelocityVector,
+        EffortVector,
+        GripperState,
+        AnotherGripperState,
+    }
     assert out[RGBImage].shape == (112, 112, 3)
     assert out[AngleVector].shape == (7,)
     assert out[GripperState].shape == (1,)

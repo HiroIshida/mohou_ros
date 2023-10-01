@@ -3,6 +3,14 @@ topic:
         name: /joint_states
         rosbag: True
         use: True
+    VelocityVector:
+        name: /joint_states
+        rosbag: True
+        use: True
+    EffortVector:
+        name: /joint_states
+        rosbag: True
+        use: True
     RGBImage: 
         name: /kinect_head/rgb/image_rect_color
         rosbag: True

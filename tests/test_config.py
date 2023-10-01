@@ -33,8 +33,8 @@ def example_config():
 
     config = Config.from_project_path(project_path)
     assert config.project_path.name == project_name
-    assert len(config.topics.topic_config_list) == 5
-    assert len(config.topics.use_topic_list) == 4
+    assert len(config.topics.topic_config_list) == 7
+    assert len(config.topics.use_topic_list) == 6
 
     assert len(config.additional_topics) == 1
 
