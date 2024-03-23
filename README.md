@@ -55,11 +55,11 @@ Most of the command below end with `-pn {your_project_name}` option. However thi
 The global configuration can be set by adding and editting `~/.mohou/setting.yaml` file, and by setting `primary_project_name`, you can omit `-pn {your_project_name}` option.
 To do that, please hit the following command (replace `your_project_name` by your projcet name)
 ```bash
-echo "primary_project_name: your_project_name" >> ~/.mohou/seting.yaml
+echo "primary_project_name: your_project_name" >> ~/.mohou/setting.yaml
 ```
 
 ## (1) prepare per-project config file
-`mohou` and `mohuo_ros` manage each project by a corresponding project directory under `~/mohou`. For example, if your project is named `pr2_kitchen`, all the config, rosbags must be put under `~/mohou/pr2_kitchen` directory. Also, any training results such as trained autoencoder and trained lstm is put under the project directory.
+`mohou` and `mohuo_ros` manage each project by a corresponding project directory under `~/.mohou`. For example, if your project is named `pr2_kitchen`, all the config, rosbags must be put under `~/mohou/pr2_kitchen` directory. Also, any training results such as trained autoencoder and trained lstm is put under the project directory.
 So, the first step is creating a project directory by
 ```bash
 mkdir ~/.mohou/{your_project_name}
@@ -158,7 +158,7 @@ This section explains how to do this.
 For better training of autoencoder, much image is required. So we want to create a bundle
 with high hz. (20 hz or higher is recommended)
 ```bash
-rosrun mohou_ros bags2chunk.py -hz 20 -remove_policy donothing -pn {your_project_name} -postfix autoencoder -untouch 5
+rosrun mohou_ros bags2chunk.py -hz 20 -remove_policy donothing -postfix autoencoder -untouch 5 --compress --gif -pn {your_project_name}
 ```
 Here, `untouch` means number of episodes which will be kept untouch (will not used in the training). This is helpful when 
 you want to use it only for visualization or debugging. 
@@ -173,7 +173,7 @@ Other command line options for this script is
 
 On the other hand, lstm training require lower frequency data (5hz ~ 8hz) is recommended.
 ```bash
-rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy remove -pn {your_project_name} -untouch 5
+rosrun mohou_ros bags2chunk.py -hz 5 -remove_policy remove -untouch 5 --compress --gif -pn {your_project_name}
 ```
 
 ### remove init policy
