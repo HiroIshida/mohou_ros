@@ -19,14 +19,19 @@ from mohou_ros_utils.pr2.controller_utils import check_pr2_is_executable
 from mohou_ros_utils.utils import check_home_position_consistensy
 
 
+class ArmInterface(PR2ROSRobotInterface):
+    def default_controller(self):
+        return [self.rarm_controller, self.larm_controller]  # self.torso_controller
+
+
 class SkrobotPR2Executor(ExecutorBase):
     robot_model: PR2
-    robot_interface: PR2ROSRobotInterface
+    robot_interface: ArmInterface
 
     def _post_init(self):
         robot_model = PR2()
         self.robot_model = robot_model
-        self.robot_interface = PR2ROSRobotInterface(robot_model)
+        self.robot_interface = ArmInterface(robot_model)
         self.robot_model.angle_vector(self.robot_interface.angle_vector())
         check_pr2_is_executable()
 
